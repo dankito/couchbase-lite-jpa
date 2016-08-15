@@ -47,13 +47,13 @@ public class SingleEntityDaoTest extends DaoTestBase {
 
   @Test(expected = SQLException.class)
   public void persistNull_ThrowsException() throws CouchbaseLiteException, SQLException {
-    underTest.persist(null);
+    underTest.create(null);
   }
 
 
   @Test(expected = SQLException.class)
   public void persistOtherThanDaosEntity_ThrowsException() throws CouchbaseLiteException, SQLException {
-    underTest.persist(new ManyToManyOwningSide());
+    underTest.create(new ManyToManyOwningSide());
   }
 
 
@@ -61,7 +61,7 @@ public class SingleEntityDaoTest extends DaoTestBase {
   public void persistEntity_AllPropertiesGetPersistedCorrectly() throws CouchbaseLiteException, SQLException {
     EntityWithAllDataTypes testEntity = createTestEntity();
 
-    underTest.persist(testEntity);
+    underTest.create(testEntity);
 
     Assert.assertNotNull(testEntity.getId());
     Assert.assertNotNull(testEntity.getVersion());
@@ -80,9 +80,30 @@ public class SingleEntityDaoTest extends DaoTestBase {
 
 
   @Test
-  public void persistEntity_AllPropertiesGetUpdatedCorrectly() throws CouchbaseLiteException, SQLException {
+  public void retrieveEntity_AllPropertiesAreSetCorrectly() throws CouchbaseLiteException, SQLException {
     EntityWithAllDataTypes testEntity = createTestEntity();
-    underTest.persist(testEntity);
+    underTest.create(testEntity);
+
+    // TODO: turn off Cache
+    EntityWithAllDataTypes persistedEntity = (EntityWithAllDataTypes)underTest.retrieve(testEntity.getId());
+
+    Assert.assertNotNull(persistedEntity.getId());
+    Assert.assertNotNull(persistedEntity.getVersion());
+    Assert.assertTrue(persistedEntity.getVersion().startsWith("1"));
+    Assert.assertNotNull(persistedEntity.getCreatedOn());
+    Assert.assertNotNull(persistedEntity.getModifiedOn());
+
+    Assert.assertEquals(TEST_ENTITY_NAME, persistedEntity.getName());
+    Assert.assertEquals(TEST_ENTITY_AGE, persistedEntity.getAge());
+    Assert.assertEquals(TEST_ENTITY_DAY_OF_BIRTH, persistedEntity.getDayOfBirth());
+    Assert.assertEquals(TEST_ENTITY_IS_MARRIED, persistedEntity.isMarried());
+  }
+
+
+  @Test
+  public void updateEntity_AllPropertiesGetUpdatedCorrectly() throws CouchbaseLiteException, SQLException {
+    EntityWithAllDataTypes testEntity = createTestEntity();
+    underTest.create(testEntity);
 
     updateTestEntity(testEntity);
     underTest.update(testEntity);

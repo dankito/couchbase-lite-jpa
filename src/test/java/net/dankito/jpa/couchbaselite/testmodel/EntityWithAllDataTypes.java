@@ -33,6 +33,11 @@ public class EntityWithAllDataTypes extends BaseEntity {
   protected boolean isMarried;
 
 
+  public EntityWithAllDataTypes() {
+
+  }
+
+
   public String getName() {
     return name;
   }

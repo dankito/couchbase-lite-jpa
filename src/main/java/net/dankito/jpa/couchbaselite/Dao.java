@@ -8,6 +8,7 @@ import net.dankito.jpa.annotationreader.config.EntityConfig;
 import net.dankito.jpa.annotationreader.config.PropertyConfig;
 
 import java.sql.SQLException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,7 +30,7 @@ public class Dao {
   }
 
 
-  public boolean persist(Object object) throws SQLException, CouchbaseLiteException {
+  public boolean create(Object object) throws SQLException, CouchbaseLiteException {
     checkIfObjectIsOfCorrectClass(object);
 
     entityConfig.invokePrePersistLifeCycleMethod(object);
@@ -40,12 +41,52 @@ public class Dao {
 
     newDocument.putProperties(mappedProperties);
 
-    setValueOnObject(object, entityConfig.getIdProperty(), newDocument.getId());
-    updateVersion(object, newDocument);
+    setIdOnObject(object, newDocument);
+    updateVersionOnObject(object, newDocument);
 
     entityConfig.invokePostPersistLifeCycleMethod(object);
 
     return true;
+  }
+
+
+  public Object retrieve(String id) throws SQLException {
+    // TODO: check if Object is in Cache
+    Document storedDocument = retrieveStoredDocument(id);
+    return createObjectFromDocument(storedDocument);
+  }
+
+  protected Object createObjectFromDocument(Document document) throws SQLException {
+    try {
+      Object newInstance = entityConfig.getConstructor().newInstance();
+
+      setPropertiesOnObject(newInstance, document);
+
+      return newInstance;
+    } catch(Exception e) {
+      throw new SQLException("Could not create Instance of " + entityConfig.getEntityClass().getSimpleName(), e);
+    }
+  }
+
+  protected void setPropertiesOnObject(Object object, Document document) throws SQLException {
+    setIdOnObject(object, document);
+    updateVersionOnObject(object, document);
+
+    for(PropertyConfig property : entityConfig.getPropertyConfigs()) {
+      if(isCouchbaseLiteSystemProperty(property) == false) {
+        setValueOnObject(object, property, getValueFromDocument(document, property));
+      }
+    }
+  }
+
+  protected Object getValueFromDocument(Document document, PropertyConfig property) {
+    Object value = document.getProperty(property.getColumnName());
+
+    if(property.getType() == Date.class && value instanceof Long) {
+      value = new Date((long)value);
+    }
+
+    return value;
   }
 
 
@@ -59,7 +100,7 @@ public class Dao {
     Map<String, Object> updatedProperties = mapProperties(object, entityConfig, storedDocument);
 
     storedDocument.putProperties(updatedProperties);
-    updateVersion(object, storedDocument);
+    updateVersionOnObject(object, storedDocument);
 
     entityConfig.invokePostUpdateLifeCycleMethod(object);
 
@@ -70,6 +111,10 @@ public class Dao {
   protected Document retrieveStoredDocument(Object object) throws SQLException {
     String id = (String)getPropertyValue(object, entityConfig.getIdProperty());
 
+    return retrieveStoredDocument(id);
+  }
+
+  protected Document retrieveStoredDocument(String id) throws SQLException {
     Document storedDocument = database.getExistingDocument(id);
 
     if(storedDocument == null) {
@@ -79,7 +124,12 @@ public class Dao {
     return storedDocument;
   }
 
-  protected void updateVersion(Object object, Document newDocument) throws SQLException {
+
+  protected void setIdOnObject(Object object, Document newDocument) throws SQLException {
+    setValueOnObject(object, entityConfig.getIdProperty(), newDocument.getId());
+  }
+
+  protected void updateVersionOnObject(Object object, Document newDocument) throws SQLException {
     if(entityConfig.isVersionPropertySet()) {
       setValueOnObject(object, entityConfig.getVersionProperty(), newDocument.getCurrentRevisionId());
     }
@@ -115,7 +165,11 @@ public class Dao {
   }
 
   protected boolean shouldPropertyBeAdded(boolean isInitialPersist, PropertyConfig property) {
-    return ! (isInitialPersist && (property.isId() || property.isVersion()) );
+    return ! ( isInitialPersist && isCouchbaseLiteSystemProperty(property) );
+  }
+
+  protected boolean isCouchbaseLiteSystemProperty(PropertyConfig property) {
+    return property.isId() || property.isVersion();
   }
 
   protected Object getPropertyValue(Object object, PropertyConfig property) throws SQLException {
