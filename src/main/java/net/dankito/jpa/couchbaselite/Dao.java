@@ -76,21 +76,18 @@ public class Dao {
   protected Object readPropertyValue(Object object, PropertyConfig property) throws SQLException {
     Object value;
 
-    if (entityConfig.getAccess() == AccessType.PROPERTY && property.getFieldGetMethod() != null) {
+    if(shouldUseGetter(property)) {
       try {
         value = property.getFieldGetMethod().invoke(object);
       } catch (Exception e) {
-//        log.error("Could not extract field value for Property " + this + " on Object " + object);
-        throw new SQLException("Could not call " + property.getFieldGetMethod() + " for " + this, e);
+        throw new SQLException("Could not call " + property.getFieldGetMethod() + " for " + property, e);
       }
     }
     else {
       try {
-        // field object may not be a T yet
         value = property.getField().get(object);
       } catch (Exception e) {
-//        log.error("Could not extract field value for Property " + this + " on Object " + object, e);
-        throw new SQLException("Could not get field value for " + this, e);
+        throw new SQLException("Could not get field value for " + property, e);
       }
     }
 
@@ -99,13 +96,11 @@ public class Dao {
 
 
   protected void setValueOnObject(Object object, PropertyConfig property, Object value) throws SQLException {
-
-    if (entityConfig.getAccess() == AccessType.PROPERTY && property.getFieldSetMethod() != null) {
+    if(shouldUseSetter(property)) {
       try {
         property.getFieldSetMethod().invoke(object, value);
       } catch (Exception e) {
-//        log.error("Could not extract field value for Property " + this + " on Object " + object);
-        throw new SQLException("Could not call " + property.getFieldSetMethod() + " for " + this, e);
+        throw new SQLException("Could not call " + property.getFieldSetMethod() + " for " + property, e);
       }
     }
     else {
@@ -113,10 +108,19 @@ public class Dao {
         // field object may not be a T yet
         property.getField().set(object, value);
       } catch (Exception e) {
-//        log.error("Could not extract field value for Property " + this + " on Object " + object, e);
-        throw new SQLException("Could not get field value for " + this, e);
+        throw new SQLException("Could not set field value for " + property, e);
       }
     }
+  }
+
+  protected boolean shouldUseGetter(PropertyConfig property) {
+    return (entityConfig.getAccess() == AccessType.PROPERTY && property.getFieldGetMethod() != null) ||
+        (property.getField() == null && property.getFieldGetMethod() != null);
+  }
+
+  protected boolean shouldUseSetter(PropertyConfig property) {
+    return (entityConfig.getAccess() == AccessType.PROPERTY && property.getFieldSetMethod() != null) ||
+        (property.getField() == null && property.getFieldSetMethod() != null);
   }
 
 }
