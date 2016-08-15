@@ -30,38 +30,83 @@ public class Dao {
 
 
   public boolean persist(Object object) throws SQLException, CouchbaseLiteException {
+    checkIfObjectIsOfCorrectClass(object);
+
+    entityConfig.invokePrePersistLifeCycleMethod(object);
+
+    Document newDocument = database.createDocument();
+
+    Map<String, Object> mappedProperties = mapProperties(object, entityConfig, null);
+
+    newDocument.putProperties(mappedProperties);
+
+    setValueOnObject(object, entityConfig.getIdProperty(), newDocument.getId());
+    updateVersion(object, newDocument);
+
+    entityConfig.invokePostPersistLifeCycleMethod(object);
+
+    return true;
+  }
+
+
+  public boolean update(Object object) throws SQLException, CouchbaseLiteException {
+    checkIfObjectIsOfCorrectClass(object);
+
+    Document storedDocument = retrieveStoredDocument(object);
+
+    entityConfig.invokePreUpdateLifeCycleMethod(object);
+
+    Map<String, Object> updatedProperties = mapProperties(object, entityConfig, storedDocument);
+
+    storedDocument.putProperties(updatedProperties);
+    updateVersion(object, storedDocument);
+
+    entityConfig.invokePostUpdateLifeCycleMethod(object);
+
+    return true;
+  }
+
+
+  protected Document retrieveStoredDocument(Object object) throws SQLException {
+    String id = (String)getPropertyValue(object, entityConfig.getIdProperty());
+
+    Document storedDocument = database.getExistingDocument(id);
+
+    if(storedDocument == null) {
+      throw new SQLException("There's no existing Document with ID " + id);
+    }
+
+    return storedDocument;
+  }
+
+  protected void updateVersion(Object object, Document newDocument) throws SQLException {
+    if(entityConfig.isVersionPropertySet()) {
+      setValueOnObject(object, entityConfig.getVersionProperty(), newDocument.getCurrentRevisionId());
+    }
+  }
+
+
+  protected void checkIfObjectIsOfCorrectClass(Object object) throws SQLException {
     if(object == null) {
       throw new SQLException("Object to persist may not be null");
     }
     if(entityConfig.getEntityClass().isAssignableFrom(object.getClass()) == false) {
       throw new SQLException("Object to persist of class " + object.getClass() + " is not of Dao's Entity class " + entityConfig.getEntityClass());
     }
-
-    entityConfig.invokePrePersistLifeCycleMethod(object);
-
-    Document newDocument = database.createDocument();
-
-    Map<String, Object> mappedProperties = mapProperties(object, entityConfig, true);
-
-    newDocument.putProperties(mappedProperties);
-
-    setValueOnObject(object, entityConfig.getIdProperty(), newDocument.getId());
-    if(entityConfig.isVersionPropertySet()) {
-      setValueOnObject(object, entityConfig.getVersionProperty(), newDocument.getCurrentRevisionId());
-    }
-
-    entityConfig.invokePostPersistLifeCycleMethod(object);
-
-    return false;
   }
 
 
-  protected Map<String, Object> mapProperties(Object object, EntityConfig entityConfig, boolean isForInitialPersist) throws SQLException {
+  protected Map<String, Object> mapProperties(Object object, EntityConfig entityConfig, Document storedDocument) throws SQLException {
     Map<String, Object> mappedProperties = new HashMap<>();
 
+    boolean isInitialPersist = storedDocument == null;
+    if(storedDocument != null) {
+      mappedProperties.putAll(storedDocument.getProperties());
+    }
+
     for(PropertyConfig property : entityConfig.getPropertyConfigs()) {
-      if(shouldPropertyBeAdded(isForInitialPersist, property)) {
-        Object propertyValue = readPropertyValue(object, property);
+      if(shouldPropertyBeAdded(isInitialPersist, property)) {
+        Object propertyValue = getPropertyValue(object, property);
         mappedProperties.put(property.getColumnName(), propertyValue);
       }
     }
@@ -69,11 +114,11 @@ public class Dao {
     return mappedProperties;
   }
 
-  protected boolean shouldPropertyBeAdded(boolean isForInitialPersist, PropertyConfig property) {
-    return ! (isForInitialPersist && (property.isId() || property.isVersion()) );
+  protected boolean shouldPropertyBeAdded(boolean isInitialPersist, PropertyConfig property) {
+    return ! (isInitialPersist && (property.isId() || property.isVersion()) );
   }
 
-  protected Object readPropertyValue(Object object, PropertyConfig property) throws SQLException {
+  protected Object getPropertyValue(Object object, PropertyConfig property) throws SQLException {
     Object value;
 
     if(shouldUseGetter(property)) {

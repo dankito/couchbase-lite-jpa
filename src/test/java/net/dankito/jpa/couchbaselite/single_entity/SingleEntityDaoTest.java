@@ -22,12 +22,16 @@ import java.util.Date;
 public class SingleEntityDaoTest extends DaoTestBase {
 
   protected static final String TEST_ENTITY_NAME = "Mahatma Gandhi";
+  protected static final String TEST_ENTITY_NAME_AFTER_UPDATE = "Mother Teresa";
 
   protected static final int TEST_ENTITY_AGE = 78;
+  protected static final int TEST_ENTITY_AGE_AFTER_UPDATE = 87;
 
   protected static final Date TEST_ENTITY_DAY_OF_BIRTH = new Date(-31, 9, 2);
+  protected static final Date TEST_ENTITY_DAY_OF_BIRTH_AFTER_UPDATE = new Date(10, 7, 26);
 
   protected static final boolean TEST_ENTITY_IS_MARRIED = true;
+  protected static final boolean TEST_ENTITY_IS_MARRIED_AFTER_UPDATE = false;
 
 
   protected EntityConfig entityConfig;
@@ -75,6 +79,30 @@ public class SingleEntityDaoTest extends DaoTestBase {
   }
 
 
+  @Test
+  public void persistEntity_AllPropertiesGetUpdatedCorrectly() throws CouchbaseLiteException, SQLException {
+    EntityWithAllDataTypes testEntity = createTestEntity();
+    underTest.persist(testEntity);
+
+    updateTestEntity(testEntity);
+    underTest.update(testEntity);
+
+    Assert.assertNotNull(testEntity.getId());
+    Assert.assertNotNull(testEntity.getVersion());
+    Assert.assertTrue(testEntity.getVersion().startsWith("2"));
+    Assert.assertNotNull(testEntity.getCreatedOn());
+    Assert.assertNotNull(testEntity.getModifiedOn());
+
+    Document persistedDocument = database.getDocument(testEntity.getId());
+    Assert.assertNotNull(persistedDocument);
+
+    Assert.assertEquals(TEST_ENTITY_NAME_AFTER_UPDATE, persistedDocument.getProperty(EntityWithAllDataTypes.NAME_COLUMN_NAME));
+    Assert.assertEquals(TEST_ENTITY_AGE_AFTER_UPDATE, persistedDocument.getProperty(EntityWithAllDataTypes.AGE_COLUMN_NAME));
+    Assert.assertEquals(TEST_ENTITY_DAY_OF_BIRTH_AFTER_UPDATE, persistedDocument.getProperty(EntityWithAllDataTypes.DAY_OF_BIRTH_COLUMN_NAME));
+    Assert.assertEquals(TEST_ENTITY_IS_MARRIED_AFTER_UPDATE, persistedDocument.getProperty(EntityWithAllDataTypes.IS_MARRIED_COLUMN_NAME));
+  }
+
+
   protected EntityWithAllDataTypes createTestEntity() {
     EntityWithAllDataTypes testEntity = new EntityWithAllDataTypes();
 
@@ -84,6 +112,13 @@ public class SingleEntityDaoTest extends DaoTestBase {
     testEntity.setMarried(TEST_ENTITY_IS_MARRIED);
 
     return testEntity;
+  }
+
+  protected void updateTestEntity(EntityWithAllDataTypes testEntity) {
+    testEntity.setName(TEST_ENTITY_NAME_AFTER_UPDATE);
+    testEntity.setAge(TEST_ENTITY_AGE_AFTER_UPDATE);
+    testEntity.setDayOfBirth(TEST_ENTITY_DAY_OF_BIRTH_AFTER_UPDATE);
+    testEntity.setMarried(TEST_ENTITY_IS_MARRIED_AFTER_UPDATE);
   }
 
 
