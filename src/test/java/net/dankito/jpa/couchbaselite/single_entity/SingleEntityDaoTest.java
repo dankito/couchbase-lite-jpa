@@ -63,12 +63,34 @@ public class SingleEntityDaoTest extends DaoTestBase {
 
     underTest.create(testEntity);
 
+    Document persistedDocument = database.getDocument(testEntity.getId());
+    Assert.assertNotNull(persistedDocument);
+
+    Assert.assertEquals(TEST_ENTITY_NAME, persistedDocument.getProperty(EntityWithAllDataTypes.NAME_COLUMN_NAME));
+    Assert.assertEquals(TEST_ENTITY_AGE, persistedDocument.getProperty(EntityWithAllDataTypes.AGE_COLUMN_NAME));
+    Assert.assertEquals(TEST_ENTITY_DAY_OF_BIRTH.getTime(), persistedDocument.getProperty(EntityWithAllDataTypes.DAY_OF_BIRTH_COLUMN_NAME));
+    Assert.assertEquals(TEST_ENTITY_IS_MARRIED, persistedDocument.getProperty(EntityWithAllDataTypes.IS_MARRIED_COLUMN_NAME));
+  }
+
+  @Test
+  public void persistEntity_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
+    EntityWithAllDataTypes testEntity = createTestEntity();
+
+    underTest.create(testEntity);
+
     Assert.assertNotNull(testEntity.getId());
     Assert.assertNotNull(testEntity.getVersion());
     Assert.assertTrue(testEntity.getVersion().startsWith("1"));
     Assert.assertNotNull(testEntity.getCreatedOn());
     Assert.assertNotNull(testEntity.getModifiedOn());
     Assert.assertEquals(testEntity.getCreatedOn(), testEntity.getModifiedOn());
+  }
+
+  @Test
+  public void persistEntity_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
+    EntityWithAllDataTypes testEntity = createTestEntity();
+
+    underTest.create(testEntity);
 
     Assert.assertTrue(testEntity.hasPrePersistBeenCalled());
     Assert.assertTrue(testEntity.hasPostPersistBeenCalled());
@@ -77,14 +99,6 @@ public class SingleEntityDaoTest extends DaoTestBase {
     Assert.assertFalse(testEntity.hasPostUpdateBeenCalled());
     Assert.assertFalse(testEntity.hasPreRemoveBeenCalled());
     Assert.assertFalse(testEntity.hasPostRemoveBeenCalled());
-
-    Document persistedDocument = database.getDocument(testEntity.getId());
-    Assert.assertNotNull(persistedDocument);
-
-    Assert.assertEquals(TEST_ENTITY_NAME, persistedDocument.getProperty(EntityWithAllDataTypes.NAME_COLUMN_NAME));
-    Assert.assertEquals(TEST_ENTITY_AGE, persistedDocument.getProperty(EntityWithAllDataTypes.AGE_COLUMN_NAME));
-    Assert.assertEquals(TEST_ENTITY_DAY_OF_BIRTH.getTime(), persistedDocument.getProperty(EntityWithAllDataTypes.DAY_OF_BIRTH_COLUMN_NAME));
-    Assert.assertEquals(TEST_ENTITY_IS_MARRIED, persistedDocument.getProperty(EntityWithAllDataTypes.IS_MARRIED_COLUMN_NAME));
   }
 
 
@@ -97,11 +111,36 @@ public class SingleEntityDaoTest extends DaoTestBase {
 
     EntityWithAllDataTypes persistedEntity = (EntityWithAllDataTypes)underTest.retrieve(testEntity.getId());
 
+    Assert.assertEquals(TEST_ENTITY_NAME, persistedEntity.getName());
+    Assert.assertEquals(TEST_ENTITY_AGE, persistedEntity.getAge());
+    Assert.assertEquals(TEST_ENTITY_DAY_OF_BIRTH, persistedEntity.getDayOfBirth());
+    Assert.assertEquals(TEST_ENTITY_IS_MARRIED, persistedEntity.isMarried());
+  }
+
+  @Test
+  public void retrieveEntity_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
+    EntityWithAllDataTypes testEntity = createTestEntity();
+    underTest.create(testEntity);
+
+    objectCache.clear();
+
+    EntityWithAllDataTypes persistedEntity = (EntityWithAllDataTypes)underTest.retrieve(testEntity.getId());
+
     Assert.assertNotNull(persistedEntity.getId());
     Assert.assertNotNull(persistedEntity.getVersion());
     Assert.assertTrue(persistedEntity.getVersion().startsWith("1"));
     Assert.assertNotNull(persistedEntity.getCreatedOn());
     Assert.assertNotNull(persistedEntity.getModifiedOn());
+  }
+
+  @Test
+  public void retrieveEntity_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
+    EntityWithAllDataTypes testEntity = createTestEntity();
+    underTest.create(testEntity);
+
+    objectCache.clear();
+
+    EntityWithAllDataTypes persistedEntity = (EntityWithAllDataTypes)underTest.retrieve(testEntity.getId());
 
     Assert.assertFalse(persistedEntity.hasPrePersistBeenCalled());
     Assert.assertFalse(persistedEntity.hasPostPersistBeenCalled());
@@ -110,16 +149,30 @@ public class SingleEntityDaoTest extends DaoTestBase {
     Assert.assertFalse(persistedEntity.hasPostUpdateBeenCalled());
     Assert.assertFalse(persistedEntity.hasPreRemoveBeenCalled());
     Assert.assertFalse(persistedEntity.hasPostRemoveBeenCalled());
-
-    Assert.assertEquals(TEST_ENTITY_NAME, persistedEntity.getName());
-    Assert.assertEquals(TEST_ENTITY_AGE, persistedEntity.getAge());
-    Assert.assertEquals(TEST_ENTITY_DAY_OF_BIRTH, persistedEntity.getDayOfBirth());
-    Assert.assertEquals(TEST_ENTITY_IS_MARRIED, persistedEntity.isMarried());
   }
 
 
   @Test
   public void updateEntity_AllPropertiesGetUpdatedCorrectly() throws CouchbaseLiteException, SQLException {
+    EntityWithAllDataTypes testEntity = createTestEntity();
+    underTest.create(testEntity);
+
+    Date modifiedOnBeforeUpdate = testEntity.getModifiedOn();
+
+    updateTestEntity(testEntity);
+    underTest.update(testEntity);
+
+    Document persistedDocument = database.getDocument(testEntity.getId());
+    Assert.assertNotNull(persistedDocument);
+
+    Assert.assertEquals(TEST_ENTITY_NAME_AFTER_UPDATE, persistedDocument.getProperty(EntityWithAllDataTypes.NAME_COLUMN_NAME));
+    Assert.assertEquals(TEST_ENTITY_AGE_AFTER_UPDATE, persistedDocument.getProperty(EntityWithAllDataTypes.AGE_COLUMN_NAME));
+    Assert.assertEquals(TEST_ENTITY_DAY_OF_BIRTH_AFTER_UPDATE, persistedDocument.getProperty(EntityWithAllDataTypes.DAY_OF_BIRTH_COLUMN_NAME));
+    Assert.assertEquals(TEST_ENTITY_IS_MARRIED_AFTER_UPDATE, persistedDocument.getProperty(EntityWithAllDataTypes.IS_MARRIED_COLUMN_NAME));
+  }
+
+  @Test
+  public void updateEntity_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
     EntityWithAllDataTypes testEntity = createTestEntity();
     underTest.create(testEntity);
 
@@ -135,6 +188,17 @@ public class SingleEntityDaoTest extends DaoTestBase {
     Assert.assertNotEquals(testEntity.getCreatedOn(), testEntity.getModifiedOn());
     Assert.assertNotNull(testEntity.getModifiedOn());
     Assert.assertNotEquals(modifiedOnBeforeUpdate, testEntity.getModifiedOn());
+  }
+
+  @Test
+  public void updateEntity_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
+    EntityWithAllDataTypes testEntity = createTestEntity();
+    underTest.create(testEntity);
+
+    Date modifiedOnBeforeUpdate = testEntity.getModifiedOn();
+
+    updateTestEntity(testEntity);
+    underTest.update(testEntity);
 
     Assert.assertTrue(testEntity.hasPrePersistBeenCalled());
     Assert.assertTrue(testEntity.hasPostPersistBeenCalled());
@@ -143,19 +207,25 @@ public class SingleEntityDaoTest extends DaoTestBase {
     Assert.assertTrue(testEntity.hasPostUpdateBeenCalled());
     Assert.assertFalse(testEntity.hasPreRemoveBeenCalled());
     Assert.assertFalse(testEntity.hasPostRemoveBeenCalled());
-
-    Document persistedDocument = database.getDocument(testEntity.getId());
-    Assert.assertNotNull(persistedDocument);
-
-    Assert.assertEquals(TEST_ENTITY_NAME_AFTER_UPDATE, persistedDocument.getProperty(EntityWithAllDataTypes.NAME_COLUMN_NAME));
-    Assert.assertEquals(TEST_ENTITY_AGE_AFTER_UPDATE, persistedDocument.getProperty(EntityWithAllDataTypes.AGE_COLUMN_NAME));
-    Assert.assertEquals(TEST_ENTITY_DAY_OF_BIRTH_AFTER_UPDATE, persistedDocument.getProperty(EntityWithAllDataTypes.DAY_OF_BIRTH_COLUMN_NAME));
-    Assert.assertEquals(TEST_ENTITY_IS_MARRIED_AFTER_UPDATE, persistedDocument.getProperty(EntityWithAllDataTypes.IS_MARRIED_COLUMN_NAME));
   }
 
 
   @Test
   public void deleteEntity_EntityGetsDeletedCorrectly() throws CouchbaseLiteException, SQLException {
+    EntityWithAllDataTypes testEntity = createTestEntity();
+    underTest.create(testEntity);
+
+    Document persistedDocumentBefore = database.getExistingDocument(testEntity.getId());
+    Assert.assertNotNull(persistedDocumentBefore);
+
+    underTest.delete(testEntity);
+
+    Document persistedDocument = database.getExistingDocument(testEntity.getId());
+    Assert.assertNull(persistedDocument); // null means it doesn't exist
+  }
+
+  @Test
+  public void deleteEntity_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
     EntityWithAllDataTypes testEntity = createTestEntity();
     underTest.create(testEntity);
 
@@ -172,6 +242,17 @@ public class SingleEntityDaoTest extends DaoTestBase {
     Assert.assertNotEquals(testEntity.getCreatedOn(), testEntity.getModifiedOn());
     Assert.assertNotNull(testEntity.getModifiedOn());
     Assert.assertNotEquals(modifiedOnBeforeDeletion, testEntity.getModifiedOn());
+  }
+
+  @Test
+  public void deleteEntity_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
+    EntityWithAllDataTypes testEntity = createTestEntity();
+    underTest.create(testEntity);
+
+    Document persistedDocumentBefore = database.getExistingDocument(testEntity.getId());
+    Assert.assertNotNull(persistedDocumentBefore);
+
+    underTest.delete(testEntity);
 
     Assert.assertTrue(testEntity.hasPrePersistBeenCalled());
     Assert.assertTrue(testEntity.hasPostPersistBeenCalled());
@@ -180,10 +261,8 @@ public class SingleEntityDaoTest extends DaoTestBase {
     Assert.assertFalse(testEntity.hasPostUpdateBeenCalled());
     Assert.assertTrue(testEntity.hasPreRemoveBeenCalled());
     Assert.assertTrue(testEntity.hasPostRemoveBeenCalled());
-
-    Document persistedDocument = database.getExistingDocument(testEntity.getId());
-    Assert.assertNull(persistedDocument); // null means it doesn't exist
   }
+
 
 
   protected EntityWithAllDataTypes createTestEntity() {
