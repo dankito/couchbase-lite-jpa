@@ -89,8 +89,10 @@ public class Dao {
       Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(cascadePersistProperty);
       Object propertyValue = getPropertyValue(object, cascadePersistProperty);
 
-      if(targetDao.create(propertyValue)) {
-        documentProperties.put(cascadePersistProperty.getColumnName(), targetDao.getObjectId(propertyValue));
+      if(propertyValue != null) {
+        if (targetDao.create(propertyValue)) {
+          documentProperties.put(cascadePersistProperty.getColumnName(), targetDao.getObjectId(propertyValue));
+        }
       }
     }
   }

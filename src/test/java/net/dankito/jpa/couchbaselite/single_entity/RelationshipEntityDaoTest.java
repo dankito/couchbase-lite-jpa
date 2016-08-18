@@ -90,4 +90,17 @@ public class RelationshipEntityDaoTest extends DaoTestBase {
     Assert.assertFalse(inverseSide.hasPostRemoveBeenCalled());
   }
 
+
+  @Test
+  public void oneToOne_InverseSideIsNull_NoExceptionsAndAllPropertiesGetPersistedCorrectly() throws CouchbaseLiteException, SQLException {
+    OneToOneOwningEntity owningSide = new OneToOneOwningEntity(null);
+
+    underTest.create(owningSide);
+
+    Document persistedOwningSideDocument = database.getDocument(owningSide.getId());
+    Assert.assertNotNull(persistedOwningSideDocument);
+
+    Assert.assertEquals(null, persistedOwningSideDocument.getProperty(OneToOneOwningEntity.INVERSE_SIDE_COLUMN_NAME + "_id"));
+  }
+
 }
