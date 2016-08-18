@@ -6,6 +6,7 @@ import com.couchbase.lite.Document;
 
 import net.dankito.jpa.annotationreader.config.EntityConfig;
 import net.dankito.jpa.annotationreader.config.PropertyConfig;
+import net.dankito.jpa.cache.ObjectCache;
 
 import java.sql.SQLException;
 import java.util.Date;
@@ -23,10 +24,17 @@ public class Dao {
 
   protected EntityConfig entityConfig;
 
+  protected Class entityClass;
 
-  public Dao(Database database, EntityConfig entityConfig) {
+  protected ObjectCache objectCache;
+
+
+  public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache) {
     this.database = database;
     this.entityConfig = entityConfig;
+    this.objectCache = objectCache;
+
+    this.entityClass = entityConfig.getEntityClass();
   }
 
 
@@ -46,14 +54,24 @@ public class Dao {
 
     entityConfig.invokePostPersistLifeCycleMethod(object);
 
+    objectCache.add(entityClass, newDocument.getId(), object);
+
     return true;
   }
 
 
   public Object retrieve(String id) throws SQLException {
-    // TODO: check if Object is in Cache
-    Document storedDocument = retrieveStoredDocument(id);
-    return createObjectFromDocument(storedDocument);
+    if(objectCache.containsObjectForId(entityClass, id)) {
+      return objectCache.get(entityClass, id);
+    }
+    else {
+      Document storedDocument = retrieveStoredDocument(id);
+      Object retrievedObject = createObjectFromDocument(storedDocument);
+
+      objectCache.add(entityClass, storedDocument.getId(), retrievedObject);
+
+      return retrievedObject;
+    }
   }
 
   protected Object createObjectFromDocument(Document document) throws SQLException {
