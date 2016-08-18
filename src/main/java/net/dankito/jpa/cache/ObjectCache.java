@@ -54,4 +54,9 @@ public class ObjectCache {
     return null;
   }
 
+
+  public void clear() {
+    cache.clear();
+  }
+
 }

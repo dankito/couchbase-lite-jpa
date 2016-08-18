@@ -29,6 +29,8 @@ public class DaoTestBase {
 
   protected File tempDbPath;
 
+  protected ObjectCache objectCache;
+
 
   public void setUpDatabaseAndDao(EntityConfig entityConfig) throws Exception {
     tempDbPath = Files.createTempDirectory("couchbase_lite_test").toFile();
@@ -39,7 +41,9 @@ public class DaoTestBase {
     options.setCreate(true);
     database = manager.openDatabase("test_db", options);
 
-    underTest = new Dao(database, entityConfig, new ObjectCache());
+    objectCache = new ObjectCache();
+
+    underTest = new Dao(database, entityConfig, objectCache);
   }
 
   @After

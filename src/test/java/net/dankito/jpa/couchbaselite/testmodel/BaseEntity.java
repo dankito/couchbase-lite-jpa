@@ -14,6 +14,7 @@ import javax.persistence.PreRemove;
 import javax.persistence.PreUpdate;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
+import javax.persistence.Transient;
 import javax.persistence.Version;
 
 /**
@@ -37,16 +38,19 @@ public class BaseEntity {
   protected Date modifiedOn;
 
 
+  @Transient // test both, Transient annotation and key word
   protected boolean hasPrePersistBeenCalled = false;
-  protected boolean hasPostPersistBeenCalled = false;
+  protected transient boolean hasPostPersistBeenCalled = false;
 
-  protected boolean hasPostLoadBeenCalled = false;
+  protected transient boolean hasPostLoadBeenCalled = false;
 
+  @Transient
   protected boolean hasPreUpdateBeenCalled = false;
-  protected boolean hasPostUpdateBeenCalled = false;
+  protected transient boolean hasPostUpdateBeenCalled = false;
 
+  @Transient
   protected boolean hasPreRemoveBeenCalled = false;
-  protected boolean hasPostRemoveBeenCalled = false;
+  protected transient boolean hasPostRemoveBeenCalled = false;
 
 
 

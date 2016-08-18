@@ -93,7 +93,8 @@ public class SingleEntityDaoTest extends DaoTestBase {
     EntityWithAllDataTypes testEntity = createTestEntity();
     underTest.create(testEntity);
 
-    // TODO: turn off Cache
+    objectCache.clear();
+
     EntityWithAllDataTypes persistedEntity = (EntityWithAllDataTypes)underTest.retrieve(testEntity.getId());
 
     Assert.assertNotNull(persistedEntity.getId());
@@ -102,13 +103,13 @@ public class SingleEntityDaoTest extends DaoTestBase {
     Assert.assertNotNull(persistedEntity.getCreatedOn());
     Assert.assertNotNull(persistedEntity.getModifiedOn());
 
-    Assert.assertTrue(testEntity.hasPrePersistBeenCalled());
-    Assert.assertTrue(testEntity.hasPostPersistBeenCalled());
-    Assert.assertTrue(testEntity.hasPostLoadBeenCalled());
-    Assert.assertFalse(testEntity.hasPreUpdateBeenCalled());
-    Assert.assertFalse(testEntity.hasPostUpdateBeenCalled());
-    Assert.assertFalse(testEntity.hasPreRemoveBeenCalled());
-    Assert.assertFalse(testEntity.hasPostRemoveBeenCalled());
+    Assert.assertFalse(persistedEntity.hasPrePersistBeenCalled());
+    Assert.assertFalse(persistedEntity.hasPostPersistBeenCalled());
+    Assert.assertTrue(persistedEntity.hasPostLoadBeenCalled());
+    Assert.assertFalse(persistedEntity.hasPreUpdateBeenCalled());
+    Assert.assertFalse(persistedEntity.hasPostUpdateBeenCalled());
+    Assert.assertFalse(persistedEntity.hasPreRemoveBeenCalled());
+    Assert.assertFalse(persistedEntity.hasPostRemoveBeenCalled());
 
     Assert.assertEquals(TEST_ENTITY_NAME, persistedEntity.getName());
     Assert.assertEquals(TEST_ENTITY_AGE, persistedEntity.getAge());
