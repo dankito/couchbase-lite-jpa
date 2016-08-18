@@ -70,6 +70,14 @@ public class SingleEntityDaoTest extends DaoTestBase {
     Assert.assertNotNull(testEntity.getModifiedOn());
     Assert.assertEquals(testEntity.getCreatedOn(), testEntity.getModifiedOn());
 
+    Assert.assertTrue(testEntity.hasPrePersistBeenCalled());
+    Assert.assertTrue(testEntity.hasPostPersistBeenCalled());
+    Assert.assertFalse(testEntity.hasPostLoadBeenCalled());
+    Assert.assertFalse(testEntity.hasPreUpdateBeenCalled());
+    Assert.assertFalse(testEntity.hasPostUpdateBeenCalled());
+    Assert.assertFalse(testEntity.hasPreRemoveBeenCalled());
+    Assert.assertFalse(testEntity.hasPostRemoveBeenCalled());
+
     Document persistedDocument = database.getDocument(testEntity.getId());
     Assert.assertNotNull(persistedDocument);
 
@@ -93,6 +101,14 @@ public class SingleEntityDaoTest extends DaoTestBase {
     Assert.assertTrue(persistedEntity.getVersion().startsWith("1"));
     Assert.assertNotNull(persistedEntity.getCreatedOn());
     Assert.assertNotNull(persistedEntity.getModifiedOn());
+
+    Assert.assertTrue(testEntity.hasPrePersistBeenCalled());
+    Assert.assertTrue(testEntity.hasPostPersistBeenCalled());
+    Assert.assertTrue(testEntity.hasPostLoadBeenCalled());
+    Assert.assertFalse(testEntity.hasPreUpdateBeenCalled());
+    Assert.assertFalse(testEntity.hasPostUpdateBeenCalled());
+    Assert.assertFalse(testEntity.hasPreRemoveBeenCalled());
+    Assert.assertFalse(testEntity.hasPostRemoveBeenCalled());
 
     Assert.assertEquals(TEST_ENTITY_NAME, persistedEntity.getName());
     Assert.assertEquals(TEST_ENTITY_AGE, persistedEntity.getAge());
@@ -118,6 +134,14 @@ public class SingleEntityDaoTest extends DaoTestBase {
     Assert.assertNotEquals(testEntity.getCreatedOn(), testEntity.getModifiedOn());
     Assert.assertNotNull(testEntity.getModifiedOn());
     Assert.assertNotEquals(modifiedOnBeforeUpdate, testEntity.getModifiedOn());
+
+    Assert.assertTrue(testEntity.hasPrePersistBeenCalled());
+    Assert.assertTrue(testEntity.hasPostPersistBeenCalled());
+    Assert.assertFalse(testEntity.hasPostLoadBeenCalled());
+    Assert.assertTrue(testEntity.hasPreUpdateBeenCalled());
+    Assert.assertTrue(testEntity.hasPostUpdateBeenCalled());
+    Assert.assertFalse(testEntity.hasPreRemoveBeenCalled());
+    Assert.assertFalse(testEntity.hasPostRemoveBeenCalled());
 
     Document persistedDocument = database.getDocument(testEntity.getId());
     Assert.assertNotNull(persistedDocument);
@@ -147,6 +171,14 @@ public class SingleEntityDaoTest extends DaoTestBase {
     Assert.assertNotEquals(testEntity.getCreatedOn(), testEntity.getModifiedOn());
     Assert.assertNotNull(testEntity.getModifiedOn());
     Assert.assertNotEquals(modifiedOnBeforeDeletion, testEntity.getModifiedOn());
+
+    Assert.assertTrue(testEntity.hasPrePersistBeenCalled());
+    Assert.assertTrue(testEntity.hasPostPersistBeenCalled());
+    Assert.assertFalse(testEntity.hasPostLoadBeenCalled());
+    Assert.assertFalse(testEntity.hasPreUpdateBeenCalled());
+    Assert.assertFalse(testEntity.hasPostUpdateBeenCalled());
+    Assert.assertTrue(testEntity.hasPreRemoveBeenCalled());
+    Assert.assertTrue(testEntity.hasPostRemoveBeenCalled());
 
     Document persistedDocument = database.getExistingDocument(testEntity.getId());
     Assert.assertNull(persistedDocument); // null means it doesn't exist
