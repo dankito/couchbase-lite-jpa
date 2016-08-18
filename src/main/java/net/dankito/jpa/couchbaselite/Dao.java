@@ -52,9 +52,9 @@ public class Dao {
     setIdOnObject(object, newDocument);
     updateVersionOnObject(object, newDocument);
 
-    entityConfig.invokePostPersistLifeCycleMethod(object);
-
     objectCache.add(entityClass, newDocument.getId(), object);
+
+    entityConfig.invokePostPersistLifeCycleMethod(object);
 
     return true;
   }
@@ -69,6 +69,8 @@ public class Dao {
       Object retrievedObject = createObjectFromDocument(storedDocument);
 
       objectCache.add(entityClass, storedDocument.getId(), retrievedObject);
+
+      entityConfig.invokePostLoadLifeCycleMethod(retrievedObject);
 
       return retrievedObject;
     }
@@ -118,6 +120,7 @@ public class Dao {
     Map<String, Object> updatedProperties = mapProperties(object, entityConfig, storedDocument);
 
     storedDocument.putProperties(updatedProperties);
+
     updateVersionOnObject(object, storedDocument);
 
     entityConfig.invokePostUpdateLifeCycleMethod(object);
@@ -127,7 +130,7 @@ public class Dao {
 
 
   protected Document retrieveStoredDocument(Object object) throws SQLException {
-    String id = (String)getPropertyValue(object, entityConfig.getIdProperty());
+    String id = getObjectsId(object);
 
     return retrieveStoredDocument(id);
   }
@@ -142,6 +145,36 @@ public class Dao {
     return storedDocument;
   }
 
+
+  public boolean delete(Object object) throws SQLException, CouchbaseLiteException {
+    checkIfObjectIsOfCorrectClass(object, "delete");
+
+    String id = getObjectsId(object);
+
+    Document storedDocument = retrieveStoredDocument(object);
+
+    if(storedDocument.isDeleted() == false) {
+      entityConfig.invokePreRemoveLifeCycleMethod(object);
+
+      boolean result = storedDocument.delete();
+
+      // TODO: should id be reset on Object?
+      updateVersionOnObject(object, storedDocument); // TODO: after delete documents version is set to null -> really update object's version?
+
+      objectCache.remove(entityClass, id);
+
+      entityConfig.invokePostRemoveLifeCycleMethod(object);
+
+      return result;
+    }
+
+    return false;
+  }
+
+
+  protected String getObjectsId(Object object) throws SQLException {
+    return (String)getPropertyValue(object, entityConfig.getIdProperty());
+  }
 
   protected void setIdOnObject(Object object, Document newDocument) throws SQLException {
     setValueOnObject(object, entityConfig.getIdProperty(), newDocument.getId());

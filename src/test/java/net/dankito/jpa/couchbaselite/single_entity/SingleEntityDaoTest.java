@@ -124,6 +124,26 @@ public class SingleEntityDaoTest extends DaoTestBase {
   }
 
 
+  @Test
+  public void deleteEntity_EntityGetsDeletedCorrectly() throws CouchbaseLiteException, SQLException {
+    EntityWithAllDataTypes testEntity = createTestEntity();
+    underTest.create(testEntity);
+
+    Document persistedDocumentBefore = database.getExistingDocument(testEntity.getId());
+    Assert.assertNotNull(persistedDocumentBefore);
+
+    underTest.delete(testEntity);
+
+    Assert.assertNotNull(testEntity.getId());
+    Assert.assertNull(testEntity.getVersion());
+    Assert.assertNotNull(testEntity.getCreatedOn());
+    Assert.assertNotNull(testEntity.getModifiedOn());
+
+    Document persistedDocument = database.getExistingDocument(testEntity.getId());
+    Assert.assertNull(persistedDocument); // null means it doesn't exist
+  }
+
+
   protected EntityWithAllDataTypes createTestEntity() {
     EntityWithAllDataTypes testEntity = new EntityWithAllDataTypes();
 
