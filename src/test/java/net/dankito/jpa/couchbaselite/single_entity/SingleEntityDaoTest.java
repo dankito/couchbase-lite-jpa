@@ -68,6 +68,7 @@ public class SingleEntityDaoTest extends DaoTestBase {
     Assert.assertTrue(testEntity.getVersion().startsWith("1"));
     Assert.assertNotNull(testEntity.getCreatedOn());
     Assert.assertNotNull(testEntity.getModifiedOn());
+    Assert.assertEquals(testEntity.getCreatedOn(), testEntity.getModifiedOn());
 
     Document persistedDocument = database.getDocument(testEntity.getId());
     Assert.assertNotNull(persistedDocument);
@@ -105,6 +106,8 @@ public class SingleEntityDaoTest extends DaoTestBase {
     EntityWithAllDataTypes testEntity = createTestEntity();
     underTest.create(testEntity);
 
+    Date modifiedOnBeforeUpdate = testEntity.getModifiedOn();
+
     updateTestEntity(testEntity);
     underTest.update(testEntity);
 
@@ -112,7 +115,9 @@ public class SingleEntityDaoTest extends DaoTestBase {
     Assert.assertNotNull(testEntity.getVersion());
     Assert.assertTrue(testEntity.getVersion().startsWith("2"));
     Assert.assertNotNull(testEntity.getCreatedOn());
+    Assert.assertNotEquals(testEntity.getCreatedOn(), testEntity.getModifiedOn());
     Assert.assertNotNull(testEntity.getModifiedOn());
+    Assert.assertNotEquals(modifiedOnBeforeUpdate, testEntity.getModifiedOn());
 
     Document persistedDocument = database.getDocument(testEntity.getId());
     Assert.assertNotNull(persistedDocument);
@@ -129,6 +134,8 @@ public class SingleEntityDaoTest extends DaoTestBase {
     EntityWithAllDataTypes testEntity = createTestEntity();
     underTest.create(testEntity);
 
+    Date modifiedOnBeforeDeletion = testEntity.getModifiedOn();
+
     Document persistedDocumentBefore = database.getExistingDocument(testEntity.getId());
     Assert.assertNotNull(persistedDocumentBefore);
 
@@ -137,7 +144,9 @@ public class SingleEntityDaoTest extends DaoTestBase {
     Assert.assertNotNull(testEntity.getId());
     Assert.assertNull(testEntity.getVersion());
     Assert.assertNotNull(testEntity.getCreatedOn());
+    Assert.assertNotEquals(testEntity.getCreatedOn(), testEntity.getModifiedOn());
     Assert.assertNotNull(testEntity.getModifiedOn());
+    Assert.assertNotEquals(modifiedOnBeforeDeletion, testEntity.getModifiedOn());
 
     Document persistedDocument = database.getExistingDocument(testEntity.getId());
     Assert.assertNull(persistedDocument); // null means it doesn't exist
