@@ -7,6 +7,7 @@ import com.couchbase.lite.Document;
 import net.dankito.jpa.annotationreader.config.EntityConfig;
 import net.dankito.jpa.annotationreader.config.PropertyConfig;
 import net.dankito.jpa.cache.ObjectCache;
+import net.dankito.jpa.cache.RelationshipDaoCache;
 
 import java.sql.SQLException;
 import java.util.Date;
@@ -28,20 +29,37 @@ public class Dao {
 
   protected ObjectCache objectCache;
 
+  protected RelationshipDaoCache relationshipDaoCache;
 
-  public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache) {
+
+  public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, RelationshipDaoCache relationshipDaoCache) {
     this.database = database;
     this.entityConfig = entityConfig;
     this.objectCache = objectCache;
+    this.relationshipDaoCache = relationshipDaoCache;
 
     this.entityClass = entityConfig.getEntityClass();
   }
 
 
   public boolean create(Object object) throws SQLException, CouchbaseLiteException {
-    checkIfObjectIsOfCorrectClass(object, "persist");
+    if(isAlreadyPersisted(object)) {
+      return false;
+    }
 
     entityConfig.invokePrePersistLifeCycleMethod(object);
+
+    Document objectDocument = createEntityInDb(object);
+
+    createCascadePersistPropertiesAndUpdateDocument(object, objectDocument);
+
+    entityConfig.invokePostPersistLifeCycleMethod(object);
+
+    return true;
+  }
+
+  protected Document createEntityInDb(Object object) throws SQLException, CouchbaseLiteException {
+    checkIfObjectIsOfCorrectClass(object, "persist");
 
     Document newDocument = database.createDocument();
 
@@ -54,9 +72,27 @@ public class Dao {
 
     objectCache.add(entityClass, newDocument.getId(), object);
 
-    entityConfig.invokePostPersistLifeCycleMethod(object);
+    return newDocument;
+  }
 
-    return true;
+  protected void createCascadePersistPropertiesAndUpdateDocument(Object object, Document objectDocument) throws SQLException, CouchbaseLiteException {
+    Map<String, Object> documentProperties = new HashMap<>();
+    documentProperties.putAll(objectDocument.getProperties());
+
+    createCascadePersistProperties(object, documentProperties);
+
+    objectDocument.putProperties(documentProperties);
+  }
+
+  protected void createCascadePersistProperties(Object object, Map<String, Object> documentProperties) throws SQLException, CouchbaseLiteException {
+    for(PropertyConfig cascadePersistProperty : entityConfig.getRelationshipPropertiesWithCascadePersist()) {
+      Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(cascadePersistProperty);
+      Object propertyValue = getPropertyValue(object, cascadePersistProperty);
+
+      if(targetDao.create(propertyValue)) {
+        documentProperties.put(cascadePersistProperty.getColumnName(), targetDao.getObjectId(propertyValue));
+      }
+    }
   }
 
 
@@ -92,7 +128,7 @@ public class Dao {
     setIdOnObject(object, document);
     updateVersionOnObject(object, document);
 
-    for(PropertyConfig property : entityConfig.getPropertyConfigs()) {
+    for(PropertyConfig property : entityConfig.getProperties()) {
       if(isCouchbaseLiteSystemProperty(property) == false) {
         setValueOnObject(object, property, getValueFromDocument(document, property));
       }
@@ -130,7 +166,7 @@ public class Dao {
 
 
   protected Document retrieveStoredDocument(Object object) throws SQLException {
-    String id = getObjectsId(object);
+    String id = getObjectId(object);
 
     return retrieveStoredDocument(id);
   }
@@ -149,7 +185,7 @@ public class Dao {
   public boolean delete(Object object) throws SQLException, CouchbaseLiteException {
     checkIfObjectIsOfCorrectClass(object, "delete");
 
-    String id = getObjectsId(object);
+    String id = getObjectId(object);
 
     Document storedDocument = retrieveStoredDocument(object);
 
@@ -172,7 +208,11 @@ public class Dao {
   }
 
 
-  protected String getObjectsId(Object object) throws SQLException {
+  protected boolean isAlreadyPersisted(Object object) throws SQLException {
+    return getObjectId(object) != null;
+  }
+
+  protected String getObjectId(Object object) throws SQLException {
     return (String)getPropertyValue(object, entityConfig.getIdProperty());
   }
 
@@ -205,10 +245,22 @@ public class Dao {
       mappedProperties.putAll(storedDocument.getProperties());
     }
 
-    for(PropertyConfig property : entityConfig.getPropertyConfigs()) {
+    for(PropertyConfig property : entityConfig.getProperties()) {
       if(shouldPropertyBeAdded(isInitialPersist, property)) {
         Object propertyValue = getPropertyValue(object, property);
-        mappedProperties.put(property.getColumnName(), propertyValue);
+
+        if(property.isRelationshipProperty() == false) {
+          mappedProperties.put(property.getColumnName(), propertyValue);
+        }
+        else {
+          if(propertyValue == null) {
+            mappedProperties.put(property.getColumnName(), null);
+          }
+          else if(relationshipDaoCache.containsTargetDaoForRelationshipProperty(property)) {
+            Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(property);
+            mappedProperties.put(property.getColumnName(), targetDao.getObjectId(propertyValue));
+          }
+        }
       }
     }
 

@@ -19,7 +19,7 @@ import java.util.Date;
 /**
  * Created by ganymed on 15/08/16.
  */
-public class SingleEntityDaoTest extends DaoTestBase {
+public class NonRelationshipEntityDaoTest extends DaoTestBase {
 
   protected static final String TEST_ENTITY_NAME = "Mahatma Gandhi";
   protected static final String TEST_ENTITY_NAME_AFTER_UPDATE = "Mother Teresa";
@@ -34,14 +34,9 @@ public class SingleEntityDaoTest extends DaoTestBase {
   protected static final boolean TEST_ENTITY_IS_MARRIED_AFTER_UPDATE = false;
 
 
-  protected EntityConfig entityConfig;
-
-  @Before
-  public void setUp() throws Exception {
-    EntityConfig[] readEntities = new JpaEntityConfigurationReader().readConfiguration(EntityWithAllDataTypes.class);
-    entityConfig = readEntities[0];
-
-    setUpDatabaseAndDao(entityConfig);
+  @Override
+  protected Class[] getEntitiesToTest() {
+    return new Class[] { EntityWithAllDataTypes.class };
   }
 
 
