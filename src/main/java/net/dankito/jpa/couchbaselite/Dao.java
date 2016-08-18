@@ -106,8 +106,6 @@ public class Dao {
       Document storedDocument = retrieveStoredDocument(id);
       Object retrievedObject = createObjectFromDocument(storedDocument);
 
-      objectCache.add(entityClass, storedDocument.getId(), retrievedObject);
-
       entityConfig.invokePostLoadLifeCycleMethod(retrievedObject);
 
       return retrievedObject;
@@ -117,6 +115,8 @@ public class Dao {
   protected Object createObjectFromDocument(Document document) throws SQLException {
     try {
       Object newInstance = entityConfig.getConstructor().newInstance();
+
+      objectCache.add(entityClass, document.getId(), newInstance);
 
       setPropertiesOnObject(newInstance, document);
 
@@ -132,7 +132,16 @@ public class Dao {
 
     for(PropertyConfig property : entityConfig.getProperties()) {
       if(isCouchbaseLiteSystemProperty(property) == false) {
-        setValueOnObject(object, property, getValueFromDocument(document, property));
+        Object propertyValue = getValueFromDocument(document, property);
+
+        if(property.isRelationshipProperty() == false) {
+          setValueOnObject(object, property, propertyValue);
+        }
+        else {
+          Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(property);
+          Object deserializedTargetInstance = targetDao.retrieve((String)propertyValue);
+          setValueOnObject(object, property, deserializedTargetInstance);
+        }
       }
     }
   }

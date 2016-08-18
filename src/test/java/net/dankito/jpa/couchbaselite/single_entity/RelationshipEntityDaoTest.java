@@ -5,6 +5,7 @@ import com.couchbase.lite.Document;
 
 import net.dankito.jpa.annotationreader.JpaEntityConfigurationReader;
 import net.dankito.jpa.annotationreader.config.EntityConfig;
+import net.dankito.jpa.couchbaselite.Dao;
 import net.dankito.jpa.couchbaselite.DaoTestBase;
 import net.dankito.jpa.couchbaselite.testmodel.EntityWithAllDataTypes;
 import net.dankito.jpa.couchbaselite.testmodel.relationship.OneToOneInverseEntity;
@@ -101,6 +102,82 @@ public class RelationshipEntityDaoTest extends DaoTestBase {
     Assert.assertNotNull(persistedOwningSideDocument);
 
     Assert.assertEquals(null, persistedOwningSideDocument.getProperty(OneToOneOwningEntity.INVERSE_SIDE_COLUMN_NAME + "_id"));
+  }
+
+
+  @Test
+  public void retrieveEntity_AllPropertiesAreSetCorrectly() throws CouchbaseLiteException, SQLException {
+    OneToOneInverseEntity inverseSide = new OneToOneInverseEntity();
+    OneToOneOwningEntity owningSide = new OneToOneOwningEntity(inverseSide);
+
+    underTest.create(owningSide);
+
+    objectCache.clear();
+
+    Dao inverseSideDao = relationshipDaoCache.getDaoForEntity(OneToOneInverseEntity.class);
+
+    OneToOneOwningEntity persistedOwningSide = (OneToOneOwningEntity) underTest.retrieve(owningSide.getId());
+    OneToOneInverseEntity persistedInverseSide = (OneToOneInverseEntity) inverseSideDao.retrieve(inverseSide.getId());
+
+    Assert.assertEquals(persistedInverseSide, persistedOwningSide.getInverseSide());
+
+    Assert.assertEquals(persistedOwningSide, persistedInverseSide.getOwningSide());
+  }
+
+  @Test
+  public void retrieveEntity_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
+    OneToOneInverseEntity inverseSide = new OneToOneInverseEntity();
+    OneToOneOwningEntity owningSide = new OneToOneOwningEntity(inverseSide);
+
+    underTest.create(owningSide);
+
+    objectCache.clear();
+
+    OneToOneOwningEntity persistedOwningSide = (OneToOneOwningEntity) underTest.retrieve(owningSide.getId());
+
+    Assert.assertNotNull(persistedOwningSide.getId());
+    Assert.assertNotNull(persistedOwningSide.getVersion());
+//    Assert.assertTrue(persistedOwningSide.getVersion().startsWith("1"));
+    Assert.assertNotNull(persistedOwningSide.getCreatedOn());
+    Assert.assertNotNull(persistedOwningSide.getModifiedOn());
+
+    OneToOneInverseEntity persistedInverseSide = persistedOwningSide.getInverseSide();
+
+    Assert.assertNotNull(persistedInverseSide.getId());
+    Assert.assertNotNull(persistedInverseSide.getVersion());
+//    Assert.assertTrue(persistedInverseSide.getVersion().startsWith("1"));
+    Assert.assertNotNull(persistedInverseSide.getCreatedOn());
+    Assert.assertNotNull(persistedInverseSide.getModifiedOn());
+  }
+
+  @Test
+  public void retrieveEntity_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
+    OneToOneInverseEntity inverseSide = new OneToOneInverseEntity();
+    OneToOneOwningEntity owningSide = new OneToOneOwningEntity(inverseSide);
+
+    underTest.create(owningSide);
+
+    objectCache.clear();
+
+    OneToOneOwningEntity persistedOwningSide = (OneToOneOwningEntity) underTest.retrieve(owningSide.getId());
+
+    Assert.assertFalse(persistedOwningSide.hasPrePersistBeenCalled());
+    Assert.assertFalse(persistedOwningSide.hasPostPersistBeenCalled());
+    Assert.assertTrue(persistedOwningSide.hasPostLoadBeenCalled());
+    Assert.assertFalse(persistedOwningSide.hasPreUpdateBeenCalled());
+    Assert.assertFalse(persistedOwningSide.hasPostUpdateBeenCalled());
+    Assert.assertFalse(persistedOwningSide.hasPreRemoveBeenCalled());
+    Assert.assertFalse(persistedOwningSide.hasPostRemoveBeenCalled());
+
+    OneToOneInverseEntity persistedInverseSide = persistedOwningSide.getInverseSide();
+
+    Assert.assertFalse(persistedInverseSide.hasPrePersistBeenCalled());
+    Assert.assertFalse(persistedInverseSide.hasPostPersistBeenCalled());
+    Assert.assertTrue(persistedInverseSide.hasPostLoadBeenCalled());
+    Assert.assertFalse(persistedInverseSide.hasPreUpdateBeenCalled());
+    Assert.assertFalse(persistedInverseSide.hasPostUpdateBeenCalled());
+    Assert.assertFalse(persistedInverseSide.hasPreRemoveBeenCalled());
+    Assert.assertFalse(persistedInverseSide.hasPostRemoveBeenCalled());
   }
 
 }
