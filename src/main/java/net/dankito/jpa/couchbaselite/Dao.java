@@ -39,7 +39,7 @@ public class Dao {
 
 
   public boolean create(Object object) throws SQLException, CouchbaseLiteException {
-    checkIfObjectIsOfCorrectClass(object);
+    checkIfObjectIsOfCorrectClass(object, "persist");
 
     entityConfig.invokePrePersistLifeCycleMethod(object);
 
@@ -109,7 +109,7 @@ public class Dao {
 
 
   public boolean update(Object object) throws SQLException, CouchbaseLiteException {
-    checkIfObjectIsOfCorrectClass(object);
+    checkIfObjectIsOfCorrectClass(object, "update");
 
     Document storedDocument = retrieveStoredDocument(object);
 
@@ -154,12 +154,12 @@ public class Dao {
   }
 
 
-  protected void checkIfObjectIsOfCorrectClass(Object object) throws SQLException {
+  protected void checkIfObjectIsOfCorrectClass(Object object, String crudOperationName) throws SQLException {
     if(object == null) {
-      throw new SQLException("Object to persist may not be null");
+      throw new SQLException("Object to " + crudOperationName + " may not be null");
     }
     if(entityConfig.getEntityClass().isAssignableFrom(object.getClass()) == false) {
-      throw new SQLException("Object to persist of class " + object.getClass() + " is not of Dao's Entity class " + entityConfig.getEntityClass());
+      throw new SQLException("Object to " + crudOperationName + " of class " + object.getClass() + " is not of Dao's Entity class " + entityConfig.getEntityClass());
     }
   }
 

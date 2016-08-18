@@ -7,6 +7,7 @@ import com.couchbase.lite.JavaContext;
 import com.couchbase.lite.Manager;
 
 import net.dankito.jpa.annotationreader.config.EntityConfig;
+import net.dankito.jpa.cache.ObjectCache;
 
 import org.junit.After;
 import org.junit.Before;
@@ -38,7 +39,7 @@ public class DaoTestBase {
     options.setCreate(true);
     database = manager.openDatabase("test_db", options);
 
-    underTest = new Dao(database, entityConfig);
+    underTest = new Dao(database, entityConfig, new ObjectCache());
   }
 
   @After
