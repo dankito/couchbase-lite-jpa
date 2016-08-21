@@ -3,11 +3,8 @@ package net.dankito.jpa.couchbaselite.single_entity;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Document;
 
-import net.dankito.jpa.annotationreader.JpaEntityConfigurationReader;
-import net.dankito.jpa.annotationreader.config.EntityConfig;
 import net.dankito.jpa.couchbaselite.Dao;
 import net.dankito.jpa.couchbaselite.DaoTestBase;
-import net.dankito.jpa.couchbaselite.testmodel.EntityWithAllDataTypes;
 import net.dankito.jpa.couchbaselite.testmodel.relationship.OneToOneInverseEntity;
 import net.dankito.jpa.couchbaselite.testmodel.relationship.OneToOneOwningEntity;
 
@@ -39,12 +36,12 @@ public class RelationshipEntityDaoTest extends DaoTestBase {
     Document persistedOwningSideDocument = database.getDocument(owningSide.getId());
     Assert.assertNotNull(persistedOwningSideDocument);
 
-    Assert.assertEquals(inverseSide.getId(), persistedOwningSideDocument.getProperty(OneToOneOwningEntity.INVERSE_SIDE_COLUMN_NAME + "_id"));
+    Assert.assertEquals(inverseSide.getId(), persistedOwningSideDocument.getProperty(OneToOneOwningEntity.INVERSE_SIDE_COLUMN_NAME));
 
     Document persistedInverseSideDocument = database.getDocument(inverseSide.getId());
     Assert.assertNotNull(persistedInverseSideDocument);
 
-    Assert.assertEquals(owningSide.getId(), persistedInverseSideDocument.getProperty(OneToOneInverseEntity.OWNING_SIDE_COLUMN_NAME + "_id"));
+    Assert.assertEquals(owningSide.getId(), persistedInverseSideDocument.getProperty(OneToOneInverseEntity.OWNING_SIDE_COLUMN_NAME));
   }
 
   @Test
