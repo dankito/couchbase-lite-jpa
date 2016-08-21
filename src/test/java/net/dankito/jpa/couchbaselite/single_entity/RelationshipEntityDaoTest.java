@@ -9,10 +9,10 @@ import net.dankito.jpa.couchbaselite.testmodel.relationship.OneToOneInverseEntit
 import net.dankito.jpa.couchbaselite.testmodel.relationship.OneToOneOwningEntity;
 
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.SQLException;
+import java.util.Date;
 
 /**
  * Created by ganymed on 18/08/16.
@@ -175,6 +175,87 @@ public class RelationshipEntityDaoTest extends DaoTestBase {
     Assert.assertFalse(persistedInverseSide.hasPostUpdateBeenCalled());
     Assert.assertFalse(persistedInverseSide.hasPreRemoveBeenCalled());
     Assert.assertFalse(persistedInverseSide.hasPostRemoveBeenCalled());
+  }
+
+
+  @Test
+  public void oneToOneDelete_EntityGetsDeletedCorrectly() throws CouchbaseLiteException, SQLException {
+    OneToOneInverseEntity inverseSide = new OneToOneInverseEntity();
+    OneToOneOwningEntity owningSide = new OneToOneOwningEntity(inverseSide);
+
+    underTest.create(owningSide);
+
+    Document persistedDocumentBefore = database.getExistingDocument(owningSide.getId());
+    Assert.assertNotNull(persistedDocumentBefore);
+
+    underTest.delete(owningSide);
+
+    Document persistedOwningSideDocument = database.getExistingDocument(owningSide.getId());
+    Assert.assertNull(persistedOwningSideDocument); // null means it doesn't exist
+
+    Document persistedInverseSideDocument = database.getExistingDocument(inverseSide.getId());
+    Assert.assertNull(persistedInverseSideDocument); // null means it doesn't exist
+  }
+
+  @Test
+  public void oneToOneDelete_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
+    OneToOneInverseEntity inverseSide = new OneToOneInverseEntity();
+    OneToOneOwningEntity owningSide = new OneToOneOwningEntity(inverseSide);
+
+    underTest.create(owningSide);
+
+    Date owningSideModifiedOnBeforeDeletion = owningSide.getModifiedOn();
+    Date inverseSideModifiedOnBeforeDeletion = inverseSide.getModifiedOn();
+
+    Document persistedDocumentBefore = database.getExistingDocument(owningSide.getId());
+    Assert.assertNotNull(persistedDocumentBefore);
+
+    underTest.delete(owningSide);
+
+    Assert.assertNotNull(owningSide.getId());
+    Assert.assertNull(owningSide.getVersion());
+    Assert.assertNotNull(owningSide.getCreatedOn());
+    Assert.assertNotEquals(owningSide.getCreatedOn(), owningSide.getModifiedOn());
+    Assert.assertNotNull(owningSide.getModifiedOn());
+    Assert.assertNotEquals(owningSideModifiedOnBeforeDeletion, owningSide.getModifiedOn());
+
+    // test CascadeType.Remove
+    Assert.assertNotNull(inverseSide.getId());
+    Assert.assertNull(inverseSide.getVersion());
+    Assert.assertNotNull(inverseSide.getCreatedOn());
+    Assert.assertNotEquals(inverseSide.getCreatedOn(), inverseSide.getModifiedOn());
+    Assert.assertNotNull(inverseSide.getModifiedOn());
+    Assert.assertNotEquals(inverseSideModifiedOnBeforeDeletion, inverseSide.getModifiedOn());
+  }
+
+  @Test
+  public void oneToOneDelete_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
+    OneToOneInverseEntity inverseSide = new OneToOneInverseEntity();
+    OneToOneOwningEntity owningSide = new OneToOneOwningEntity(inverseSide);
+
+    underTest.create(owningSide);
+
+    Document persistedDocumentBefore = database.getExistingDocument(owningSide.getId());
+    Assert.assertNotNull(persistedDocumentBefore);
+
+    underTest.delete(owningSide);
+
+    Assert.assertTrue(owningSide.hasPrePersistBeenCalled());
+    Assert.assertTrue(owningSide.hasPostPersistBeenCalled());
+    Assert.assertFalse(owningSide.hasPostLoadBeenCalled());
+    Assert.assertFalse(owningSide.hasPreUpdateBeenCalled());
+    Assert.assertFalse(owningSide.hasPostUpdateBeenCalled());
+    Assert.assertTrue(owningSide.hasPreRemoveBeenCalled());
+    Assert.assertTrue(owningSide.hasPostRemoveBeenCalled());
+
+    // test CascadeType.Remove
+    Assert.assertTrue(inverseSide.hasPrePersistBeenCalled());
+    Assert.assertTrue(inverseSide.hasPostPersistBeenCalled());
+    Assert.assertFalse(inverseSide.hasPostLoadBeenCalled());
+    Assert.assertFalse(inverseSide.hasPreUpdateBeenCalled());
+    Assert.assertFalse(inverseSide.hasPostUpdateBeenCalled());
+    Assert.assertTrue(inverseSide.hasPreRemoveBeenCalled());
+    Assert.assertTrue(inverseSide.hasPostRemoveBeenCalled());
   }
 
 }

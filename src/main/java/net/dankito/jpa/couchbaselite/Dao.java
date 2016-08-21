@@ -199,12 +199,11 @@ public class Dao {
   public boolean delete(Object object) throws SQLException, CouchbaseLiteException {
     checkIfCrudOperationCanBePerformedOnObjectOfClass(object, CrudOperation.DELETE);
 
-    String id = getObjectId(object);
-
     Document storedDocument = retrieveStoredDocument(object);
 
     if(storedDocument.isDeleted() == false) {
       entityConfig.invokePreRemoveLifeCycleMethod(object);
+      String id = storedDocument.getId();
 
       boolean result = storedDocument.delete();
 
@@ -213,12 +212,27 @@ public class Dao {
 
       objectCache.remove(entityClass, id);
 
+      deleteCascadeRemoveProperties(object);
+
       entityConfig.invokePostRemoveLifeCycleMethod(object);
 
       return result;
     }
 
     return false;
+  }
+
+  protected void deleteCascadeRemoveProperties(Object object) throws SQLException, CouchbaseLiteException {
+    for(PropertyConfig cascadeRemoveProperty : entityConfig.getRelationshipPropertiesWithCascadeRemove()) {
+      Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(cascadeRemoveProperty);
+      Object propertyValue = getPropertyValue(object, cascadeRemoveProperty);
+
+      if(propertyValue != null) {
+        if (targetDao.delete(propertyValue)) {
+          // TODO: set Property value to null then?
+        }
+      }
+    }
   }
 
 
