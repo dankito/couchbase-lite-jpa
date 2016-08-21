@@ -27,7 +27,7 @@ public class RelationshipEntityDaoTest extends DaoTestBase {
 
 
   @Test
-  public void oneToOne_AllPropertiesGetPersistedCorrectly() throws CouchbaseLiteException, SQLException {
+  public void oneToOneCreate_AllPropertiesGetPersistedCorrectly() throws CouchbaseLiteException, SQLException {
     OneToOneInverseEntity inverseSide = new OneToOneInverseEntity();
     OneToOneOwningEntity owningSide = new OneToOneOwningEntity(inverseSide);
 
@@ -45,7 +45,7 @@ public class RelationshipEntityDaoTest extends DaoTestBase {
   }
 
   @Test
-  public void oneToOne_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
+  public void oneToOneCreate_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
     OneToOneInverseEntity inverseSide = new OneToOneInverseEntity();
     OneToOneOwningEntity owningSide = new OneToOneOwningEntity(inverseSide);
 
@@ -65,7 +65,7 @@ public class RelationshipEntityDaoTest extends DaoTestBase {
   }
 
   @Test
-  public void oneToOne_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
+  public void oneToOneCreate_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
     OneToOneInverseEntity inverseSide = new OneToOneInverseEntity();
     OneToOneOwningEntity owningSide = new OneToOneOwningEntity(inverseSide);
 
@@ -90,7 +90,7 @@ public class RelationshipEntityDaoTest extends DaoTestBase {
 
 
   @Test
-  public void oneToOne_InverseSideIsNull_NoExceptionsAndAllPropertiesGetPersistedCorrectly() throws CouchbaseLiteException, SQLException {
+  public void oneToOneCreate_InverseSideIsNull_NoExceptionsAndAllPropertiesGetPersistedCorrectly() throws CouchbaseLiteException, SQLException {
     OneToOneOwningEntity owningSide = new OneToOneOwningEntity(null);
 
     underTest.create(owningSide);
@@ -103,7 +103,7 @@ public class RelationshipEntityDaoTest extends DaoTestBase {
 
 
   @Test
-  public void retrieveEntity_AllPropertiesAreSetCorrectly() throws CouchbaseLiteException, SQLException {
+  public void oneToOneRetrieve_AllPropertiesAreSetCorrectly() throws CouchbaseLiteException, SQLException {
     OneToOneInverseEntity inverseSide = new OneToOneInverseEntity();
     OneToOneOwningEntity owningSide = new OneToOneOwningEntity(inverseSide);
 
@@ -122,7 +122,7 @@ public class RelationshipEntityDaoTest extends DaoTestBase {
   }
 
   @Test
-  public void retrieveEntity_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
+  public void oneToOneRetrieve_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
     OneToOneInverseEntity inverseSide = new OneToOneInverseEntity();
     OneToOneOwningEntity owningSide = new OneToOneOwningEntity(inverseSide);
 
@@ -148,7 +148,7 @@ public class RelationshipEntityDaoTest extends DaoTestBase {
   }
 
   @Test
-  public void retrieveEntity_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
+  public void oneToOneRetrieve_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
     OneToOneInverseEntity inverseSide = new OneToOneInverseEntity();
     OneToOneOwningEntity owningSide = new OneToOneOwningEntity(inverseSide);
 
