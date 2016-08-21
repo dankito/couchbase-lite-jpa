@@ -17,6 +17,8 @@ import java.util.Map;
 import javax.persistence.AccessType;
 
 /**
+ * CascadeType.Merge and CascadeType.Detach are currently completely ignored.
+ *
  * Created by ganymed on 15/08/16.
  */
 public class Dao {
@@ -59,7 +61,7 @@ public class Dao {
   }
 
   protected Document createEntityInDb(Object object) throws SQLException, CouchbaseLiteException {
-    checkIfObjectIsOfCorrectClass(object, "persist");
+    checkIfCrudOperationCanBePerformedOnObjectOfClass(object, false, "persist");
 
     Document newDocument = database.createDocument();
 
@@ -158,7 +160,7 @@ public class Dao {
 
 
   public boolean update(Object object) throws SQLException, CouchbaseLiteException {
-    checkIfObjectIsOfCorrectClass(object, "update");
+    checkIfCrudOperationCanBePerformedOnObjectOfClass(object, true, "update");
 
     Document storedDocument = retrieveStoredDocument(object);
 
@@ -194,7 +196,7 @@ public class Dao {
 
 
   public boolean delete(Object object) throws SQLException, CouchbaseLiteException {
-    checkIfObjectIsOfCorrectClass(object, "delete");
+    checkIfCrudOperationCanBePerformedOnObjectOfClass(object, true, "delete");
 
     String id = getObjectId(object);
 
@@ -238,12 +240,19 @@ public class Dao {
   }
 
 
-  protected void checkIfObjectIsOfCorrectClass(Object object, String crudOperationName) throws SQLException {
+  protected void checkIfCrudOperationCanBePerformedOnObjectOfClass(Object object, boolean shouldObjectBeAlreadyPersisted, String crudOperationName) throws SQLException {
     if(object == null) {
       throw new SQLException("Object to " + crudOperationName + " may not be null");
     }
     if(entityConfig.getEntityClass().isAssignableFrom(object.getClass()) == false) {
       throw new SQLException("Object to " + crudOperationName + " of class " + object.getClass() + " is not of Dao's Entity class " + entityConfig.getEntityClass());
+    }
+
+    if(shouldObjectBeAlreadyPersisted == true && isAlreadyPersisted(object) == false) {
+      throw new SQLException("Object " + object + " is not persisted yet, cannot perform " + crudOperationName + ".");
+    }
+    else if(shouldObjectBeAlreadyPersisted == false && isAlreadyPersisted(object) == true) {
+      throw new SQLException("Trying to Persist Object " + object + " but is already persisted.");
     }
   }
 
