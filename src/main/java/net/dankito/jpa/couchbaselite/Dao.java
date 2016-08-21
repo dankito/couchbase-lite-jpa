@@ -8,6 +8,7 @@ import net.dankito.jpa.annotationreader.config.EntityConfig;
 import net.dankito.jpa.annotationreader.config.PropertyConfig;
 import net.dankito.jpa.cache.ObjectCache;
 import net.dankito.jpa.cache.RelationshipDaoCache;
+import net.dankito.jpa.util.CrudOperation;
 
 import java.sql.SQLException;
 import java.util.Date;
@@ -61,7 +62,7 @@ public class Dao {
   }
 
   protected Document createEntityInDb(Object object) throws SQLException, CouchbaseLiteException {
-    checkIfCrudOperationCanBePerformedOnObjectOfClass(object, false, "persist");
+    checkIfCrudOperationCanBePerformedOnObjectOfClass(object, CrudOperation.CREATE);
 
     Document newDocument = database.createDocument();
 
@@ -160,7 +161,7 @@ public class Dao {
 
 
   public boolean update(Object object) throws SQLException, CouchbaseLiteException {
-    checkIfCrudOperationCanBePerformedOnObjectOfClass(object, true, "update");
+    checkIfCrudOperationCanBePerformedOnObjectOfClass(object, CrudOperation.UPDATE);
 
     Document storedDocument = retrieveStoredDocument(object);
 
@@ -196,7 +197,7 @@ public class Dao {
 
 
   public boolean delete(Object object) throws SQLException, CouchbaseLiteException {
-    checkIfCrudOperationCanBePerformedOnObjectOfClass(object, true, "delete");
+    checkIfCrudOperationCanBePerformedOnObjectOfClass(object, CrudOperation.DELETE);
 
     String id = getObjectId(object);
 
@@ -240,19 +241,19 @@ public class Dao {
   }
 
 
-  protected void checkIfCrudOperationCanBePerformedOnObjectOfClass(Object object, boolean shouldObjectBeAlreadyPersisted, String crudOperationName) throws SQLException {
+  protected void checkIfCrudOperationCanBePerformedOnObjectOfClass(Object object, CrudOperation crudOperation) throws SQLException {
     if(object == null) {
-      throw new SQLException("Object to " + crudOperationName + " may not be null");
+      throw new SQLException("Object to " + crudOperation + " may not be null");
     }
     if(entityConfig.getEntityClass().isAssignableFrom(object.getClass()) == false) {
-      throw new SQLException("Object to " + crudOperationName + " of class " + object.getClass() + " is not of Dao's Entity class " + entityConfig.getEntityClass());
+      throw new SQLException("Object to " + crudOperation + " of class " + object.getClass() + " is not of Dao's Entity class " + entityConfig.getEntityClass());
     }
 
-    if(shouldObjectBeAlreadyPersisted == true && isAlreadyPersisted(object) == false) {
-      throw new SQLException("Object " + object + " is not persisted yet, cannot perform " + crudOperationName + ".");
-    }
-    else if(shouldObjectBeAlreadyPersisted == false && isAlreadyPersisted(object) == true) {
+    if(crudOperation == CrudOperation.CREATE && isAlreadyPersisted(object) == true) {
       throw new SQLException("Trying to Persist Object " + object + " but is already persisted.");
+    }
+    else if(crudOperation != CrudOperation.CREATE && isAlreadyPersisted(object) == false) {
+      throw new SQLException("Object " + object + " is not persisted yet, cannot perform " + crudOperation + ".");
     }
   }
 
