@@ -134,7 +134,7 @@ public class RelationshipEntityDaoTest extends DaoTestBase {
 
     Assert.assertNotNull(persistedOwningSide.getId());
     Assert.assertNotNull(persistedOwningSide.getVersion());
-//    Assert.assertTrue(persistedOwningSide.getVersion().startsWith("1"));
+    Assert.assertTrue(persistedOwningSide.getVersion().startsWith("2"));
     Assert.assertNotNull(persistedOwningSide.getCreatedOn());
     Assert.assertNotNull(persistedOwningSide.getModifiedOn());
 
@@ -142,7 +142,7 @@ public class RelationshipEntityDaoTest extends DaoTestBase {
 
     Assert.assertNotNull(persistedInverseSide.getId());
     Assert.assertNotNull(persistedInverseSide.getVersion());
-//    Assert.assertTrue(persistedInverseSide.getVersion().startsWith("1"));
+    Assert.assertTrue(persistedInverseSide.getVersion().startsWith("2"));
     Assert.assertNotNull(persistedInverseSide.getCreatedOn());
     Assert.assertNotNull(persistedInverseSide.getModifiedOn());
   }
