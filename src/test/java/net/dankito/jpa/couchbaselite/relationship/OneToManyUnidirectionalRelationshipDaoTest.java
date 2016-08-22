@@ -117,7 +117,7 @@ public class OneToManyUnidirectionalRelationshipDaoTest extends DaoTestBase {
     Document persistedOwningSideDocument = database.getDocument(owningSide.getId());
     Assert.assertNotNull(persistedOwningSideDocument);
 
-    Assert.assertEquals(null, owningSide.getInverseSides());
+    Assert.assertEquals(null, persistedOwningSideDocument.getProperty("inverseSides"));
   }
 
 
