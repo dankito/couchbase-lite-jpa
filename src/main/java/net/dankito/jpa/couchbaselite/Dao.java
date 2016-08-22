@@ -3,16 +3,22 @@ package net.dankito.jpa.couchbaselite;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Document;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.dankito.jpa.annotationreader.config.EntityConfig;
 import net.dankito.jpa.annotationreader.config.PropertyConfig;
 import net.dankito.jpa.cache.ObjectCache;
 import net.dankito.jpa.cache.RelationshipDaoCache;
+import net.dankito.jpa.relationship.collections.EntitiesCollection;
 import net.dankito.jpa.util.CrudOperation;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.persistence.AccessType;
@@ -34,6 +40,8 @@ public class Dao {
 
   protected RelationshipDaoCache relationshipDaoCache;
 
+  protected ObjectMapper objectMapper = null;
+
 
   public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, RelationshipDaoCache relationshipDaoCache) {
     this.database = database;
@@ -53,6 +61,8 @@ public class Dao {
     entityConfig.invokePrePersistLifeCycleMethod(object);
 
     Document objectDocument = createEntityInDb(object);
+
+    setCollectionProperties(object);
 
     createCascadePersistPropertiesAndUpdateDocument(object, objectDocument);
 
@@ -78,6 +88,44 @@ public class Dao {
     return newDocument;
   }
 
+  protected void setCollectionProperties(Object object) throws SQLException {
+    for(PropertyConfig collectionProperty : entityConfig.getCollectionProperties()) {
+      Object propertyValue = getPropertyValue(object, collectionProperty);
+
+      if(propertyValue != null && propertyValue instanceof EntityConfig == false) {
+        createEntityCollectionForProperty(object, collectionProperty, propertyValue);
+      }
+    }
+  }
+
+  protected void createEntityCollectionForProperty(Object object, PropertyConfig collectionProperty, Object propertyValue) throws SQLException {
+    Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(collectionProperty);
+    EntitiesCollection collection = null;
+
+    if(collectionProperty.isManyToManyField() == false) {
+      if(collectionProperty.isLazyLoading()) {
+        // TODO
+      }
+      else {
+        collection = new EntitiesCollection(object, collectionProperty, this, targetDao);
+      }
+    }
+    else {
+      if(collectionProperty.isLazyLoading()) {
+        // TODO
+      }
+      else {
+        // TODO
+      }
+    }
+
+    for(Object currentItem : (Collection)propertyValue) {
+      collection.add(currentItem);
+    }
+
+    setValueOnObject(object, collectionProperty, collection);
+  }
+
   protected void createCascadePersistPropertiesAndUpdateDocument(Object object, Document objectDocument) throws SQLException, CouchbaseLiteException {
     Map<String, Object> documentProperties = new HashMap<>();
     documentProperties.putAll(objectDocument.getProperties());
@@ -93,10 +141,36 @@ public class Dao {
       Object propertyValue = getPropertyValue(object, cascadePersistProperty);
 
       if(propertyValue != null) {
-        if (targetDao.create(propertyValue)) {
+        if(cascadePersistProperty.isCollectionProperty()) {
+          if(cascadePersistProperty.isManyToManyField() == false) { // TODO: due to this if statement also ManyToOneFields get handled that way
+            persistOneToManyCollectionItems(cascadePersistProperty, targetDao, documentProperties, (Collection) propertyValue);
+          }
+          else {
+            // TODO: also implement JoinTables for ManyToMany properties
+          }
+        }
+        else if (targetDao.create(propertyValue)) {
           documentProperties.put(cascadePersistProperty.getColumnName(), targetDao.getObjectId(propertyValue));
         }
       }
+    }
+  }
+
+  protected void persistOneToManyCollectionItems(PropertyConfig cascadePersistProperty, Dao targetDao, Map<String, Object> documentProperties, Collection propertyValue) throws CouchbaseLiteException, SQLException {
+    List<String> persistedItemIds = new ArrayList<>();
+
+    for(Object item : propertyValue) {
+      targetDao.create(item);
+
+      persistedItemIds.add(targetDao.getObjectId(item));
+    }
+
+    try {
+      ObjectMapper objectMapper = getObjectMapper();
+      String itemIdsString = objectMapper.writeValueAsString(persistedItemIds);
+      documentProperties.put(cascadePersistProperty.getColumnName(), itemIdsString);
+    } catch (JsonProcessingException e) {
+      throw new SQLException("Could not persist IDs of Collection Items", e);
     }
   }
 
@@ -173,6 +247,8 @@ public class Dao {
 
     updateVersionOnObject(object, storedDocument);
 
+    // TODO: is there a kind of Cascade Update?
+
     entityConfig.invokePostUpdateLifeCycleMethod(object);
 
     return true;
@@ -227,7 +303,7 @@ public class Dao {
       Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(cascadeRemoveProperty);
       Object propertyValue = getPropertyValue(object, cascadeRemoveProperty);
 
-      if(propertyValue != null) {
+      if(propertyValue != null) { // TODO: check if propertyValue's ID is set (if null means already deleted)?
         if (targetDao.delete(propertyValue)) {
           // TODO: set Property value to null then?
         }
@@ -291,9 +367,11 @@ public class Dao {
           if(propertyValue == null) {
             mappedProperties.put(property.getColumnName(), null);
           }
-          else if(relationshipDaoCache.containsTargetDaoForRelationshipProperty(property)) {
-            Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(property);
-            mappedProperties.put(property.getColumnName(), targetDao.getObjectId(propertyValue));
+          else if(relationshipDaoCache.containsTargetDaoForRelationshipProperty(property)) { // on correctly configured Entities should actually never be false
+            if(property.isCollectionProperty() == false) { // collections are handled later
+              Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(property);
+              mappedProperties.put(property.getColumnName(), targetDao.getObjectId(propertyValue));
+            }
           }
         }
       }
@@ -358,6 +436,15 @@ public class Dao {
   protected boolean shouldUseSetter(PropertyConfig property) {
     return (entityConfig.getAccess() == AccessType.PROPERTY && property.getFieldSetMethod() != null) ||
         (property.getField() == null && property.getFieldSetMethod() != null);
+  }
+
+
+  protected ObjectMapper getObjectMapper() {
+    if(objectMapper == null) {
+      objectMapper = new ObjectMapper();
+    }
+
+    return objectMapper;
   }
 
 }
