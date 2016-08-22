@@ -90,33 +90,40 @@ public class Dao {
   }
 
   protected void createCascadePersistPropertiesAndUpdateDocument(Object object, Document objectDocument) throws SQLException, CouchbaseLiteException {
-    Map<String, Object> documentProperties = new HashMap<>();
-    documentProperties.putAll(objectDocument.getProperties());
+    Map<String, Object> cascadedProperties = createCascadePersistProperties(object);
 
-    createCascadePersistProperties(object, documentProperties);
+    if(cascadedProperties.size() > 0) {
+      Map<String, Object> documentProperties = new HashMap<>();
+      documentProperties.putAll(objectDocument.getProperties());
+      documentProperties.putAll(cascadedProperties);
 
-    objectDocument.putProperties(documentProperties);
+      objectDocument.putProperties(documentProperties); // TODO: this is bad as in this way in one create() two Revisions get created (but we need to persist object first prior to cascading its Properties)
+    }
   }
 
-  protected void createCascadePersistProperties(Object object, Map<String, Object> documentProperties) throws SQLException, CouchbaseLiteException {
+  protected Map<String, Object> createCascadePersistProperties(Object object) throws SQLException, CouchbaseLiteException {
+    Map<String, Object> cascadedProperties = new HashMap<>();
+
     for(PropertyConfig cascadePersistProperty : entityConfig.getRelationshipPropertiesWithCascadePersist()) {
       Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(cascadePersistProperty);
       Object propertyValue = getPropertyValue(object, cascadePersistProperty);
 
       if(propertyValue != null) {
         if(cascadePersistProperty.isCollectionProperty()) {
-          if(cascadePersistProperty.isManyToManyField() == false) { // TODO: due to this if statement also ManyToOneFields get handled that way
-            persistOneToManyCollectionItems(cascadePersistProperty, targetDao, documentProperties, (Collection) propertyValue);
+          if(cascadePersistProperty.isManyToManyField() == false) {
+            persistOneToManyCollectionItems(cascadePersistProperty, targetDao, cascadedProperties, (Collection) propertyValue);
           }
           else {
             // TODO: also implement JoinTables for ManyToMany properties
           }
         }
         else if (targetDao.create(propertyValue)) {
-          documentProperties.put(cascadePersistProperty.getColumnName(), targetDao.getObjectId(propertyValue));
+          cascadedProperties.put(cascadePersistProperty.getColumnName(), targetDao.getObjectId(propertyValue));
         }
       }
     }
+
+    return cascadedProperties;
   }
 
   protected void persistOneToManyCollectionItems(PropertyConfig cascadePersistProperty, Dao targetDao, Map<String, Object> documentProperties, Collection propertyValue) throws CouchbaseLiteException, SQLException {
