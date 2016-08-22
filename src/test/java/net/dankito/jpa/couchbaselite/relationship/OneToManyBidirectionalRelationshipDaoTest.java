@@ -12,6 +12,7 @@ import net.dankito.jpa.couchbaselite.testmodel.relationship.OneToManyBidirection
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,6 +28,8 @@ import java.util.Set;
 public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
 
   public static final int COUNT_TEST_MANY_SIDE_ENTITIES = 4;
+
+  protected ObjectMapper objectMapper = new ObjectMapper();
 
 
   @Override
@@ -45,9 +48,7 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
     Document persistedOwningSideDocument = database.getDocument(oneSide.getId());
     Assert.assertNotNull(persistedOwningSideDocument);
 
-    String itemIdsString = (String)persistedOwningSideDocument.getProperty("manySides");
-    ObjectMapper objectMapper = new ObjectMapper();
-    List itemIds = objectMapper.readValue(itemIdsString, List.class);
+    List itemIds = getTargetEntityIds(persistedOwningSideDocument, "manySides");
 
     Assert.assertEquals(itemIds.size(), oneSide.getManySides().size());
 
@@ -201,7 +202,7 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
 
 
   @Test
-  public void oneToManyUpdate_EntityGetsUpdatedCorrectly() throws CouchbaseLiteException, SQLException {
+  public void oneToManyUpdate_EntityGetsUpdatedCorrectly() throws CouchbaseLiteException, SQLException, IOException {
     Collection<OneToManyBidirectionalManySideEntity> inverseSides = createTestManySideEntities();
     OneToManyBidirectionalOneSideEntity oneSide = new OneToManyBidirectionalOneSideEntity(inverseSides);
 
@@ -210,6 +211,12 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
     updateEntity_Delete2Add3InverseSides(oneSide);
 
     underTest.update(oneSide);
+
+    Document persistedOwningSideDocument = database.getDocument(oneSide.getId());
+    Assert.assertNotNull(persistedOwningSideDocument);
+
+    List itemIds = getTargetEntityIds(persistedOwningSideDocument, "manySides");
+    Assert.assertEquals(itemIds.size(), oneSide.getManySides().size());
 
     objectCache.clear();
 
@@ -221,6 +228,11 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
     for(int i = 0; i < COUNT_TEST_MANY_SIDE_ENTITIES + 1; i++) {
       OneToManyBidirectionalManySideEntity persistedInverseSide = persistedInverseSides.get(i);
       Assert.assertEquals(i + 2, persistedInverseSide.getOrder());
+
+      Document persistedInverseSideDocument = database.getDocument(persistedInverseSide.getId());
+      Assert.assertNotNull(persistedInverseSideDocument);
+
+      Assert.assertEquals(oneSide.getId(), persistedInverseSideDocument.getProperty(OneToManyBidirectionalManySideEntity.ONE_SIDE_COLUMN_NAME));
     }
   }
 
@@ -371,6 +383,12 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
   }
 
 
+  protected List getTargetEntityIds(Document document, String propertyName) throws java.io.IOException {
+    String itemIdsString = (String)document.getProperty(propertyName);
+    return objectMapper.readValue(itemIdsString, List.class);
+  }
+
+
   protected Collection<OneToManyBidirectionalManySideEntity> createTestManySideEntities() {
     Set<OneToManyBidirectionalManySideEntity> manySides = new HashSet<>();
 
@@ -394,7 +412,7 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
     }
 
     for(OneToManyBidirectionalManySideEntity itemToRemove : itemsToRemove) {
-      oneSide.getManySides().remove(itemToRemove);
+      oneSide.removeManySide(itemToRemove);
     }
 
 
@@ -404,7 +422,9 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
       OneToManyBidirectionalManySideEntity testEntity = new OneToManyBidirectionalManySideEntity(i);
       manySideDao.create(testEntity);
 
-      oneSide.getManySides().add(testEntity);
+      oneSide.addManySide(testEntity);
+
+      manySideDao.update(testEntity);
     }
   }
 

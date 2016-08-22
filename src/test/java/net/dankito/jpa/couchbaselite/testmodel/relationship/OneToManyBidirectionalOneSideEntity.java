@@ -48,4 +48,20 @@ public class OneToManyBidirectionalOneSideEntity extends BaseEntity {
     return manySides;
   }
 
+  public void addManySide(OneToManyBidirectionalManySideEntity manySide) {
+    if(manySide != null) {
+      manySide.setOneSide(this);
+
+      manySides.add(manySide);
+    }
+  }
+
+  public void removeManySide(OneToManyBidirectionalManySideEntity manySide) {
+    if(manySide != null) {
+      manySide.setOneSide(null);
+
+      manySides.remove(manySide);
+    }
+  }
+
 }
