@@ -12,6 +12,7 @@ import net.dankito.jpa.annotationreader.config.PropertyConfig;
 import net.dankito.jpa.cache.ObjectCache;
 import net.dankito.jpa.cache.RelationshipDaoCache;
 import net.dankito.jpa.relationship.collections.EntitiesCollection;
+import net.dankito.jpa.relationship.collections.ManyToManyEntitiesCollection;
 import net.dankito.jpa.util.CrudOperation;
 
 import java.sql.SQLException;
@@ -538,7 +539,7 @@ public class Dao {
         // TODO
       }
       else {
-        // TODO
+        collection = new ManyToManyEntitiesCollection(object, collectionProperty, this, targetDao); // TODO: also pass JoinTable Dao
       }
     }
 
@@ -553,34 +554,6 @@ public class Dao {
 
   protected void createAndSetEntitiesCollectionAndAddExistingItems(Object object, PropertyConfig collectionProperty, Object propertyValue) throws SQLException {
     Collection collection = createEntitiesCollection(object, collectionProperty);
-
-    for(Object currentItem : (Collection)propertyValue) {
-      collection.add(currentItem);
-    }
-
-    setValueOnObject(object, collectionProperty, collection);
-  }
-
-  protected void createEntitiesCollectionForProperty(Object object, PropertyConfig collectionProperty, Object propertyValue) throws SQLException {
-    Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(collectionProperty);
-    EntitiesCollection collection = null;
-
-    if(collectionProperty.isManyToManyField() == false) {
-      if(collectionProperty.isLazyLoading()) {
-        // TODO
-      }
-      else {
-        collection = new EntitiesCollection(object, collectionProperty, this, targetDao);
-      }
-    }
-    else {
-      if(collectionProperty.isLazyLoading()) {
-        // TODO
-      }
-      else {
-        // TODO
-      }
-    }
 
     for(Object currentItem : (Collection)propertyValue) {
       collection.add(currentItem);

@@ -38,12 +38,12 @@ public class EntitiesCollection extends AbstractList implements Set {
 
 
   protected void initializeCollection() throws SQLException {
-    Collection<Object> ids = getEntityIds();
+    Collection<Object> ids = getJoinedEntityIds();
 
     addAll(targetDao.retrieve(ids));
   }
 
-  protected Collection<Object> getEntityIds() throws SQLException {
+  protected Collection<Object> getJoinedEntityIds() throws SQLException {
     return holdingObjectDao.getJoinedItemsIds(holdingObject, property);
   }
 
@@ -87,4 +87,10 @@ public class EntitiesCollection extends AbstractList implements Set {
   public int size() {
     return items.size();
   }
+
+  @Override
+  public void clear() {
+    items.clear();
+  }
+
 }
