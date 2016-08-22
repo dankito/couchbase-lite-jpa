@@ -496,7 +496,7 @@ public class Dao {
   }
 
   protected void mapCollectionProperty(Object object, PropertyConfig collectionProperty, Map<String, Object> mappedProperties, Dao targetDao, Collection propertyValue) throws SQLException {
-    if(propertyValue instanceof EntityConfig == false) {
+    if(propertyValue instanceof EntitiesCollection == false) {
       createAndSetEntitiesCollectionAndAddExistingItems(object, collectionProperty, propertyValue);
     }
 
