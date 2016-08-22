@@ -313,8 +313,17 @@ public class Dao {
       Object propertyValue = getPropertyValue(object, cascadeRemoveProperty);
 
       if(propertyValue != null) { // TODO: check if propertyValue's ID is set (if null means already deleted)?
-        if (targetDao.delete(propertyValue)) {
-          // TODO: set Property value to null then?
+        if(cascadeRemoveProperty.isCollectionProperty()) {
+          for(Object item : (Collection)propertyValue) {
+            if(targetDao.delete(item)) {
+              // TODO: remove item from Collection then?
+            }
+          }
+        }
+        else {
+          if (targetDao.delete(propertyValue)) {
+            // TODO: set Property value to null then?
+          }
         }
       }
     }

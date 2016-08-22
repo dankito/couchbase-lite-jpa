@@ -284,6 +284,91 @@ public class OneToManyUnidirectionalRelationshipDaoTest extends DaoTestBase {
   }
 
 
+  @Test
+  public void oneToManyDelete_EntityGetsDeletedCorrectly() throws CouchbaseLiteException, SQLException {
+    Collection<OneToManyUnidirectionalInverseEntity> inverseSides = createTestInverseSideEntities();
+    OneToManyUnidirectionalOwningEntity owningSide = new OneToManyUnidirectionalOwningEntity(inverseSides);
+
+    underTest.create(owningSide);
+
+    Document persistedDocumentBefore = database.getExistingDocument(owningSide.getId());
+    Assert.assertNotNull(persistedDocumentBefore);
+
+    underTest.delete(owningSide);
+
+    Document persistedOwningSideDocument = database.getExistingDocument(owningSide.getId());
+    Assert.assertNull(persistedOwningSideDocument); // null means it doesn't exist
+
+    for(OneToManyUnidirectionalInverseEntity inverseSide : inverseSides) {
+      Document persistedInverseSideDocument = database.getExistingDocument(inverseSide.getId());
+      Assert.assertNull(persistedInverseSideDocument); // null means it doesn't exist
+    }
+  }
+
+  @Test
+  public void oneToManyDelete_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
+    Collection<OneToManyUnidirectionalInverseEntity> inverseSides = createTestInverseSideEntities();
+    OneToManyUnidirectionalOwningEntity owningSide = new OneToManyUnidirectionalOwningEntity(inverseSides);
+
+    underTest.create(owningSide);
+
+    Date owningSideModifiedOnBeforeDeletion = owningSide.getModifiedOn();
+
+    Document persistedDocumentBefore = database.getExistingDocument(owningSide.getId());
+    Assert.assertNotNull(persistedDocumentBefore);
+
+    underTest.delete(owningSide);
+
+    Assert.assertNotNull(owningSide.getId());
+    Assert.assertNull(owningSide.getVersion());
+    Assert.assertNotNull(owningSide.getCreatedOn());
+    Assert.assertNotEquals(owningSide.getCreatedOn(), owningSide.getModifiedOn());
+    Assert.assertNotNull(owningSide.getModifiedOn());
+    Assert.assertNotEquals(owningSideModifiedOnBeforeDeletion, owningSide.getModifiedOn());
+
+    // test CascadeType.Remove
+    for(OneToManyUnidirectionalInverseEntity inverseSide : inverseSides) {
+      Assert.assertNotNull(inverseSide.getId());
+      Assert.assertNull(inverseSide.getVersion());
+      Assert.assertNotNull(inverseSide.getCreatedOn());
+      Assert.assertNotEquals(inverseSide.getCreatedOn(), inverseSide.getModifiedOn());
+      Assert.assertNotNull(inverseSide.getModifiedOn());
+    }
+  }
+
+  @Test
+  public void oneToManyDelete_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
+    Collection<OneToManyUnidirectionalInverseEntity> inverseSides = createTestInverseSideEntities();
+    OneToManyUnidirectionalOwningEntity owningSide = new OneToManyUnidirectionalOwningEntity(inverseSides);
+
+    underTest.create(owningSide);
+
+    Document persistedDocumentBefore = database.getExistingDocument(owningSide.getId());
+    Assert.assertNotNull(persistedDocumentBefore);
+
+    underTest.delete(owningSide);
+
+    Assert.assertTrue(owningSide.hasPrePersistBeenCalled());
+    Assert.assertTrue(owningSide.hasPostPersistBeenCalled());
+    Assert.assertFalse(owningSide.hasPostLoadBeenCalled());
+    Assert.assertFalse(owningSide.hasPreUpdateBeenCalled());
+    Assert.assertFalse(owningSide.hasPostUpdateBeenCalled());
+    Assert.assertTrue(owningSide.hasPreRemoveBeenCalled());
+    Assert.assertTrue(owningSide.hasPostRemoveBeenCalled());
+
+    // test CascadeType.Remove
+    for(OneToManyUnidirectionalInverseEntity inverseSide : inverseSides) {
+      Assert.assertTrue(inverseSide.hasPrePersistBeenCalled());
+      Assert.assertTrue(inverseSide.hasPostPersistBeenCalled());
+      Assert.assertFalse(inverseSide.hasPostLoadBeenCalled());
+      Assert.assertFalse(inverseSide.hasPreUpdateBeenCalled());
+      Assert.assertFalse(inverseSide.hasPostUpdateBeenCalled());
+      Assert.assertTrue(inverseSide.hasPreRemoveBeenCalled());
+      Assert.assertTrue(inverseSide.hasPostRemoveBeenCalled());
+    }
+  }
+
+
   protected Collection<OneToManyUnidirectionalInverseEntity> createTestInverseSideEntities() {
     Set<OneToManyUnidirectionalInverseEntity> inverseSides = new HashSet<>();
 
