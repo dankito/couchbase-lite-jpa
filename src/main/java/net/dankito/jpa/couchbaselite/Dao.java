@@ -196,7 +196,7 @@ public class Dao {
   protected void setPropertyOnObject(Object object, Document document, PropertyConfig property) throws SQLException {
     Object propertyValue = getValueFromDocument(document, property);
 
-    if(property.isRelationshipProperty() == false) {
+    if(propertyValue == null || property.isRelationshipProperty() == false) {
       setValueOnObject(object, property, propertyValue);
     }
     else {

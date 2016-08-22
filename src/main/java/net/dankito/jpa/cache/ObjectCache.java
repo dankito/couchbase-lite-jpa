@@ -15,7 +15,7 @@ public class ObjectCache {
 
 
   public boolean containsObjectForId(Class entityClass, Object id) {
-    return cache.containsKey(entityClass) && cache.get(entityClass).containsKey(id);
+    return id != null && cache.containsKey(entityClass) && cache.get(entityClass).containsKey(id);
   }
 
   public void add(Class entityClass, Object id, Object object) {
