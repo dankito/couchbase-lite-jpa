@@ -137,7 +137,7 @@ public class Dao {
       return objectCache.get(entityClass, id);
     }
     else {
-      Document storedDocument = retrieveStoredDocument(id);
+      Document storedDocument = retrieveStoredDocumentForId(id);
       Object retrievedObject = createObjectFromDocument(storedDocument);
 
       entityConfig.invokePostLoadLifeCycleMethod(retrievedObject);
@@ -215,11 +215,11 @@ public class Dao {
   protected Document retrieveStoredDocument(Object object) throws SQLException {
     String id = getObjectId(object);
 
-    return retrieveStoredDocument(id);
+    return retrieveStoredDocumentForId(id);
   }
 
-  protected Document retrieveStoredDocument(String id) throws SQLException {
-    Document storedDocument = database.getExistingDocument(id);
+  protected Document retrieveStoredDocumentForId(Object id) throws SQLException {
+    Document storedDocument = database.getExistingDocument((String)id);
 
     if(storedDocument == null) {
       throw new SQLException("There's no existing Document with ID " + id);
