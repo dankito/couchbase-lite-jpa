@@ -40,6 +40,8 @@ public class OneToOneBidirectionalRelationshipDaoTest extends DaoTestBase {
 
     Document persistedInverseSideDocument = database.getDocument(inverseSide.getId());
     Assert.assertNotNull(persistedInverseSideDocument);
+
+    Assert.assertEquals(owningSide.getId(), persistedInverseSideDocument.getProperty(OneToOneInverseEntity.OWNING_SIDE_COLUMN_NAME));
   }
 
   @Test
@@ -197,10 +199,12 @@ public class OneToOneBidirectionalRelationshipDaoTest extends DaoTestBase {
 
     Document persistedNewInverseSideDocument = database.getExistingDocument(owningSide.getInverseSide().getId());
     Assert.assertNotNull(persistedNewInverseSideDocument);
+    Assert.assertEquals(owningSide.getId(), persistedNewInverseSideDocument.getProperty(OneToOneInverseEntity.OWNING_SIDE_COLUMN_NAME));
 
     // previous inverse side didn't get deleted
     Document persistedPreviousInverseSideDocument = database.getExistingDocument(inverseSide.getId());
     Assert.assertNotNull(persistedPreviousInverseSideDocument);
+    Assert.assertNotEquals(owningSide.getId(), persistedPreviousInverseSideDocument.getProperty(OneToOneInverseEntity.OWNING_SIDE_COLUMN_NAME));
   }
 
   @Test
