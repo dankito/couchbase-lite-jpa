@@ -152,8 +152,6 @@ public class NonRelationshipEntityDaoTest extends DaoTestBase {
     EntityWithAllDataTypes testEntity = createTestEntity();
     underTest.create(testEntity);
 
-    Date modifiedOnBeforeUpdate = testEntity.getModifiedOn();
-
     updateTestEntity(testEntity);
     underTest.update(testEntity);
 
@@ -189,8 +187,6 @@ public class NonRelationshipEntityDaoTest extends DaoTestBase {
   public void updateEntity_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
     EntityWithAllDataTypes testEntity = createTestEntity();
     underTest.create(testEntity);
-
-    Date modifiedOnBeforeUpdate = testEntity.getModifiedOn();
 
     updateTestEntity(testEntity);
     underTest.update(testEntity);
