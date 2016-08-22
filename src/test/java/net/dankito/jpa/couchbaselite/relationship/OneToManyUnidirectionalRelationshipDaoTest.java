@@ -41,7 +41,7 @@ public class OneToManyUnidirectionalRelationshipDaoTest extends DaoTestBase {
     Document persistedOwningSideDocument = database.getDocument(owningSide.getId());
     Assert.assertNotNull(persistedOwningSideDocument);
 
-    String itemIdsString = (String)persistedOwningSideDocument.getProperty(OneToManyUnidirectionalOwningEntity.INVERSE_SIDES_COLUMN_NAME);
+    String itemIdsString = (String)persistedOwningSideDocument.getProperty("inverseSides");
     ObjectMapper objectMapper = new ObjectMapper();
     List itemIds = objectMapper.readValue(itemIdsString, List.class);
 
@@ -101,6 +101,19 @@ public class OneToManyUnidirectionalRelationshipDaoTest extends DaoTestBase {
       Assert.assertFalse(inverseSide.hasPreRemoveBeenCalled());
       Assert.assertFalse(inverseSide.hasPostRemoveBeenCalled());
     }
+  }
+
+
+  @Test
+  public void oneToManyCreate_InverseSideIsNull_NoExceptionsAndAllPropertiesGetPersistedCorrectly() throws CouchbaseLiteException, SQLException {
+    OneToManyUnidirectionalOwningEntity owningSide = new OneToManyUnidirectionalOwningEntity(null);
+
+    underTest.create(owningSide);
+
+    Document persistedOwningSideDocument = database.getDocument(owningSide.getId());
+    Assert.assertNotNull(persistedOwningSideDocument);
+
+    Assert.assertEquals(null, persistedOwningSideDocument.getProperty(OneToManyUnidirectionalOwningEntity.INVERSE_SIDES_COLUMN_NAME + "_id"));
   }
 
 

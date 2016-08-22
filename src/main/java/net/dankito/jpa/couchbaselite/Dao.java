@@ -24,6 +24,9 @@ import java.util.Map;
 import javax.persistence.AccessType;
 
 /**
+ * In contrary to JPA standard a bidirectional @OneToMany additionally stores its joined entity ids also on the one side in a String array.
+ * The same does an unidirectional @OneToMany (instead of creating a Join Table according to standard).
+ *
  * CascadeType.Merge and CascadeType.Detach are currently completely ignored.
  *
  * Created by ganymed on 15/08/16.
@@ -62,8 +65,6 @@ public class Dao {
 
     Document objectDocument = createEntityInDb(object);
 
-    setCollectionProperties(object);
-
     createCascadePersistPropertiesAndUpdateDocument(object, objectDocument);
 
     entityConfig.invokePostPersistLifeCycleMethod(object);
@@ -86,44 +87,6 @@ public class Dao {
     objectCache.add(entityClass, newDocument.getId(), object);
 
     return newDocument;
-  }
-
-  protected void setCollectionProperties(Object object) throws SQLException {
-    for(PropertyConfig collectionProperty : entityConfig.getCollectionProperties()) {
-      Object propertyValue = getPropertyValue(object, collectionProperty);
-
-      if(propertyValue != null && propertyValue instanceof EntityConfig == false) {
-        createEntityCollectionForProperty(object, collectionProperty, propertyValue);
-      }
-    }
-  }
-
-  protected void createEntityCollectionForProperty(Object object, PropertyConfig collectionProperty, Object propertyValue) throws SQLException {
-    Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(collectionProperty);
-    EntitiesCollection collection = null;
-
-    if(collectionProperty.isManyToManyField() == false) {
-      if(collectionProperty.isLazyLoading()) {
-        // TODO
-      }
-      else {
-        collection = new EntitiesCollection(object, collectionProperty, this, targetDao);
-      }
-    }
-    else {
-      if(collectionProperty.isLazyLoading()) {
-        // TODO
-      }
-      else {
-        // TODO
-      }
-    }
-
-    for(Object currentItem : (Collection)propertyValue) {
-      collection.add(currentItem);
-    }
-
-    setValueOnObject(object, collectionProperty, collection);
   }
 
   protected void createCascadePersistPropertiesAndUpdateDocument(Object object, Document objectDocument) throws SQLException, CouchbaseLiteException {
@@ -165,17 +128,11 @@ public class Dao {
       persistedItemIds.add(targetDao.getObjectId(item));
     }
 
-    try {
-      ObjectMapper objectMapper = getObjectMapper();
-      String itemIdsString = objectMapper.writeValueAsString(persistedItemIds);
-      documentProperties.put(cascadePersistProperty.getColumnName(), itemIdsString);
-    } catch (JsonProcessingException e) {
-      throw new SQLException("Could not persist IDs of Collection Items", e);
-    }
+    writeOneToManyJoinedEntityIdsToProperty(persistedItemIds, cascadePersistProperty, documentProperties);
   }
 
 
-  public Object retrieve(String id) throws SQLException {
+  public Object retrieve(Object id) throws SQLException {
     if(objectCache.containsObjectForId(entityClass, id)) {
       return objectCache.get(entityClass, id);
     }
@@ -312,6 +269,29 @@ public class Dao {
   }
 
 
+  public List<Object> getJoinedItemsIds(Object object, PropertyConfig collectionProperty) throws SQLException {
+    if(isAlreadyPersisted(object)) {
+      Document objectDocument = retrieveStoredDocument(object);
+      ObjectMapper objectMapper = getObjectMapper();
+
+      String itemIdsString = (String) objectDocument.getProperties().get(collectionProperty.getColumnName());
+
+      if (itemIdsString != null) { // on initial EntitiesCollection creation itemIdsString is null
+
+        // TODO: implement OrderBy
+
+        try {
+          return objectMapper.readValue(itemIdsString, List.class);
+        } catch (Exception e) {
+          throw new SQLException("Could not parse String " + itemIdsString + " to List with joined Entity Ids", e);
+        }
+      }
+    }
+
+    return new ArrayList<>();
+  }
+
+
   protected boolean isAlreadyPersisted(Object object) throws SQLException {
     return getObjectId(object) != null;
   }
@@ -358,27 +338,90 @@ public class Dao {
 
     for(PropertyConfig property : entityConfig.getProperties()) {
       if(shouldPropertyBeAdded(isInitialPersist, property)) {
-        Object propertyValue = getPropertyValue(object, property);
-
-        if(property.isRelationshipProperty() == false) {
-          mappedProperties.put(property.getColumnName(), propertyValue);
-        }
-        else {
-          if(propertyValue == null) {
-            mappedProperties.put(property.getColumnName(), null);
-          }
-          else if(relationshipDaoCache.containsTargetDaoForRelationshipProperty(property)) { // on correctly configured Entities should actually never be false
-            if(property.isCollectionProperty() == false) { // collections are handled later
-              Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(property);
-              mappedProperties.put(property.getColumnName(), targetDao.getObjectId(propertyValue));
-            }
-          }
-        }
+        mapProperty(object, mappedProperties, property);
       }
     }
 
     return mappedProperties;
   }
+
+  protected void mapProperty(Object object, Map<String, Object> mappedProperties, PropertyConfig property) throws SQLException {
+    Object propertyValue = getPropertyValue(object, property);
+
+    if(property.isRelationshipProperty() == false) {
+      mappedProperties.put(property.getColumnName(), propertyValue);
+    }
+    else { // for Objects persist only its ID respectively their IDs for Collections
+      if(propertyValue == null) {
+        mappedProperties.put(property.getColumnName(), null);
+      }
+      else if(relationshipDaoCache.containsTargetDaoForRelationshipProperty(property)) { // on correctly configured Entities should actually never be false
+        Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(property);
+        if(property.isCollectionProperty() == false) {
+          mappedProperties.put(property.getColumnName(), targetDao.getObjectId(propertyValue));
+        }
+        else {
+          mapCollectionProperty(object, property, mappedProperties, targetDao, (Collection)propertyValue);
+        }
+      }
+    }
+  }
+
+  protected void mapCollectionProperty(Object object, PropertyConfig collectionProperty, Map<String, Object> mappedProperties, Dao targetDao, Collection propertyValue) throws SQLException {
+    if(propertyValue instanceof EntityConfig == false) {
+      createEntityCollectionForProperty(object, collectionProperty, propertyValue);
+    }
+
+    List joinedEntityIds = new ArrayList();
+
+    for(Object item : propertyValue) {
+      Object itemId = targetDao.getObjectId(item);
+      if(itemId != null) { // TODO: what if item is not persisted yet?
+        joinedEntityIds.add(itemId);
+      }
+    }
+
+    writeOneToManyJoinedEntityIdsToProperty(joinedEntityIds, collectionProperty, mappedProperties);
+  }
+
+  protected void createEntityCollectionForProperty(Object object, PropertyConfig collectionProperty, Object propertyValue) throws SQLException {
+    Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(collectionProperty);
+    EntitiesCollection collection = null;
+
+    if(collectionProperty.isManyToManyField() == false) {
+      if(collectionProperty.isLazyLoading()) {
+        // TODO
+      }
+      else {
+        collection = new EntitiesCollection(object, collectionProperty, this, targetDao);
+      }
+    }
+    else {
+      if(collectionProperty.isLazyLoading()) {
+        // TODO
+      }
+      else {
+        // TODO
+      }
+    }
+
+    for(Object currentItem : (Collection)propertyValue) {
+      collection.add(currentItem);
+    }
+
+    setValueOnObject(object, collectionProperty, collection);
+  }
+
+  protected void writeOneToManyJoinedEntityIdsToProperty(List joinedEntityIds, PropertyConfig property, Map<String, Object> documentProperties) throws SQLException {
+    try {
+      ObjectMapper objectMapper = getObjectMapper();
+      String itemIdsString = objectMapper.writeValueAsString(joinedEntityIds);
+      documentProperties.put(property.getColumnName(), itemIdsString);
+    } catch (JsonProcessingException e) {
+      throw new SQLException("Could not persist IDs of Collection Items", e);
+    }
+  }
+
 
   protected boolean shouldPropertyBeAdded(boolean isInitialPersist, PropertyConfig property) {
     return ! ( isInitialPersist && isCouchbaseLiteSystemProperty(property) );
@@ -446,5 +489,4 @@ public class Dao {
 
     return objectMapper;
   }
-
 }

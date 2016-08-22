@@ -3,6 +3,7 @@ package net.dankito.jpa.relationship.collections;
 import net.dankito.jpa.annotationreader.config.PropertyConfig;
 import net.dankito.jpa.couchbaselite.Dao;
 
+import java.sql.SQLException;
 import java.util.AbstractList;
 import java.util.List;
 import java.util.Set;
@@ -25,11 +26,27 @@ public class EntitiesCollection extends AbstractList implements Set {
   protected Dao targetDao;
 
 
-  public EntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao) {
+  public EntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao) throws SQLException {
     this.holdingObject = object;
     this.property = property;
     this.holdingObjectDao = holdingObjectDao;
     this.targetDao = targetDao;
+
+    initializeCollection();
+  }
+
+
+  protected void initializeCollection() throws SQLException {
+    List<Object> ids = getEntityIds();
+
+    for(Object id : ids) {
+      Object item = targetDao.retrieve(id);
+      add(item);
+    }
+  }
+
+  protected List<Object> getEntityIds() throws SQLException {
+    return holdingObjectDao.getJoinedItemsIds(holdingObject, property);
   }
 
 
