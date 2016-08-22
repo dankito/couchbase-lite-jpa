@@ -1,4 +1,4 @@
-package net.dankito.jpa.couchbaselite.single_entity;
+package net.dankito.jpa.couchbaselite.relationship;
 
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Document;
@@ -17,7 +17,7 @@ import java.util.Date;
 /**
  * Created by ganymed on 18/08/16.
  */
-public class RelationshipEntityDaoTest extends DaoTestBase {
+public class OneToOneBidirectionalRelationshipDaoTest extends DaoTestBase {
 
 
   @Override
