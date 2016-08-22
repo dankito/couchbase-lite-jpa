@@ -202,12 +202,16 @@ public class Dao {
     else {
       Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(property);
 
-      if(property.isCollectionProperty() == false) {
+      if(property.isCollectionProperty()) {
+        setCollectionPropertyOnObject(object, property, targetDao, (String)propertyValue);
+      }
+      else if(propertyValue != null) {
         Object deserializedTargetInstance = targetDao.retrieve(propertyValue);
         setValueOnObject(object, property, deserializedTargetInstance);
-      }
-      else {
-        setCollectionPropertyOnObject(object, property, targetDao, (String)propertyValue);
+
+        if(property.isBidirectional()) {
+          targetDao.setValueOnObject(deserializedTargetInstance, property.getTargetPropertyConfig(), object);
+        }
       }
     }
   }
@@ -494,11 +498,11 @@ public class Dao {
       }
       else if(relationshipDaoCache.containsTargetDaoForRelationshipProperty(property)) { // on correctly configured Entities should actually never be false
         Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(property);
-        if(property.isCollectionProperty() == false) {
-          mappedProperties.put(property.getColumnName(), targetDao.getObjectId(propertyValue));
-        }
-        else {
+        if(property.isCollectionProperty()) {
           mapCollectionProperty(object, property, mappedProperties, targetDao, (Collection)propertyValue);
+        }
+        else if(property.isOwningSide()) { // value gets only persisted on owning side (e.g. on bidirectional OneToOne don't persist ids twice
+          mappedProperties.put(property.getColumnName(), targetDao.getObjectId(propertyValue));
         }
       }
     }

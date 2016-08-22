@@ -13,11 +13,8 @@ import javax.persistence.OneToOne;
 @Entity
 public class OneToOneInverseEntity extends BaseEntity {
 
-  public static final String OWNING_SIDE_COLUMN_NAME = "owning_side";
-
 
   @OneToOne(mappedBy = "inverseSide", cascade = CascadeType.ALL)
-  @JoinColumn(name = OWNING_SIDE_COLUMN_NAME)
   protected OneToOneOwningEntity owningSide;
 
 
