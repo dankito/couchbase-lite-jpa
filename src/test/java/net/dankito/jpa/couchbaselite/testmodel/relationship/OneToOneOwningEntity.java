@@ -26,16 +26,24 @@ public class OneToOneOwningEntity extends BaseEntity {
   }
 
   public OneToOneOwningEntity(OneToOneInverseEntity inverseSide) {
-    this.inverseSide = inverseSide;
-
-    if(inverseSide != null) {
-      inverseSide.setOwningSide(this);
-    }
+    setInverseSide(inverseSide);
   }
 
 
   public OneToOneInverseEntity getInverseSide() {
     return inverseSide;
+  }
+
+  public void setInverseSide(OneToOneInverseEntity inverseSide) {
+    if(this.inverseSide != null) {
+      this.inverseSide.setOwningSide(null);
+    }
+
+    this.inverseSide = inverseSide;
+
+    if(inverseSide != null) {
+      inverseSide.setOwningSide(this);
+    }
   }
 
 }

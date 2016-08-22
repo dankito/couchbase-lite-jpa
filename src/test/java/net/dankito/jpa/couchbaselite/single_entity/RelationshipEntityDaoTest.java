@@ -142,7 +142,7 @@ public class RelationshipEntityDaoTest extends DaoTestBase {
 
     Assert.assertNotNull(persistedInverseSide.getId());
     Assert.assertNotNull(persistedInverseSide.getVersion());
-    Assert.assertTrue(persistedInverseSide.getVersion().startsWith("2"));
+    Assert.assertTrue(persistedInverseSide.getVersion().startsWith("1"));
     Assert.assertNotNull(persistedInverseSide.getCreatedOn());
     Assert.assertNotNull(persistedInverseSide.getModifiedOn());
   }
@@ -175,6 +175,95 @@ public class RelationshipEntityDaoTest extends DaoTestBase {
     Assert.assertFalse(persistedInverseSide.hasPostUpdateBeenCalled());
     Assert.assertFalse(persistedInverseSide.hasPreRemoveBeenCalled());
     Assert.assertFalse(persistedInverseSide.hasPostRemoveBeenCalled());
+  }
+
+
+  @Test
+  public void oneToOneUpdate_EntityGetsUpdatedCorrectly() throws CouchbaseLiteException, SQLException {
+    OneToOneInverseEntity inverseSide = new OneToOneInverseEntity();
+    OneToOneOwningEntity owningSide = new OneToOneOwningEntity(inverseSide);
+
+    underTest.create(owningSide);
+
+    updateOwningSide_SetNewInverseSide(owningSide);
+    underTest.update(owningSide);
+
+    Dao inverseSideDao = relationshipDaoCache.getDaoForEntity(OneToOneInverseEntity.class);
+    inverseSideDao.update(owningSide.getInverseSide());
+    inverseSideDao.update(inverseSide);
+
+    Document persistedOwningSideDocument = database.getExistingDocument(owningSide.getId());
+    Assert.assertNotNull(persistedOwningSideDocument);
+    Assert.assertNotEquals(inverseSide.getId(), persistedOwningSideDocument.getProperty(OneToOneOwningEntity.INVERSE_SIDE_COLUMN_NAME));
+    Assert.assertEquals(owningSide.getInverseSide().getId(), persistedOwningSideDocument.getProperty(OneToOneOwningEntity.INVERSE_SIDE_COLUMN_NAME));
+
+    Document persistedNewInverseSideDocument = database.getExistingDocument(owningSide.getInverseSide().getId());
+    Assert.assertNotNull(persistedNewInverseSideDocument);
+    Assert.assertEquals(owningSide.getId(), persistedNewInverseSideDocument.getProperty(OneToOneInverseEntity.OWNING_SIDE_COLUMN_NAME));
+
+    // previous inverse side didn't get deleted
+    Document persistedPreviousInverseSideDocument = database.getExistingDocument(inverseSide.getId());
+    Assert.assertNotNull(persistedPreviousInverseSideDocument);
+    Assert.assertNotEquals(owningSide.getId(), persistedPreviousInverseSideDocument.getProperty(OneToOneInverseEntity.OWNING_SIDE_COLUMN_NAME));
+  }
+
+  @Test
+  public void oneToOneUpdate_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
+    OneToOneInverseEntity inverseSide = new OneToOneInverseEntity();
+    OneToOneOwningEntity owningSide = new OneToOneOwningEntity(inverseSide);
+
+    underTest.create(owningSide);
+
+    Date owningSideModifiedOnBeforeDeletion = owningSide.getModifiedOn();
+    Date inverseSideModifiedOnBeforeDeletion = inverseSide.getModifiedOn();
+
+    updateOwningSide_SetNewInverseSide(owningSide);
+    underTest.update(owningSide);
+
+    Assert.assertNotNull(owningSide.getId());
+    Assert.assertNotNull(owningSide.getVersion());
+    Assert.assertTrue(owningSide.getVersion().startsWith("3"));
+    Assert.assertNotNull(owningSide.getCreatedOn());
+    Assert.assertNotEquals(owningSide.getCreatedOn(), owningSide.getModifiedOn());
+    Assert.assertNotNull(owningSide.getModifiedOn());
+    Assert.assertNotEquals(owningSideModifiedOnBeforeDeletion, owningSide.getModifiedOn());
+
+    // assert inverse side hasn't been updated
+    Assert.assertNotNull(inverseSide.getId());
+    Assert.assertNotNull(inverseSide.getVersion());
+    Assert.assertTrue(inverseSide.getVersion().startsWith("1"));
+    Assert.assertNotNull(inverseSide.getCreatedOn());
+    Assert.assertEquals(inverseSide.getCreatedOn(), inverseSide.getModifiedOn());
+    Assert.assertNotNull(inverseSide.getModifiedOn());
+    Assert.assertEquals(inverseSideModifiedOnBeforeDeletion, inverseSide.getModifiedOn());
+  }
+
+  @Test
+  public void oneToOneUpdate_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
+    OneToOneInverseEntity inverseSide = new OneToOneInverseEntity();
+    OneToOneOwningEntity owningSide = new OneToOneOwningEntity(inverseSide);
+
+    underTest.create(owningSide);
+
+    updateOwningSide_SetNewInverseSide(owningSide);
+    underTest.update(owningSide);
+
+    Assert.assertTrue(owningSide.hasPrePersistBeenCalled());
+    Assert.assertTrue(owningSide.hasPostPersistBeenCalled());
+    Assert.assertFalse(owningSide.hasPostLoadBeenCalled());
+    Assert.assertTrue(owningSide.hasPreUpdateBeenCalled());
+    Assert.assertTrue(owningSide.hasPostUpdateBeenCalled());
+    Assert.assertFalse(owningSide.hasPreRemoveBeenCalled());
+    Assert.assertFalse(owningSide.hasPostRemoveBeenCalled());
+
+    // assert inverse side hasn't been updated
+    Assert.assertTrue(inverseSide.hasPrePersistBeenCalled());
+    Assert.assertTrue(inverseSide.hasPostPersistBeenCalled());
+    Assert.assertFalse(inverseSide.hasPostLoadBeenCalled());
+    Assert.assertFalse(inverseSide.hasPreUpdateBeenCalled());
+    Assert.assertFalse(inverseSide.hasPostUpdateBeenCalled());
+    Assert.assertFalse(inverseSide.hasPreRemoveBeenCalled());
+    Assert.assertFalse(inverseSide.hasPostRemoveBeenCalled());
   }
 
 
@@ -256,6 +345,16 @@ public class RelationshipEntityDaoTest extends DaoTestBase {
     Assert.assertFalse(inverseSide.hasPostUpdateBeenCalled());
     Assert.assertTrue(inverseSide.hasPreRemoveBeenCalled());
     Assert.assertTrue(inverseSide.hasPostRemoveBeenCalled());
+  }
+
+
+  protected void updateOwningSide_SetNewInverseSide(OneToOneOwningEntity owningSide) throws CouchbaseLiteException, SQLException {
+    OneToOneInverseEntity newInverseSide = new OneToOneInverseEntity();
+
+    Dao inverseSideDao = relationshipDaoCache.getDaoForEntity(OneToOneInverseEntity.class);
+    inverseSideDao.create(newInverseSide);
+
+    owningSide.setInverseSide(newInverseSide);
   }
 
 }
