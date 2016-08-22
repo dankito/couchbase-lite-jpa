@@ -12,6 +12,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -117,11 +118,88 @@ public class OneToManyUnidirectionalRelationshipDaoTest extends DaoTestBase {
   }
 
 
+  @Test
+  public void oneToManyRetrieve_AllPropertiesAreSetCorrectly() throws CouchbaseLiteException, SQLException {
+    Collection<OneToManyUnidirectionalInverseEntity> inverseSides = createTestInverseSideEntities();
+    OneToManyUnidirectionalOwningEntity owningSide = new OneToManyUnidirectionalOwningEntity(inverseSides);
+
+    underTest.create(owningSide);
+
+    objectCache.clear();
+
+    OneToManyUnidirectionalOwningEntity persistedOwningSide = (OneToManyUnidirectionalOwningEntity) underTest.retrieve(owningSide.getId());
+    Assert.assertEquals(COUNT_TEST_INVERSE_SIDE_ENTITIES, persistedOwningSide.getInverseSides().size());
+
+    List<OneToManyUnidirectionalInverseEntity> persistedInverseSides = new ArrayList<>(persistedOwningSide.getInverseSides());
+
+    for(int i = 0; i < COUNT_TEST_INVERSE_SIDE_ENTITIES; i++) {
+      OneToManyUnidirectionalInverseEntity persistedInverseSide = persistedInverseSides.get(i);
+      Assert.assertEquals(i, persistedInverseSide.getOrder());
+    }
+  }
+
+  @Test
+  public void oneToManyRetrieve_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
+    Collection<OneToManyUnidirectionalInverseEntity> inverseSides = createTestInverseSideEntities();
+    OneToManyUnidirectionalOwningEntity owningSide = new OneToManyUnidirectionalOwningEntity(inverseSides);
+
+    underTest.create(owningSide);
+
+    objectCache.clear();
+
+    OneToManyUnidirectionalOwningEntity persistedOwningSide = (OneToManyUnidirectionalOwningEntity) underTest.retrieve(owningSide.getId());
+
+    Assert.assertNotNull(persistedOwningSide.getId());
+    Assert.assertNotNull(persistedOwningSide.getVersion());
+    Assert.assertTrue(persistedOwningSide.getVersion().startsWith("2"));
+    Assert.assertNotNull(persistedOwningSide.getCreatedOn());
+    Assert.assertNotNull(persistedOwningSide.getModifiedOn());
+
+    for(OneToManyUnidirectionalInverseEntity persistedInverseSide : persistedOwningSide.getInverseSides()) {
+      Assert.assertNotNull(persistedInverseSide.getId());
+      Assert.assertNotNull(persistedInverseSide.getVersion());
+      Assert.assertTrue(persistedInverseSide.getVersion().startsWith("1"));
+      Assert.assertNotNull(persistedInverseSide.getCreatedOn());
+      Assert.assertNotNull(persistedInverseSide.getModifiedOn());
+    }
+  }
+
+  @Test
+  public void oneToManyRetrieve_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
+    Collection<OneToManyUnidirectionalInverseEntity> inverseSides = createTestInverseSideEntities();
+    OneToManyUnidirectionalOwningEntity owningSide = new OneToManyUnidirectionalOwningEntity(inverseSides);
+
+    underTest.create(owningSide);
+
+    objectCache.clear();
+
+    OneToManyUnidirectionalOwningEntity persistedOwningSide = (OneToManyUnidirectionalOwningEntity) underTest.retrieve(owningSide.getId());
+
+    Assert.assertFalse(persistedOwningSide.hasPrePersistBeenCalled());
+    Assert.assertFalse(persistedOwningSide.hasPostPersistBeenCalled());
+    Assert.assertTrue(persistedOwningSide.hasPostLoadBeenCalled());
+    Assert.assertFalse(persistedOwningSide.hasPreUpdateBeenCalled());
+    Assert.assertFalse(persistedOwningSide.hasPostUpdateBeenCalled());
+    Assert.assertFalse(persistedOwningSide.hasPreRemoveBeenCalled());
+    Assert.assertFalse(persistedOwningSide.hasPostRemoveBeenCalled());
+
+    for(OneToManyUnidirectionalInverseEntity persistedInverseSide : persistedOwningSide.getInverseSides()) {
+      Assert.assertFalse(persistedInverseSide.hasPrePersistBeenCalled());
+      Assert.assertFalse(persistedInverseSide.hasPostPersistBeenCalled());
+      Assert.assertTrue(persistedInverseSide.hasPostLoadBeenCalled());
+      Assert.assertFalse(persistedInverseSide.hasPreUpdateBeenCalled());
+      Assert.assertFalse(persistedInverseSide.hasPostUpdateBeenCalled());
+      Assert.assertFalse(persistedInverseSide.hasPreRemoveBeenCalled());
+      Assert.assertFalse(persistedInverseSide.hasPostRemoveBeenCalled());
+    }
+  }
+
+
   protected Collection<OneToManyUnidirectionalInverseEntity> createTestInverseSideEntities() {
     Set<OneToManyUnidirectionalInverseEntity> inverseSides = new HashSet<>();
 
     for(int i = 0; i < COUNT_TEST_INVERSE_SIDE_ENTITIES; i++) {
-      OneToManyUnidirectionalInverseEntity testEntity = new OneToManyUnidirectionalInverseEntity();
+      OneToManyUnidirectionalInverseEntity testEntity = new OneToManyUnidirectionalInverseEntity(i);
       inverseSides.add(testEntity);
     }
 

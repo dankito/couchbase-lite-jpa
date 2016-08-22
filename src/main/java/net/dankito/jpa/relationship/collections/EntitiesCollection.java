@@ -39,10 +39,7 @@ public class EntitiesCollection extends AbstractList implements Set {
   protected void initializeCollection() throws SQLException {
     List<Object> ids = getEntityIds();
 
-    for(Object id : ids) {
-      Object item = targetDao.retrieve(id);
-      add(item);
-    }
+    addAll(targetDao.retrieve(ids));
   }
 
   protected List<Object> getEntityIds() throws SQLException {

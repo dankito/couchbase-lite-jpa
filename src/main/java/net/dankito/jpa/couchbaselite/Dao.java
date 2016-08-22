@@ -139,6 +139,16 @@ public class Dao {
   }
 
 
+  public List<Object> retrieve(List<Object> ids) throws SQLException {
+    List<Object> retrievedObjects = new ArrayList<>();
+
+    for(Object id : ids) {
+      retrievedObjects.add(retrieve(id));
+    }
+
+    return retrievedObjects;
+  }
+
   public Object retrieve(Object id) throws SQLException {
     if(objectCache.containsObjectForId(entityClass, id)) {
       return objectCache.get(entityClass, id);
@@ -173,16 +183,46 @@ public class Dao {
 
     for(PropertyConfig property : entityConfig.getProperties()) {
       if(isCouchbaseLiteSystemProperty(property) == false) {
-        Object propertyValue = getValueFromDocument(document, property);
+        setPropertyOnObject(object, document, property); // TODO: catch Exception for setting single Property or let it bubble up and therefor stop Object creation?
+      }
+    }
+  }
 
-        if(property.isRelationshipProperty() == false) {
-          setValueOnObject(object, property, propertyValue);
-        }
-        else {
-          Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(property);
-          Object deserializedTargetInstance = targetDao.retrieve((String)propertyValue);
-          setValueOnObject(object, property, deserializedTargetInstance);
-        }
+  protected void setPropertyOnObject(Object object, Document document, PropertyConfig property) throws SQLException {
+    Object propertyValue = getValueFromDocument(document, property);
+
+    if(property.isRelationshipProperty() == false) {
+      setValueOnObject(object, property, propertyValue);
+    }
+    else {
+      Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(property);
+
+      if(property.isCollectionProperty() == false) {
+        Object deserializedTargetInstance = targetDao.retrieve(propertyValue);
+        setValueOnObject(object, property, deserializedTargetInstance);
+      }
+      else {
+        setCollectionPropertyOnObject(object, property, targetDao, (String)propertyValue);
+      }
+    }
+  }
+
+  protected void setCollectionPropertyOnObject(Object object, PropertyConfig property, Dao targetDao, String joinedEntityIdsString) throws SQLException {
+    Object propertyValue = getPropertyValue(object, property);
+
+    if(propertyValue instanceof EntitiesCollection == false) {
+      // TODO: what to do with joinedEntityIdsString in this case? As EntitiesCollection re-retrieves it, this is a waste of CPU time
+      createAndSetEntitiesCollection(object, property); // EntitiesCollection will retrieve its items in Constructor
+    }
+    else {
+      List joinedEntityIds = parseJoinedEntityIdsToList(joinedEntityIdsString);
+      List<Object> retrievedItems = retrieve(joinedEntityIds);
+
+      Collection collection = (Collection)propertyValue;
+      collection.clear();
+
+      for(Object item : retrievedItems) {
+        collection.add(item);
       }
     }
   }
@@ -279,23 +319,26 @@ public class Dao {
   public List<Object> getJoinedItemsIds(Object object, PropertyConfig collectionProperty) throws SQLException {
     if(isAlreadyPersisted(object)) {
       Document objectDocument = retrieveStoredDocument(object);
-      ObjectMapper objectMapper = getObjectMapper();
 
       String itemIdsString = (String) objectDocument.getProperties().get(collectionProperty.getColumnName());
 
       if (itemIdsString != null) { // on initial EntitiesCollection creation itemIdsString is null
-
-        // TODO: implement OrderBy
-
-        try {
-          return objectMapper.readValue(itemIdsString, List.class);
-        } catch (Exception e) {
-          throw new SQLException("Could not parse String " + itemIdsString + " to List with joined Entity Ids", e);
-        }
+        return parseJoinedEntityIdsToList(itemIdsString);
       }
     }
 
     return new ArrayList<>();
+  }
+
+  protected List<Object> parseJoinedEntityIdsToList(String itemIdsString) throws SQLException {
+    try {
+      // TODO: implement OrderBy
+
+      ObjectMapper objectMapper = getObjectMapper();
+      return objectMapper.readValue(itemIdsString, List.class);
+    } catch (Exception e) {
+      throw new SQLException("Could not parse String " + itemIdsString + " to List with joined Entity Ids", e);
+    }
   }
 
 
@@ -376,7 +419,7 @@ public class Dao {
 
   protected void mapCollectionProperty(Object object, PropertyConfig collectionProperty, Map<String, Object> mappedProperties, Dao targetDao, Collection propertyValue) throws SQLException {
     if(propertyValue instanceof EntityConfig == false) {
-      createEntityCollectionForProperty(object, collectionProperty, propertyValue);
+      createAndSetEntitiesCollectionAndAddExistingItems(object, collectionProperty, propertyValue);
     }
 
     List joinedEntityIds = new ArrayList();
@@ -391,7 +434,47 @@ public class Dao {
     writeOneToManyJoinedEntityIdsToProperty(joinedEntityIds, collectionProperty, mappedProperties);
   }
 
-  protected void createEntityCollectionForProperty(Object object, PropertyConfig collectionProperty, Object propertyValue) throws SQLException {
+  protected Collection createEntitiesCollection(Object object, PropertyConfig collectionProperty) throws SQLException {
+    Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(collectionProperty);
+    Collection collection = null;
+
+    if(collectionProperty.isManyToManyField() == false) {
+      if(collectionProperty.isLazyLoading()) {
+        // TODO
+      }
+      else {
+        collection = new EntitiesCollection(object, collectionProperty, this, targetDao);
+      }
+    }
+    else {
+      if(collectionProperty.isLazyLoading()) {
+        // TODO
+      }
+      else {
+        // TODO
+      }
+    }
+
+    return collection;
+  }
+
+  protected void createAndSetEntitiesCollection(Object object, PropertyConfig collectionProperty) throws SQLException {
+    Collection collection = createEntitiesCollection(object, collectionProperty);
+
+    setValueOnObject(object, collectionProperty, collection);
+  }
+
+  protected void createAndSetEntitiesCollectionAndAddExistingItems(Object object, PropertyConfig collectionProperty, Object propertyValue) throws SQLException {
+    Collection collection = createEntitiesCollection(object, collectionProperty);
+
+    for(Object currentItem : (Collection)propertyValue) {
+      collection.add(currentItem);
+    }
+
+    setValueOnObject(object, collectionProperty, collection);
+  }
+
+  protected void createEntitiesCollectionForProperty(Object object, PropertyConfig collectionProperty, Object propertyValue) throws SQLException {
     Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(collectionProperty);
     EntitiesCollection collection = null;
 
