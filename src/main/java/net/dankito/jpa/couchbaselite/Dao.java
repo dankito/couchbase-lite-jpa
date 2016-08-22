@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.dankito.jpa.annotationreader.config.EntityConfig;
+import net.dankito.jpa.annotationreader.config.OrderByConfig;
 import net.dankito.jpa.annotationreader.config.PropertyConfig;
 import net.dankito.jpa.cache.ObjectCache;
 import net.dankito.jpa.cache.RelationshipDaoCache;
@@ -16,10 +17,14 @@ import net.dankito.jpa.util.CrudOperation;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import javax.persistence.AccessType;
 
@@ -139,8 +144,8 @@ public class Dao {
   }
 
 
-  public List<Object> retrieve(List<Object> ids) throws SQLException {
-    List<Object> retrievedObjects = new ArrayList<>();
+  public Collection<Object> retrieve(Collection<Object> ids) throws SQLException {
+    Collection<Object> retrievedObjects = new ArrayList<>();
 
     for(Object id : ids) {
       retrievedObjects.add(retrieve(id));
@@ -215,8 +220,8 @@ public class Dao {
       createAndSetEntitiesCollection(object, property); // EntitiesCollection will retrieve its items in Constructor
     }
     else {
-      List joinedEntityIds = parseJoinedEntityIdsToList(joinedEntityIdsString);
-      List<Object> retrievedItems = retrieve(joinedEntityIds);
+      Collection<Object> itemIds = parseJoinedEntityIdsToList(joinedEntityIdsString, property);
+      Collection<Object> retrievedItems = retrieve(itemIds);
 
       Collection collection = (Collection)propertyValue;
       collection.clear();
@@ -316,29 +321,102 @@ public class Dao {
   }
 
 
-  public List<Object> getJoinedItemsIds(Object object, PropertyConfig collectionProperty) throws SQLException {
+  public Collection<Object> getJoinedItemsIds(Object object, PropertyConfig collectionProperty) throws SQLException {
     if(isAlreadyPersisted(object)) {
       Document objectDocument = retrieveStoredDocument(object);
 
       String itemIdsString = (String) objectDocument.getProperties().get(collectionProperty.getColumnName());
 
       if (itemIdsString != null) { // on initial EntitiesCollection creation itemIdsString is null
-        return parseJoinedEntityIdsToList(itemIdsString);
+        return parseJoinedEntityIdsToList(itemIdsString, collectionProperty);
       }
     }
 
-    return new ArrayList<>();
+    return new HashSet<>();
   }
 
-  protected List<Object> parseJoinedEntityIdsToList(String itemIdsString) throws SQLException {
+  protected Collection<Object> parseJoinedEntityIdsToList(String itemIdsString, PropertyConfig property) throws SQLException {
     try {
       // TODO: implement OrderBy
 
       ObjectMapper objectMapper = getObjectMapper();
-      return objectMapper.readValue(itemIdsString, List.class);
+      Collection<Object> itemIds = objectMapper.readValue(itemIdsString, Set.class);
+
+      if(property.hasOrderColumns()) {
+        itemIds = sortItems(itemIds, property);
+      }
+
+      return itemIds;
     } catch (Exception e) {
       throw new SQLException("Could not parse String " + itemIdsString + " to List with joined Entity Ids", e);
     }
+  }
+
+  /**
+   * For Couchbase Lite we have to implement sorting Entities according @OrderBy Annotations in memory.
+   * @param itemIds
+   * @param property
+   * @return
+   */
+  protected Collection<Object> sortItems(Collection<Object> itemIds, PropertyConfig property) throws SQLException {
+    // there's not other way to sort ids then loading their Documents which may thwart Lazy Loading
+    final Map<Object, Document> mapIdToDocument = getDocumentsToIds(itemIds);
+    Set<Object> sortedSet = new HashSet(itemIds);
+
+    for(int i = property.getOrderColumns().size() - 1; i >= 0; i--) {
+      final OrderByConfig orderBy = property.getOrderColumns().get(i);
+
+      TreeSet<Object> sortedTempSet = new TreeSet<>(new Comparator<Object>() {
+        @Override
+        public int compare(Object id1, Object id2) {
+          return compareObjects(mapIdToDocument, id1, id2, orderBy);
+        }
+      });
+
+      sortedTempSet.addAll(sortedSet);
+
+      sortedSet = sortedTempSet;
+    }
+
+    return sortedSet;
+  }
+
+  protected Map<Object, Document> getDocumentsToIds(Collection<Object> itemIds) throws SQLException {
+    Map<Object, Document> mapIdToDocument = new HashMap<>();
+
+    for(Object id : itemIds) {
+      mapIdToDocument.put(id, retrieveStoredDocumentForId(id));
+    }
+
+    return mapIdToDocument;
+  }
+
+  protected int compareObjects(Map<Object, Document> mapIdToDocument, Object id1, Object id2, OrderByConfig orderBy) {
+    Object object1Value = null, object2Value = null;
+    try { object1Value = getValueFromDocument(mapIdToDocument.get(id1), orderBy.getOrderByTargetProperty()); } catch(Exception ignored) { }
+    try { object2Value = getValueFromDocument(mapIdToDocument.get(id2), orderBy.getOrderByTargetProperty()); } catch(Exception ignored) { }
+
+    if(object1Value == null && object2Value == null) {
+      return 0;
+    }
+    else if(object1Value == null) {
+      return -1;
+    }
+    else if(object2Value == null) {
+      return 1;
+    }
+
+    int compareValue = 0;
+
+    if(object1Value instanceof Comparable && object2Value instanceof Comparable) {
+      compareValue = ((Comparable)object1Value).compareTo(object2Value);
+
+      if(orderBy.isAscending() == false) {
+        compareValue = compareValue * (-1); // invert ordering
+      }
+    }
+
+    return compareValue;
   }
 
 

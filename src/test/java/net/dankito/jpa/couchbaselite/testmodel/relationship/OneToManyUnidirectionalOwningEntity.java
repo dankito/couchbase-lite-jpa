@@ -10,6 +10,7 @@ import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
+import javax.persistence.OrderBy;
 
 /**
  * Created by ganymed on 18/08/16.
@@ -17,11 +18,9 @@ import javax.persistence.OneToMany;
 @Entity
 public class OneToManyUnidirectionalOwningEntity extends BaseEntity {
 
-  public static final String INVERSE_SIDES_COLUMN_NAME = "inverse_sides";
-
 
   @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-  @JoinColumn(name = INVERSE_SIDES_COLUMN_NAME)
+  @OrderBy("order ASC")
   protected Collection<OneToManyUnidirectionalInverseEntity> inverseSides = new HashSet<>();
 
 

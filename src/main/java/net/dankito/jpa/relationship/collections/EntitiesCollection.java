@@ -5,6 +5,7 @@ import net.dankito.jpa.couchbaselite.Dao;
 
 import java.sql.SQLException;
 import java.util.AbstractList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -37,12 +38,12 @@ public class EntitiesCollection extends AbstractList implements Set {
 
 
   protected void initializeCollection() throws SQLException {
-    List<Object> ids = getEntityIds();
+    Collection<Object> ids = getEntityIds();
 
     addAll(targetDao.retrieve(ids));
   }
 
-  protected List<Object> getEntityIds() throws SQLException {
+  protected Collection<Object> getEntityIds() throws SQLException {
     return holdingObjectDao.getJoinedItemsIds(holdingObject, property);
   }
 
