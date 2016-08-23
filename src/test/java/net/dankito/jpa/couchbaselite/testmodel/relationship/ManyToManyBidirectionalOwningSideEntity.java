@@ -11,13 +11,14 @@ import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
+import javax.persistence.MappedSuperclass;
 import javax.persistence.OrderBy;
 
 /**
  * Created by ganymed on 18/08/16.
  */
-@Entity
-public class ManyToManyBidirectionalOwningSideEntity extends BaseEntity {
+@MappedSuperclass
+public abstract class ManyToManyBidirectionalOwningSideEntity extends BaseEntity {
 
   public static final String JOIN_TABLE_NAME = "owning_side_inverse_side_join_table";
 
@@ -25,55 +26,15 @@ public class ManyToManyBidirectionalOwningSideEntity extends BaseEntity {
   public static final String JOIN_TABLE_INVERSE_SIDE_COLUMN_NAME = "inverse_side_id";
 
 
-  @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-  @JoinTable(
-      name = JOIN_TABLE_NAME,
-      joinColumns = { @JoinColumn(name = JOIN_TABLE_OWNING_SIDE_COLUMN_NAME) },
-      inverseJoinColumns = { @JoinColumn(name = JOIN_TABLE_INVERSE_SIDE_COLUMN_NAME) }
-  )
-  @OrderBy("order ASC")
-  protected Collection<ManyToManyBidirectionalInverseSideEntity> inverseSides;
-
-
   public ManyToManyBidirectionalOwningSideEntity() {
 
   }
 
-  public ManyToManyBidirectionalOwningSideEntity(Collection<ManyToManyBidirectionalInverseSideEntity> inverseSides) {
-    if(this.inverseSides != null) {
-      for(ManyToManyBidirectionalInverseSideEntity manySide : this.inverseSides) {
-        manySide.removeOwningSide(null);
-      }
-    }
 
-    this.inverseSides = inverseSides;
+  public abstract Collection<ManyToManyBidirectionalInverseSideEntity> getInverseSides();
 
-    if(inverseSides != null) {
-      for (ManyToManyBidirectionalInverseSideEntity item : inverseSides) {
-        item.addOwningSide(this);
-      }
-    }
-  }
+  public abstract void addInverseSide(ManyToManyBidirectionalInverseSideEntity inverseSide);
 
-
-  public Collection<ManyToManyBidirectionalInverseSideEntity> getInverseSides() {
-    return inverseSides;
-  }
-
-  public void addInverseSide(ManyToManyBidirectionalInverseSideEntity inverseSide) {
-    if(inverseSide != null) {
-      inverseSide.addOwningSide(this);
-
-      inverseSides.add(inverseSide);
-    }
-  }
-
-  public void removeInverseSide(ManyToManyBidirectionalInverseSideEntity inverseSide) {
-    if(inverseSide != null) {
-      inverseSide.removeOwningSide(this);
-
-      inverseSides.remove(inverseSide);
-    }
-  }
+  public abstract void removeInverseSide(ManyToManyBidirectionalInverseSideEntity inverseSide);
 
 }

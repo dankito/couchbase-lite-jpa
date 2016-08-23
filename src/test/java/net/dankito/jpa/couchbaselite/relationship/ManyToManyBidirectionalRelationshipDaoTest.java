@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.dankito.jpa.couchbaselite.Dao;
 import net.dankito.jpa.couchbaselite.DaoTestBase;
+import net.dankito.jpa.couchbaselite.testmodel.relationship.ManyToManyBidirectionalEagerInverseSideEntity;
+import net.dankito.jpa.couchbaselite.testmodel.relationship.ManyToManyBidirectionalEagerOwningSideEntity;
 import net.dankito.jpa.couchbaselite.testmodel.relationship.ManyToManyBidirectionalInverseSideEntity;
 import net.dankito.jpa.couchbaselite.testmodel.relationship.ManyToManyBidirectionalOwningSideEntity;
 
@@ -26,7 +28,7 @@ import java.util.Set;
 /**
  * Created by ganymed on 18/08/16.
  */
-public class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
+public abstract class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
 
   public static final int COUNT_TEST_OWNING_SIDE_ENTITIES = 5;
 
@@ -37,10 +39,11 @@ public class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
   protected ObjectMapper objectMapper = new ObjectMapper();
 
 
-  @Override
-  protected Class[] getEntitiesToTest() {
-    return new Class[] { ManyToManyBidirectionalOwningSideEntity.class, ManyToManyBidirectionalInverseSideEntity.class };
-  }
+  protected abstract ManyToManyBidirectionalOwningSideEntity createTestOwningSideEntity(List<ManyToManyBidirectionalInverseSideEntity> inverseSides);
+
+  protected abstract ManyToManyBidirectionalInverseSideEntity createTestInverseSideEntity(int order);
+
+  protected abstract Dao getTargetDao();
 
 
   @Test
@@ -122,7 +125,7 @@ public class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
 
   @Test
   public void manyToManyCreate_InverseSideIsNull_NoExceptionsAndAllPropertiesGetPersistedCorrectly() throws CouchbaseLiteException, SQLException {
-    ManyToManyBidirectionalOwningSideEntity owningSide = new ManyToManyBidirectionalOwningSideEntity(null);
+    ManyToManyBidirectionalOwningSideEntity owningSide = createTestOwningSideEntity(null);
 
     underTest.create(owningSide);
 
@@ -299,12 +302,13 @@ public class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
       Assert.assertFalse(owningSide.hasPreRemoveBeenCalled());
       Assert.assertFalse(owningSide.hasPostRemoveBeenCalled());
 
-      for (ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) { // assert inverseSides haven't been updated
+      for (ManyToManyBidirectionalInverseSideEntity inverseSide : owningSide.getInverseSides()) {
         Assert.assertTrue(inverseSide.hasPrePersistBeenCalled());
         Assert.assertTrue(inverseSide.hasPostPersistBeenCalled());
         Assert.assertFalse(inverseSide.hasPostLoadBeenCalled());
-        Assert.assertFalse(inverseSide.hasPreUpdateBeenCalled());
-        Assert.assertFalse(inverseSide.hasPostUpdateBeenCalled());
+        // depending on if inverseSide instance got added to other owningSide or not it got updated or not
+//        Assert.assertFalse(inverseSide.hasPreUpdateBeenCalled());
+//        Assert.assertFalse(inverseSide.hasPostUpdateBeenCalled());
         Assert.assertFalse(inverseSide.hasPreRemoveBeenCalled());
         Assert.assertFalse(inverseSide.hasPostRemoveBeenCalled());
       }
@@ -407,7 +411,7 @@ public class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
     Set<ManyToManyBidirectionalInverseSideEntity> inverseSides = new HashSet<>();
 
     for(int i = 0; i < COUNT_TEST_INVERSE_SIDE_ENTITIES; i++) {
-      ManyToManyBidirectionalInverseSideEntity testEntity = new ManyToManyBidirectionalInverseSideEntity(i);
+      ManyToManyBidirectionalInverseSideEntity testEntity = createTestInverseSideEntity(i);
       
       inverseSides.add(testEntity);
     }
@@ -422,7 +426,7 @@ public class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
     for(int i = 0; i < COUNT_TEST_OWNING_SIDE_ENTITIES; i++) {
       List<ManyToManyBidirectionalInverseSideEntity> randomlySelectedInverseSides = randomlySelectInverseSides(inverseSides);
 
-      ManyToManyBidirectionalOwningSideEntity testEntity = new ManyToManyBidirectionalOwningSideEntity(randomlySelectedInverseSides);
+      ManyToManyBidirectionalOwningSideEntity testEntity = createTestOwningSideEntity(randomlySelectedInverseSides);
       testOwningSides.add(testEntity);
     }
 
@@ -465,10 +469,10 @@ public class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
       owningSide.removeInverseSide(currentInverseSidesList.get(i));
     }
 
-    Dao inverseSideDao = relationshipDaoCache.getDaoForEntity(ManyToManyBidirectionalInverseSideEntity.class);
+    Dao inverseSideDao = getTargetDao();
 
     for(int i = COUNT_TEST_INVERSE_SIDE_ENTITIES; i < COUNT_TEST_INVERSE_SIDE_ENTITIES + 3; i++) {
-      ManyToManyBidirectionalInverseSideEntity testEntity = new ManyToManyBidirectionalInverseSideEntity(i);
+      ManyToManyBidirectionalInverseSideEntity testEntity = createTestInverseSideEntity(i);
       inverseSideDao.create(testEntity);
 
       owningSide.addInverseSide(testEntity);

@@ -10,16 +10,13 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.ManyToMany;
+import javax.persistence.MappedSuperclass;
 
 /**
  * Created by ganymed on 18/08/16.
  */
-@Entity
-public class ManyToManyBidirectionalInverseSideEntity extends BaseEntity {
-
-
-  @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "inverseSides")
-  protected Collection<ManyToManyBidirectionalOwningSideEntity> owningSides = new HashSet<>();
+@MappedSuperclass
+public abstract class ManyToManyBidirectionalInverseSideEntity extends BaseEntity {
 
   @Column
   protected int order = -1;
@@ -34,17 +31,11 @@ public class ManyToManyBidirectionalInverseSideEntity extends BaseEntity {
   }
 
 
-  public Collection<ManyToManyBidirectionalOwningSideEntity> getOwningSides() {
-    return owningSides;
-  }
+  public abstract Collection<ManyToManyBidirectionalOwningSideEntity> getOwningSides();
 
-  protected void addOwningSide(ManyToManyBidirectionalOwningSideEntity owningSide) {
-    this.owningSides.add(owningSide);
-  }
+  protected abstract void addOwningSide(ManyToManyBidirectionalOwningSideEntity owningSide);
 
-  protected void removeOwningSide(ManyToManyBidirectionalOwningSideEntity owningSide) {
-    this.owningSides.remove(owningSide);
-  }
+  protected abstract void removeOwningSide(ManyToManyBidirectionalOwningSideEntity owningSide);
 
 
   public int getOrder() {
