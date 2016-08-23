@@ -12,6 +12,7 @@ import net.dankito.jpa.annotationreader.config.PropertyConfig;
 import net.dankito.jpa.cache.ObjectCache;
 import net.dankito.jpa.cache.RelationshipDaoCache;
 import net.dankito.jpa.relationship.collections.EntitiesCollection;
+import net.dankito.jpa.relationship.collections.LazyLoadingEntitiesCollection;
 import net.dankito.jpa.relationship.collections.ManyToManyEntitiesCollection;
 import net.dankito.jpa.util.CrudOperation;
 
@@ -439,7 +440,7 @@ public class Dao {
     return getObjectId(object) != null;
   }
 
-  protected String getObjectId(Object object) throws SQLException {
+  public String getObjectId(Object object) throws SQLException {
     return (String)getPropertyValue(object, entityConfig.getIdProperty());
   }
 
@@ -533,7 +534,7 @@ public class Dao {
 
     if(collectionProperty.isManyToManyField() == false) {
       if(collectionProperty.isLazyLoading()) {
-        // TODO
+        collection = new LazyLoadingEntitiesCollection(object, collectionProperty, this, targetDao);
       }
       else {
         collection = new EntitiesCollection(object, collectionProperty, this, targetDao);

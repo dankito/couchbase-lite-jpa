@@ -55,6 +55,13 @@ public class EntitiesCollection extends AbstractList implements Set {
 
   @Override
   public boolean add(Object object) {
+    // TODO: implement Check if object is already persisted (otherwise throw Exception)
+
+    if(object == null) {
+//      throw new SQLException("Value to add may not be null");
+      return false;
+    }
+
     int oldSize = size();
 
     add(oldSize, object);
@@ -67,8 +74,9 @@ public class EntitiesCollection extends AbstractList implements Set {
     itemAddedToCollection(index, element);
   }
 
-  protected void itemAddedToCollection(int index, Object element) {
+  protected boolean itemAddedToCollection(int index, Object element) {
     items.add(index, element);
+    return true;
   }
 
   @Override
