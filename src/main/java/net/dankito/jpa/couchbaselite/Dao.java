@@ -120,7 +120,7 @@ public class Dao {
             persistOneToManyCollectionItems(cascadePersistProperty, targetDao, cascadedProperties, (Collection) propertyValue);
           }
           else {
-            // TODO: also implement JoinTables for ManyToMany properties
+            persistManyToManyCollectionItems(cascadePersistProperty, targetDao, cascadedProperties, (Collection) propertyValue);
           }
         }
         else if (targetDao.create(propertyValue)) {
@@ -142,6 +142,11 @@ public class Dao {
     }
 
     writeOneToManyJoinedEntityIdsToProperty(persistedItemIds, cascadePersistProperty, documentProperties);
+  }
+
+  protected void persistManyToManyCollectionItems(PropertyConfig cascadePersistProperty, Dao targetDao, Map<String, Object> cascadedProperties, Collection propertyValue) throws CouchbaseLiteException, SQLException {
+    // TODO: currently we storing redundantly target entities' ids on both side, may implement JoinTables for ManyToMany properties
+    persistOneToManyCollectionItems(cascadePersistProperty, targetDao, cascadedProperties, propertyValue);
   }
 
 
