@@ -20,6 +20,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 /**
@@ -27,7 +28,11 @@ import java.util.Set;
  */
 public class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
 
-  public static final int COUNT_TEST_MANY_SIDE_ENTITIES = 4;
+  public static final int COUNT_TEST_OWNING_SIDE_ENTITIES = 5;
+
+  public static final int COUNT_TEST_INVERSE_SIDE_ENTITIES = 6;
+
+  public static final int COUNT_INVERSE_SIDES_PER_OWNING_SIDE = 3;
 
   protected ObjectMapper objectMapper = new ObjectMapper();
 
@@ -41,78 +46,76 @@ public class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
   @Test
   public void manyToManyCreate_AllPropertiesGetPersistedCorrectly() throws Exception {
     Collection<ManyToManyBidirectionalInverseSideEntity> inverseSides = createTestInverseSideEntities();
-    ManyToManyBidirectionalOwningSideEntity owningSide = new ManyToManyBidirectionalOwningSideEntity(inverseSides);
+    Collection<ManyToManyBidirectionalOwningSideEntity> owningSides = createTestOwningSideEntities(inverseSides);
 
-    underTest.create(owningSide);
+    for(ManyToManyBidirectionalOwningSideEntity owningSide : owningSides) {
+      Document persistedOwningSideDocument = database.getDocument(owningSide.getId());
+      Assert.assertNotNull(persistedOwningSideDocument);
 
-    Dao targetDao = relationshipDaoCache.getDaoForEntity(ManyToManyBidirectionalInverseSideEntity.class);
-    for(ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) {
-      targetDao.update(inverseSide);
-    }
+      List itemIds = getTargetEntityIds(persistedOwningSideDocument, "owning_side_id"); // TODO: this column name is wrong
 
-    Document persistedOwningSideDocument = database.getDocument(owningSide.getId());
-    Assert.assertNotNull(persistedOwningSideDocument);
+      Assert.assertEquals(itemIds.size(), owningSide.getInverseSides().size());
+      Assert.assertEquals(COUNT_INVERSE_SIDES_PER_OWNING_SIDE, owningSide.getInverseSides().size());
 
-    List itemIds = getTargetEntityIds(persistedOwningSideDocument, "owning_side_id"); // TODO: this column name is wrong
+      for(ManyToManyBidirectionalInverseSideEntity inverseSide : owningSide.getInverseSides()) {
+        Assert.assertTrue(itemIds.contains(inverseSide.getId()));
 
-    Assert.assertEquals(itemIds.size(), owningSide.getInverseSides().size());
+        Document persistedInverseSideDocument = database.getDocument(inverseSide.getId());
+        Assert.assertNotNull(persistedInverseSideDocument);
 
-    for(ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) {
-      Assert.assertTrue(itemIds.contains(inverseSide.getId()));
-
-      Document persistedInverseSideDocument = database.getDocument(inverseSide.getId());
-      Assert.assertNotNull(persistedInverseSideDocument);
-
-      List inverseSideTargetEntityIds = getTargetEntityIds(persistedInverseSideDocument, "owningSides"); // TODO: this column name may be wrong
-      Assert.assertTrue(inverseSideTargetEntityIds.contains(owningSide.getId()));
+        List inverseSideTargetEntityIds = getTargetEntityIds(persistedInverseSideDocument, "owningSides"); // TODO: this column name may be wrong
+        Assert.assertTrue(inverseSideTargetEntityIds.contains(owningSide.getId()));
+      }
     }
   }
 
   @Test
   public void manyToManyCreate_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
     Collection<ManyToManyBidirectionalInverseSideEntity> inverseSides = createTestInverseSideEntities();
-    ManyToManyBidirectionalOwningSideEntity owningSide = new ManyToManyBidirectionalOwningSideEntity(inverseSides);
+    Collection<ManyToManyBidirectionalOwningSideEntity> owningSides = createTestOwningSideEntities(inverseSides);
 
-    underTest.create(owningSide);
+    for(ManyToManyBidirectionalOwningSideEntity owningSide : owningSides) {
+      Assert.assertNotNull(owningSide.getId());
+      Assert.assertNotNull(owningSide.getVersion());
+      Assert.assertTrue(owningSide.getVersion().startsWith("1"));
+      Assert.assertNotNull(owningSide.getCreatedOn());
+      Assert.assertNotNull(owningSide.getModifiedOn());
+      Assert.assertEquals(owningSide.getCreatedOn(), owningSide.getModifiedOn());
 
-    Assert.assertNotNull(owningSide.getId());
-    Assert.assertNotNull(owningSide.getVersion());
-    Assert.assertNotNull(owningSide.getCreatedOn());
-    Assert.assertNotNull(owningSide.getModifiedOn());
-    Assert.assertEquals(owningSide.getCreatedOn(), owningSide.getModifiedOn());
-
-    for(ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) {
-      Assert.assertNotNull(inverseSide.getId());
-      Assert.assertNotNull(inverseSide.getVersion());
-      Assert.assertNotNull(inverseSide.getCreatedOn());
-      Assert.assertNotNull(inverseSide.getModifiedOn());
-      Assert.assertEquals(inverseSide.getCreatedOn(), inverseSide.getModifiedOn());
+      for (ManyToManyBidirectionalInverseSideEntity inverseSide : owningSide.getInverseSides()) {
+        Assert.assertNotNull(inverseSide.getId());
+        Assert.assertNotNull(inverseSide.getVersion());
+        Assert.assertTrue(inverseSide.getVersion().startsWith("1"));
+        Assert.assertNotNull(inverseSide.getCreatedOn());
+        Assert.assertNotNull(inverseSide.getModifiedOn());
+        Assert.assertEquals(inverseSide.getCreatedOn(), inverseSide.getModifiedOn());
+      }
     }
   }
 
   @Test
   public void manyToManyCreate_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
     Collection<ManyToManyBidirectionalInverseSideEntity> inverseSides = createTestInverseSideEntities();
-    ManyToManyBidirectionalOwningSideEntity owningSide = new ManyToManyBidirectionalOwningSideEntity(inverseSides);
+    Collection<ManyToManyBidirectionalOwningSideEntity> owningSides = createTestOwningSideEntities(inverseSides);
 
-    underTest.create(owningSide);
+    for(ManyToManyBidirectionalOwningSideEntity owningSide : owningSides) {
+      Assert.assertTrue(owningSide.hasPrePersistBeenCalled());
+      Assert.assertTrue(owningSide.hasPostPersistBeenCalled());
+      Assert.assertFalse(owningSide.hasPostLoadBeenCalled());
+      Assert.assertFalse(owningSide.hasPreUpdateBeenCalled());
+      Assert.assertFalse(owningSide.hasPostUpdateBeenCalled());
+      Assert.assertFalse(owningSide.hasPreRemoveBeenCalled());
+      Assert.assertFalse(owningSide.hasPostRemoveBeenCalled());
 
-    Assert.assertTrue(owningSide.hasPrePersistBeenCalled());
-    Assert.assertTrue(owningSide.hasPostPersistBeenCalled());
-    Assert.assertFalse(owningSide.hasPostLoadBeenCalled());
-    Assert.assertFalse(owningSide.hasPreUpdateBeenCalled());
-    Assert.assertFalse(owningSide.hasPostUpdateBeenCalled());
-    Assert.assertFalse(owningSide.hasPreRemoveBeenCalled());
-    Assert.assertFalse(owningSide.hasPostRemoveBeenCalled());
-
-    for(ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) {
-      Assert.assertTrue(inverseSide.hasPrePersistBeenCalled());
-      Assert.assertTrue(inverseSide.hasPostPersistBeenCalled());
-      Assert.assertFalse(inverseSide.hasPostLoadBeenCalled());
-      Assert.assertFalse(inverseSide.hasPreUpdateBeenCalled());
-      Assert.assertFalse(inverseSide.hasPostUpdateBeenCalled());
-      Assert.assertFalse(inverseSide.hasPreRemoveBeenCalled());
-      Assert.assertFalse(inverseSide.hasPostRemoveBeenCalled());
+      for (ManyToManyBidirectionalInverseSideEntity inverseSide : owningSide.getInverseSides()) {
+        Assert.assertTrue(inverseSide.hasPrePersistBeenCalled());
+        Assert.assertTrue(inverseSide.hasPostPersistBeenCalled());
+        Assert.assertFalse(inverseSide.hasPostLoadBeenCalled());
+        Assert.assertFalse(inverseSide.hasPreUpdateBeenCalled());
+        Assert.assertFalse(inverseSide.hasPostUpdateBeenCalled());
+        Assert.assertFalse(inverseSide.hasPreRemoveBeenCalled());
+        Assert.assertFalse(inverseSide.hasPostRemoveBeenCalled());
+      }
     }
   }
 
@@ -133,76 +136,81 @@ public class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
   @Test
   public void manyToManyRetrieve_AllPropertiesAreSetCorrectly() throws CouchbaseLiteException, SQLException {
     Collection<ManyToManyBidirectionalInverseSideEntity> inverseSides = createTestInverseSideEntities();
-    ManyToManyBidirectionalOwningSideEntity owningSide = new ManyToManyBidirectionalOwningSideEntity(inverseSides);
-
-    underTest.create(owningSide);
+    Collection<ManyToManyBidirectionalOwningSideEntity> owningSides = createTestOwningSideEntities(inverseSides);
 
     objectCache.clear();
 
-    ManyToManyBidirectionalOwningSideEntity persistedOwningSide = (ManyToManyBidirectionalOwningSideEntity) underTest.retrieve(owningSide.getId());
-    Assert.assertEquals(COUNT_TEST_MANY_SIDE_ENTITIES, persistedOwningSide.getInverseSides().size());
+    for(ManyToManyBidirectionalOwningSideEntity owningSide : owningSides) {
+      ManyToManyBidirectionalOwningSideEntity persistedOwningSide = (ManyToManyBidirectionalOwningSideEntity) underTest.retrieve(owningSide.getId());
+      Assert.assertEquals(COUNT_INVERSE_SIDES_PER_OWNING_SIDE, persistedOwningSide.getInverseSides().size());
 
-    List<ManyToManyBidirectionalInverseSideEntity> persistedInverseSides = new ArrayList<>(persistedOwningSide.getInverseSides());
+      List<ManyToManyBidirectionalInverseSideEntity> persistedInverseSides = new ArrayList<>(persistedOwningSide.getInverseSides());
+      int lastOrderNumber = -1;
 
-    for(int i = 0; i < COUNT_TEST_MANY_SIDE_ENTITIES; i++) {
-      ManyToManyBidirectionalInverseSideEntity persistedInverseSide = persistedInverseSides.get(i);
-      Assert.assertEquals(i, persistedInverseSide.getOrder());
+      for (int i = 0; i < persistedInverseSides.size(); i++) {
+        ManyToManyBidirectionalInverseSideEntity persistedInverseSide = persistedInverseSides.get(i);
+
+        Assert.assertTrue(persistedInverseSide.getOrder() > lastOrderNumber); // Inverse Side have to be sorted ascending after their order number
+        lastOrderNumber = persistedInverseSide.getOrder();
+
+        Assert.assertTrue(persistedInverseSide.getOwningSides().contains(persistedOwningSide));
+      }
     }
   }
 
   @Test
   public void manyToManyRetrieve_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
     Collection<ManyToManyBidirectionalInverseSideEntity> inverseSides = createTestInverseSideEntities();
-    ManyToManyBidirectionalOwningSideEntity owningSide = new ManyToManyBidirectionalOwningSideEntity(inverseSides);
-
-    underTest.create(owningSide);
+    Collection<ManyToManyBidirectionalOwningSideEntity> owningSides = createTestOwningSideEntities(inverseSides);
 
     objectCache.clear();
 
-    ManyToManyBidirectionalOwningSideEntity persistedOwningSide = (ManyToManyBidirectionalOwningSideEntity) underTest.retrieve(owningSide.getId());
+    for (ManyToManyBidirectionalOwningSideEntity owningSide : owningSides) {
+      ManyToManyBidirectionalOwningSideEntity persistedOwningSide = (ManyToManyBidirectionalOwningSideEntity) underTest.retrieve(owningSide.getId());
 
-    Assert.assertNotNull(persistedOwningSide.getId());
-    Assert.assertNotNull(persistedOwningSide.getVersion());
-    Assert.assertTrue(persistedOwningSide.getVersion().startsWith("1"));
-    Assert.assertNotNull(persistedOwningSide.getCreatedOn());
-    Assert.assertNotNull(persistedOwningSide.getModifiedOn());
+      Assert.assertNotNull(persistedOwningSide.getId());
+      Assert.assertNotNull(persistedOwningSide.getVersion());
+      Assert.assertTrue(persistedOwningSide.getVersion().startsWith("2"));
+      Assert.assertNotNull(persistedOwningSide.getCreatedOn());
+      Assert.assertNotNull(persistedOwningSide.getModifiedOn());
 
-    for(ManyToManyBidirectionalInverseSideEntity persistedInverseSide : persistedOwningSide.getInverseSides()) {
-      Assert.assertNotNull(persistedInverseSide.getId());
-      Assert.assertNotNull(persistedInverseSide.getVersion());
-      Assert.assertTrue(persistedInverseSide.getVersion().startsWith("1"));
-      Assert.assertNotNull(persistedInverseSide.getCreatedOn());
-      Assert.assertNotNull(persistedInverseSide.getModifiedOn());
+      for (ManyToManyBidirectionalInverseSideEntity persistedInverseSide : persistedOwningSide.getInverseSides()) {
+        Assert.assertNotNull(persistedInverseSide.getId());
+        Assert.assertNotNull(persistedInverseSide.getVersion());
+        Assert.assertTrue(persistedInverseSide.getVersion().startsWith("2"));
+        Assert.assertNotNull(persistedInverseSide.getCreatedOn());
+        Assert.assertNotNull(persistedInverseSide.getModifiedOn());
+      }
     }
   }
 
   @Test
   public void manyToManyRetrieve_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
     Collection<ManyToManyBidirectionalInverseSideEntity> inverseSides = createTestInverseSideEntities();
-    ManyToManyBidirectionalOwningSideEntity owningSide = new ManyToManyBidirectionalOwningSideEntity(inverseSides);
-
-    underTest.create(owningSide);
+    Collection<ManyToManyBidirectionalOwningSideEntity> owningSides = createTestOwningSideEntities(inverseSides);
 
     objectCache.clear();
 
-    ManyToManyBidirectionalOwningSideEntity persistedOwningSide = (ManyToManyBidirectionalOwningSideEntity) underTest.retrieve(owningSide.getId());
+    for (ManyToManyBidirectionalOwningSideEntity owningSide : owningSides) {
+      ManyToManyBidirectionalOwningSideEntity persistedOwningSide = (ManyToManyBidirectionalOwningSideEntity) underTest.retrieve(owningSide.getId());
 
-    Assert.assertFalse(persistedOwningSide.hasPrePersistBeenCalled());
-    Assert.assertFalse(persistedOwningSide.hasPostPersistBeenCalled());
-    Assert.assertTrue(persistedOwningSide.hasPostLoadBeenCalled());
-    Assert.assertFalse(persistedOwningSide.hasPreUpdateBeenCalled());
-    Assert.assertFalse(persistedOwningSide.hasPostUpdateBeenCalled());
-    Assert.assertFalse(persistedOwningSide.hasPreRemoveBeenCalled());
-    Assert.assertFalse(persistedOwningSide.hasPostRemoveBeenCalled());
+      Assert.assertFalse(persistedOwningSide.hasPrePersistBeenCalled());
+      Assert.assertFalse(persistedOwningSide.hasPostPersistBeenCalled());
+      Assert.assertTrue(persistedOwningSide.hasPostLoadBeenCalled());
+      Assert.assertFalse(persistedOwningSide.hasPreUpdateBeenCalled());
+      Assert.assertFalse(persistedOwningSide.hasPostUpdateBeenCalled());
+      Assert.assertFalse(persistedOwningSide.hasPreRemoveBeenCalled());
+      Assert.assertFalse(persistedOwningSide.hasPostRemoveBeenCalled());
 
-    for(ManyToManyBidirectionalInverseSideEntity persistedInverseSide : persistedOwningSide.getInverseSides()) {
-      Assert.assertFalse(persistedInverseSide.hasPrePersistBeenCalled());
-      Assert.assertFalse(persistedInverseSide.hasPostPersistBeenCalled());
-      Assert.assertTrue(persistedInverseSide.hasPostLoadBeenCalled());
-      Assert.assertFalse(persistedInverseSide.hasPreUpdateBeenCalled());
-      Assert.assertFalse(persistedInverseSide.hasPostUpdateBeenCalled());
-      Assert.assertFalse(persistedInverseSide.hasPreRemoveBeenCalled());
-      Assert.assertFalse(persistedInverseSide.hasPostRemoveBeenCalled());
+      for (ManyToManyBidirectionalInverseSideEntity persistedInverseSide : persistedOwningSide.getInverseSides()) {
+        Assert.assertFalse(persistedInverseSide.hasPrePersistBeenCalled());
+        Assert.assertFalse(persistedInverseSide.hasPostPersistBeenCalled());
+        Assert.assertTrue(persistedInverseSide.hasPostLoadBeenCalled());
+        Assert.assertFalse(persistedInverseSide.hasPreUpdateBeenCalled());
+        Assert.assertFalse(persistedInverseSide.hasPostUpdateBeenCalled());
+        Assert.assertFalse(persistedInverseSide.hasPreRemoveBeenCalled());
+        Assert.assertFalse(persistedInverseSide.hasPostRemoveBeenCalled());
+      }
     }
   }
 
@@ -210,102 +218,98 @@ public class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
   @Test
   public void manyToManyUpdate_EntityGetsUpdatedCorrectly() throws CouchbaseLiteException, SQLException, IOException {
     Collection<ManyToManyBidirectionalInverseSideEntity> inverseSides = createTestInverseSideEntities();
-    ManyToManyBidirectionalOwningSideEntity owningSide = new ManyToManyBidirectionalOwningSideEntity(inverseSides);
+    Collection<ManyToManyBidirectionalOwningSideEntity> owningSides = createTestOwningSideEntities(inverseSides);
 
-    underTest.create(owningSide);
+    for (ManyToManyBidirectionalOwningSideEntity owningSide : owningSides) {
+      updateEntity_Delete2Add3InverseSides(owningSide);
 
-    Dao targetDao = relationshipDaoCache.getDaoForEntity(ManyToManyBidirectionalInverseSideEntity.class);
-    for(ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) {
-      targetDao.update(inverseSide);
-    }
+      underTest.update(owningSide);
 
-    updateEntity_Delete2Add3InverseSides(owningSide);
+      objectCache.clear();
 
-    underTest.update(owningSide);
+      Document persistedOwningSideDocument = database.getDocument(owningSide.getId());
+      Assert.assertNotNull(persistedOwningSideDocument);
 
-    Document persistedOwningSideDocument = database.getDocument(owningSide.getId());
-    Assert.assertNotNull(persistedOwningSideDocument);
+      List itemIds = getTargetEntityIds(persistedOwningSideDocument, "owning_side_id");
+      Assert.assertEquals(itemIds.size(), owningSide.getInverseSides().size());
 
-    List itemIds = getTargetEntityIds(persistedOwningSideDocument, "owning_side_id");
-    Assert.assertEquals(itemIds.size(), owningSide.getInverseSides().size());
+      ManyToManyBidirectionalOwningSideEntity persistedOwningSide = (ManyToManyBidirectionalOwningSideEntity) underTest.retrieve(owningSide.getId());
+      Assert.assertEquals(COUNT_INVERSE_SIDES_PER_OWNING_SIDE + 1, persistedOwningSide.getInverseSides().size());
 
-    objectCache.clear();
+      List<ManyToManyBidirectionalInverseSideEntity> persistedInverseSides = new ArrayList<>(persistedOwningSide.getInverseSides());
+      int lastOrderNumber = -1;
 
-    ManyToManyBidirectionalOwningSideEntity persistedOwningSide = (ManyToManyBidirectionalOwningSideEntity) underTest.retrieve(owningSide.getId());
-    Assert.assertEquals(COUNT_TEST_MANY_SIDE_ENTITIES + 1, persistedOwningSide.getInverseSides().size());
+      for (ManyToManyBidirectionalInverseSideEntity persistedInverseSide : persistedInverseSides) {
+        Assert.assertTrue(persistedInverseSide.getOrder() > lastOrderNumber); // Inverse Side have to be sorted ascending after their order number
+        lastOrderNumber = persistedInverseSide.getOrder();
 
-    List<ManyToManyBidirectionalInverseSideEntity> persistedInverseSides = new ArrayList<>(persistedOwningSide.getInverseSides());
+        Document persistedInverseSideDocument = database.getDocument(persistedInverseSide.getId());
+        Assert.assertNotNull(persistedInverseSideDocument);
 
-    for(int i = 0; i < COUNT_TEST_MANY_SIDE_ENTITIES + 1; i++) {
-      ManyToManyBidirectionalInverseSideEntity persistedInverseSide = persistedInverseSides.get(i);
-      Assert.assertEquals(i + 2, persistedInverseSide.getOrder());
-
-      Document persistedInverseSideDocument = database.getDocument(persistedInverseSide.getId());
-      Assert.assertNotNull(persistedInverseSideDocument);
-
-      List inverseSideTargetEntityIds = getTargetEntityIds(persistedInverseSideDocument, "owningSides");
-      Assert.assertTrue(inverseSideTargetEntityIds.contains(owningSide.getId()));
+        List inverseSideTargetEntityIds = getTargetEntityIds(persistedInverseSideDocument, "owningSides");
+        Assert.assertTrue(inverseSideTargetEntityIds.contains(owningSide.getId()));
+      }
     }
   }
 
   @Test
   public void manyToManyUpdate_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
     Collection<ManyToManyBidirectionalInverseSideEntity> inverseSides = createTestInverseSideEntities();
-    ManyToManyBidirectionalOwningSideEntity owningSide = new ManyToManyBidirectionalOwningSideEntity(inverseSides);
+    Collection<ManyToManyBidirectionalOwningSideEntity> owningSides = createTestOwningSideEntities(inverseSides);
 
-    underTest.create(owningSide);
+    for(ManyToManyBidirectionalOwningSideEntity owningSide : owningSides) {
+      Date modifiedOnBeforeUpdate = owningSide.getModifiedOn();
 
-    Date modifiedOnBeforeUpdate = owningSide.getModifiedOn();
+      updateEntity_Delete2Add3InverseSides(owningSide);
 
-    updateEntity_Delete2Add3InverseSides(owningSide);
+      underTest.update(owningSide);
 
-    underTest.update(owningSide);
+      Assert.assertNotNull(owningSide.getId());
+      Assert.assertNotNull(owningSide.getVersion());
+      Assert.assertTrue(owningSide.getVersion().startsWith("3"));
+      Assert.assertNotNull(owningSide.getCreatedOn());
+      Assert.assertNotEquals(owningSide.getCreatedOn(), owningSide.getModifiedOn());
+      Assert.assertNotNull(owningSide.getModifiedOn());
+      Assert.assertNotEquals(modifiedOnBeforeUpdate, owningSide.getModifiedOn());
 
-    Assert.assertNotNull(owningSide.getId());
-    Assert.assertNotNull(owningSide.getVersion());
-    Assert.assertTrue(owningSide.getVersion().startsWith("2"));
-    Assert.assertNotNull(owningSide.getCreatedOn());
-    Assert.assertNotEquals(owningSide.getCreatedOn(), owningSide.getModifiedOn());
-    Assert.assertNotNull(owningSide.getModifiedOn());
-    Assert.assertNotEquals(modifiedOnBeforeUpdate, owningSide.getModifiedOn());
-
-    for(ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) { // assert inverseSides haven't been updated
-      Assert.assertNotNull(inverseSide.getId());
-      Assert.assertNotNull(inverseSide.getVersion());
-      Assert.assertTrue(inverseSide.getVersion().startsWith("1"));
-      Assert.assertNotNull(inverseSide.getCreatedOn());
-      Assert.assertEquals(inverseSide.getCreatedOn(), inverseSide.getModifiedOn());
-      Assert.assertNotNull(inverseSide.getModifiedOn());
+      for (ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) { // assert inverseSides haven't been updated
+        Assert.assertNotNull(inverseSide.getId());
+        Assert.assertNotNull(inverseSide.getVersion());
+        Assert.assertTrue(inverseSide.getVersion().startsWith("1"));
+        Assert.assertNotNull(inverseSide.getCreatedOn());
+        Assert.assertEquals(inverseSide.getCreatedOn(), inverseSide.getModifiedOn());
+        Assert.assertNotNull(inverseSide.getModifiedOn());
+      }
     }
   }
 
   @Test
   public void manyToManyUpdate_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
     Collection<ManyToManyBidirectionalInverseSideEntity> inverseSides = createTestInverseSideEntities();
-    ManyToManyBidirectionalOwningSideEntity owningSide = new ManyToManyBidirectionalOwningSideEntity(inverseSides);
+    Collection<ManyToManyBidirectionalOwningSideEntity> owningSides = createTestOwningSideEntities(inverseSides);
 
-    underTest.create(owningSide);
+    for (ManyToManyBidirectionalOwningSideEntity owningSide : owningSides) {
+      updateEntity_Delete2Add3InverseSides(owningSide);
 
-    updateEntity_Delete2Add3InverseSides(owningSide);
+      underTest.update(owningSide);
 
-    underTest.update(owningSide);
+      Assert.assertTrue(owningSide.hasPrePersistBeenCalled());
+      Assert.assertTrue(owningSide.hasPostPersistBeenCalled());
+      Assert.assertFalse(owningSide.hasPostLoadBeenCalled());
+      Assert.assertTrue(owningSide.hasPreUpdateBeenCalled());
+      Assert.assertTrue(owningSide.hasPostUpdateBeenCalled());
+      Assert.assertFalse(owningSide.hasPreRemoveBeenCalled());
+      Assert.assertFalse(owningSide.hasPostRemoveBeenCalled());
 
-    Assert.assertTrue(owningSide.hasPrePersistBeenCalled());
-    Assert.assertTrue(owningSide.hasPostPersistBeenCalled());
-    Assert.assertFalse(owningSide.hasPostLoadBeenCalled());
-    Assert.assertTrue(owningSide.hasPreUpdateBeenCalled());
-    Assert.assertTrue(owningSide.hasPostUpdateBeenCalled());
-    Assert.assertFalse(owningSide.hasPreRemoveBeenCalled());
-    Assert.assertFalse(owningSide.hasPostRemoveBeenCalled());
-
-    for(ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) { // assert inverseSides haven't been updated
-      Assert.assertTrue(inverseSide.hasPrePersistBeenCalled());
-      Assert.assertTrue(inverseSide.hasPostPersistBeenCalled());
-      Assert.assertFalse(inverseSide.hasPostLoadBeenCalled());
-      Assert.assertFalse(inverseSide.hasPreUpdateBeenCalled());
-      Assert.assertFalse(inverseSide.hasPostUpdateBeenCalled());
-      Assert.assertFalse(inverseSide.hasPreRemoveBeenCalled());
-      Assert.assertFalse(inverseSide.hasPostRemoveBeenCalled());
+      for (ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) { // assert inverseSides haven't been updated
+        Assert.assertTrue(inverseSide.hasPrePersistBeenCalled());
+        Assert.assertTrue(inverseSide.hasPostPersistBeenCalled());
+        Assert.assertFalse(inverseSide.hasPostLoadBeenCalled());
+        Assert.assertFalse(inverseSide.hasPreUpdateBeenCalled());
+        Assert.assertFalse(inverseSide.hasPostUpdateBeenCalled());
+        Assert.assertFalse(inverseSide.hasPreRemoveBeenCalled());
+        Assert.assertFalse(inverseSide.hasPostRemoveBeenCalled());
+      }
     }
   }
 
@@ -313,84 +317,84 @@ public class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
   @Test
   public void manyToManyDelete_EntityGetsDeletedCorrectly() throws CouchbaseLiteException, SQLException {
     Collection<ManyToManyBidirectionalInverseSideEntity> inverseSides = createTestInverseSideEntities();
-    ManyToManyBidirectionalOwningSideEntity owningSide = new ManyToManyBidirectionalOwningSideEntity(inverseSides);
+    Collection<ManyToManyBidirectionalOwningSideEntity> owningSides = createTestOwningSideEntities(inverseSides);
 
-    underTest.create(owningSide);
+    for(ManyToManyBidirectionalOwningSideEntity owningSide : owningSides) {
+      Document persistedDocumentBefore = database.getExistingDocument(owningSide.getId());
+      Assert.assertNotNull(persistedDocumentBefore);
 
-    Document persistedDocumentBefore = database.getExistingDocument(owningSide.getId());
-    Assert.assertNotNull(persistedDocumentBefore);
+      underTest.delete(owningSide);
 
-    underTest.delete(owningSide);
+      Document persistedOwningSideDocument = database.getExistingDocument(owningSide.getId());
+      Assert.assertNull(persistedOwningSideDocument); // null means it doesn't exist
 
-    Document persistedOwningSideDocument = database.getExistingDocument(owningSide.getId());
-    Assert.assertNull(persistedOwningSideDocument); // null means it doesn't exist
-
-    for(ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) {
-      Document persistedInverseSideDocument = database.getExistingDocument(inverseSide.getId());
-      Assert.assertNull(persistedInverseSideDocument); // null means it doesn't exist
+      for (ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) {
+        Document persistedInverseSideDocument = database.getExistingDocument(inverseSide.getId());
+        Assert.assertNull(persistedInverseSideDocument); // null means it doesn't exist
+      }
     }
   }
 
   @Test
   public void manyToManyDelete_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
     Collection<ManyToManyBidirectionalInverseSideEntity> inverseSides = createTestInverseSideEntities();
-    ManyToManyBidirectionalOwningSideEntity owningSide = new ManyToManyBidirectionalOwningSideEntity(inverseSides);
+    Collection<ManyToManyBidirectionalOwningSideEntity> owningSides = createTestOwningSideEntities(inverseSides);
 
-    underTest.create(owningSide);
+    for(ManyToManyBidirectionalOwningSideEntity owningSide : owningSides) {
+      Date owningSideModifiedOnBeforeDeletion = owningSide.getModifiedOn();
 
-    Date owningSideModifiedOnBeforeDeletion = owningSide.getModifiedOn();
+      Document persistedDocumentBefore = database.getExistingDocument(owningSide.getId());
+      Assert.assertNotNull(persistedDocumentBefore);
 
-    Document persistedDocumentBefore = database.getExistingDocument(owningSide.getId());
-    Assert.assertNotNull(persistedDocumentBefore);
+      underTest.delete(owningSide);
 
-    underTest.delete(owningSide);
+      Assert.assertNotNull(owningSide.getId());
+      Assert.assertNull(owningSide.getVersion());
+      Assert.assertNotNull(owningSide.getCreatedOn());
+      Assert.assertNotEquals(owningSide.getCreatedOn(), owningSide.getModifiedOn());
+      Assert.assertNotNull(owningSide.getModifiedOn());
+      Assert.assertNotEquals(owningSideModifiedOnBeforeDeletion, owningSide.getModifiedOn());
 
-    Assert.assertNotNull(owningSide.getId());
-    Assert.assertNull(owningSide.getVersion());
-    Assert.assertNotNull(owningSide.getCreatedOn());
-    Assert.assertNotEquals(owningSide.getCreatedOn(), owningSide.getModifiedOn());
-    Assert.assertNotNull(owningSide.getModifiedOn());
-    Assert.assertNotEquals(owningSideModifiedOnBeforeDeletion, owningSide.getModifiedOn());
-
-    // test CascadeType.Remove
-    for(ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) {
-      Assert.assertNotNull(inverseSide.getId());
-      Assert.assertNull(inverseSide.getVersion());
-      Assert.assertNotNull(inverseSide.getCreatedOn());
-      Assert.assertNotEquals(inverseSide.getCreatedOn(), inverseSide.getModifiedOn());
-      Assert.assertNotNull(inverseSide.getModifiedOn());
+      // test CascadeType.Remove
+      for (ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) {
+        Assert.assertNotNull(inverseSide.getId());
+        Assert.assertNull(inverseSide.getVersion());
+        Assert.assertNotNull(inverseSide.getCreatedOn());
+        Assert.assertNotEquals(inverseSide.getCreatedOn(), inverseSide.getModifiedOn());
+        Assert.assertNotNull(inverseSide.getModifiedOn());
+      }
     }
   }
 
   @Test
   public void manyToManyDelete_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
     Collection<ManyToManyBidirectionalInverseSideEntity> inverseSides = createTestInverseSideEntities();
-    ManyToManyBidirectionalOwningSideEntity owningSide = new ManyToManyBidirectionalOwningSideEntity(inverseSides);
+    Collection<ManyToManyBidirectionalOwningSideEntity> owningSides = createTestOwningSideEntities(inverseSides);
 
-    underTest.create(owningSide);
+    for(ManyToManyBidirectionalOwningSideEntity owningSide : owningSides) {
+      Document persistedDocumentBefore = database.getExistingDocument(owningSide.getId());
+      Assert.assertNotNull(persistedDocumentBefore);
 
-    Document persistedDocumentBefore = database.getExistingDocument(owningSide.getId());
-    Assert.assertNotNull(persistedDocumentBefore);
+      underTest.delete(owningSide);
 
-    underTest.delete(owningSide);
+      Assert.assertTrue(owningSide.hasPrePersistBeenCalled());
+      Assert.assertTrue(owningSide.hasPostPersistBeenCalled());
+      Assert.assertFalse(owningSide.hasPostLoadBeenCalled());
+      Assert.assertFalse(owningSide.hasPreUpdateBeenCalled());
+      Assert.assertFalse(owningSide.hasPostUpdateBeenCalled());
+      Assert.assertTrue(owningSide.hasPreRemoveBeenCalled());
+      Assert.assertTrue(owningSide.hasPostRemoveBeenCalled());
 
-    Assert.assertTrue(owningSide.hasPrePersistBeenCalled());
-    Assert.assertTrue(owningSide.hasPostPersistBeenCalled());
-    Assert.assertFalse(owningSide.hasPostLoadBeenCalled());
-    Assert.assertFalse(owningSide.hasPreUpdateBeenCalled());
-    Assert.assertFalse(owningSide.hasPostUpdateBeenCalled());
-    Assert.assertTrue(owningSide.hasPreRemoveBeenCalled());
-    Assert.assertTrue(owningSide.hasPostRemoveBeenCalled());
-
-    // test CascadeType.Remove
-    for(ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) {
-      Assert.assertTrue(inverseSide.hasPrePersistBeenCalled());
-      Assert.assertTrue(inverseSide.hasPostPersistBeenCalled());
-      Assert.assertFalse(inverseSide.hasPostLoadBeenCalled());
-      Assert.assertFalse(inverseSide.hasPreUpdateBeenCalled());
-      Assert.assertFalse(inverseSide.hasPostUpdateBeenCalled());
-      Assert.assertTrue(inverseSide.hasPreRemoveBeenCalled());
-      Assert.assertTrue(inverseSide.hasPostRemoveBeenCalled());
+      // test CascadeType.Remove
+      for (ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) {
+        Assert.assertTrue(inverseSide.hasPrePersistBeenCalled());
+        Assert.assertTrue(inverseSide.hasPostPersistBeenCalled());
+        Assert.assertFalse(inverseSide.hasPostLoadBeenCalled());
+        Assert.assertFalse(inverseSide.hasPreUpdateBeenCalled());
+        Assert.assertFalse(inverseSide.hasPostUpdateBeenCalled());
+        Assert.assertTrue(inverseSide.hasPreRemoveBeenCalled());
+        Assert.assertTrue(inverseSide.hasPostRemoveBeenCalled());
+      }
     }
   }
 
@@ -403,11 +407,9 @@ public class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
 
   protected Collection<ManyToManyBidirectionalInverseSideEntity> createTestInverseSideEntities() throws CouchbaseLiteException, SQLException {
     Set<ManyToManyBidirectionalInverseSideEntity> inverseSides = new HashSet<>();
-    Dao inverseSideDao = relationshipDaoCache.getDaoForEntity(ManyToManyBidirectionalInverseSideEntity.class);
 
-    for(int i = 0; i < COUNT_TEST_MANY_SIDE_ENTITIES; i++) {
+    for(int i = 0; i < COUNT_TEST_INVERSE_SIDE_ENTITIES; i++) {
       ManyToManyBidirectionalInverseSideEntity testEntity = new ManyToManyBidirectionalInverseSideEntity(i);
-      inverseSideDao.create(testEntity);
       
       inverseSides.add(testEntity);
     }
@@ -415,25 +417,59 @@ public class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
     return inverseSides;
   }
 
-  protected void updateEntity_Delete2Add3InverseSides(ManyToManyBidirectionalOwningSideEntity owningSide) throws CouchbaseLiteException, SQLException {
-    List<ManyToManyBidirectionalInverseSideEntity> itemsToRemove = new ArrayList<>();
-    Iterator iterator = owningSide.getInverseSides().iterator();
+  protected Collection<ManyToManyBidirectionalOwningSideEntity> createTestOwningSideEntities(Collection<ManyToManyBidirectionalInverseSideEntity> inverseSides) throws
+      CouchbaseLiteException, SQLException {
+    List<ManyToManyBidirectionalOwningSideEntity> testOwningSides = new ArrayList<>();
 
-    while(iterator.hasNext()) {
-      ManyToManyBidirectionalInverseSideEntity item = (ManyToManyBidirectionalInverseSideEntity)iterator.next();
-      if(item.getOrder() < 2) {
-        itemsToRemove.add(item);
+    for(int i = 0; i < COUNT_TEST_OWNING_SIDE_ENTITIES; i++) {
+      List<ManyToManyBidirectionalInverseSideEntity> randomlySelectedInverseSides = randomlySelectInverseSides(inverseSides);
+
+      ManyToManyBidirectionalOwningSideEntity testEntity = new ManyToManyBidirectionalOwningSideEntity(randomlySelectedInverseSides);
+      testOwningSides.add(testEntity);
+    }
+
+    for(ManyToManyBidirectionalOwningSideEntity testEntity : testOwningSides) {
+      underTest.create(testEntity);
+    }
+
+    return testOwningSides;
+  }
+
+  protected List<ManyToManyBidirectionalInverseSideEntity> randomlySelectInverseSides(Collection<ManyToManyBidirectionalInverseSideEntity> inverseSides) {
+    List<ManyToManyBidirectionalInverseSideEntity> randomlySelectedInverseSides = new ArrayList<>();
+    List<ManyToManyBidirectionalInverseSideEntity> inverseSidesList = new ArrayList<>(inverseSides);
+    Random random = new Random(System.currentTimeMillis());
+
+    for(int i = 0; i < COUNT_INVERSE_SIDES_PER_OWNING_SIDE; i++) {
+      int nextIndex = random.nextInt(inverseSidesList.size());
+
+      while(true) {
+        ManyToManyBidirectionalInverseSideEntity nextItem = inverseSidesList.get(nextIndex);
+
+        if(randomlySelectedInverseSides.contains(nextItem) == false) {
+          randomlySelectedInverseSides.add(nextItem);
+          break;
+        }
+
+        nextIndex++;
+        if(nextIndex >= inverseSidesList.size()) {
+          nextIndex = 0;
+        }
       }
     }
 
-    for(ManyToManyBidirectionalInverseSideEntity itemToRemove : itemsToRemove) {
-      owningSide.removeInverseSide(itemToRemove);
-    }
+    return randomlySelectedInverseSides;
+  }
 
+  protected void updateEntity_Delete2Add3InverseSides(ManyToManyBidirectionalOwningSideEntity owningSide) throws CouchbaseLiteException, SQLException {
+    List<ManyToManyBidirectionalInverseSideEntity> currentInverseSidesList = new ArrayList<>(owningSide.getInverseSides());
+    for(int i = 0; i < 2; i++) {
+      owningSide.removeInverseSide(currentInverseSidesList.get(i));
+    }
 
     Dao inverseSideDao = relationshipDaoCache.getDaoForEntity(ManyToManyBidirectionalInverseSideEntity.class);
 
-    for(int i = COUNT_TEST_MANY_SIDE_ENTITIES; i < COUNT_TEST_MANY_SIDE_ENTITIES + 3; i++) {
+    for(int i = COUNT_TEST_INVERSE_SIDE_ENTITIES; i < COUNT_TEST_INVERSE_SIDE_ENTITIES + 3; i++) {
       ManyToManyBidirectionalInverseSideEntity testEntity = new ManyToManyBidirectionalInverseSideEntity(i);
       inverseSideDao.create(testEntity);
 
