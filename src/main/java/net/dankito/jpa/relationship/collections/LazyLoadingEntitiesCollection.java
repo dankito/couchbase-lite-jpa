@@ -21,9 +21,9 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
 
 
   // we need to put items in a specific order, so i use a List instead of a Set
-  protected List<Object> targetEntitiesIds = new CopyOnWriteArrayList<>();
+  protected List<Object> targetEntitiesIds;
 
-  protected Map<Object, Object> cachedEntities = new ConcurrentHashMap<>();
+  protected Map<Object, Object> cachedEntities;
 
   protected boolean cacheEntities = true;
 
@@ -34,6 +34,9 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
 
 
   protected void initializeCollection() throws SQLException {
+    targetEntitiesIds = new CopyOnWriteArrayList<>();
+    cachedEntities = new ConcurrentHashMap<>();
+
     targetEntitiesIds.addAll(getJoinedEntityIds());
   }
 
