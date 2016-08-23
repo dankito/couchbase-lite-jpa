@@ -123,6 +123,10 @@ public class Dao {
           else {
             persistManyToManyCollectionItems(cascadePersistProperty, targetDao, cascadedProperties, (Collection) propertyValue);
           }
+
+          if(propertyValue instanceof EntitiesCollection == false) {
+            createAndSetEntitiesCollectionAndAddExistingItems(object, cascadePersistProperty, propertyValue);
+          }
         }
         else if (targetDao.create(propertyValue)) {
           cascadedProperties.put(cascadePersistProperty.getColumnName(), targetDao.getObjectId(propertyValue));
@@ -482,14 +486,14 @@ public class Dao {
 
     for(PropertyConfig property : entityConfig.getProperties()) {
       if(shouldPropertyBeAdded(isInitialPersist, property)) {
-        mapProperty(object, mappedProperties, property);
+        mapProperty(object, mappedProperties, property, isInitialPersist);
       }
     }
 
     return mappedProperties;
   }
 
-  protected void mapProperty(Object object, Map<String, Object> mappedProperties, PropertyConfig property) throws SQLException {
+  protected void mapProperty(Object object, Map<String, Object> mappedProperties, PropertyConfig property, boolean isInitialPersist) throws SQLException {
     Object propertyValue = getPropertyValue(object, property);
 
     if(property.isRelationshipProperty() == false) {
@@ -505,22 +509,27 @@ public class Dao {
           mappedProperties.put(property.getColumnName(), targetDao.getObjectId(propertyValue));
         }
         else {
-          mapCollectionProperty(object, property, mappedProperties, targetDao, (Collection)propertyValue);
+          mapCollectionProperty(object, property, mappedProperties, targetDao, (Collection)propertyValue, isInitialPersist);
         }
       }
     }
   }
 
-  protected void mapCollectionProperty(Object object, PropertyConfig collectionProperty, Map<String, Object> mappedProperties, Dao targetDao, Collection propertyValue) throws SQLException {
+  protected void mapCollectionProperty(Object object, PropertyConfig collectionProperty, Map<String, Object> mappedProperties, Dao targetDao, Collection propertyValue, boolean isInitialPersist) throws SQLException {
     if(propertyValue instanceof EntitiesCollection == false) {
-      createAndSetEntitiesCollectionAndAddExistingItems(object, collectionProperty, propertyValue);
+      if(isInitialPersist) {
+        return; // EntitiesCollection will then be created in createCascadePersistProperties()
+      }
+      else {
+        createAndSetEntitiesCollectionAndAddExistingItems(object, collectionProperty, propertyValue);
+      }
     }
 
     List joinedEntityIds = new ArrayList();
 
     for(Object item : propertyValue) {
       Object itemId = targetDao.getObjectId(item);
-      if(itemId != null) { // TODO: what if item is not persisted yet?
+      if(itemId != null) { // TODO: what if item is not persisted yet? // should actually never be the case as not persisted entities may not get added to EntitiesCollection
         joinedEntityIds.add(itemId);
       }
     }
