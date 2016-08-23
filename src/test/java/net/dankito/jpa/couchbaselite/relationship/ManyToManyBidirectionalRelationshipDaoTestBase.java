@@ -28,7 +28,7 @@ import java.util.Set;
 /**
  * Created by ganymed on 18/08/16.
  */
-public abstract class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
+public abstract class ManyToManyBidirectionalRelationshipDaoTestBase extends DaoTestBase {
 
   public static final int COUNT_TEST_OWNING_SIDE_ENTITIES = 5;
 
