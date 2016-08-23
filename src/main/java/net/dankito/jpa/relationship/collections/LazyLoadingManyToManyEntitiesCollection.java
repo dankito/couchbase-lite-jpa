@@ -7,11 +7,12 @@ import java.sql.SQLException;
 import java.util.Collection;
 
 /**
- * Created by ganymed on 22/08/16.
+ * Created by ganymed on 21/08/16.
  */
-public class ManyToManyEntitiesCollection extends EntitiesCollection {
+public class LazyLoadingManyToManyEntitiesCollection extends LazyLoadingEntitiesCollection {
 
-  public ManyToManyEntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao) throws SQLException {
+
+  public LazyLoadingManyToManyEntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao) throws SQLException {
     super(object, property, holdingObjectDao, targetDao);
   }
 

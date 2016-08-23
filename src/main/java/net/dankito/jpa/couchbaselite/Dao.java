@@ -13,6 +13,7 @@ import net.dankito.jpa.cache.ObjectCache;
 import net.dankito.jpa.cache.RelationshipDaoCache;
 import net.dankito.jpa.relationship.collections.EntitiesCollection;
 import net.dankito.jpa.relationship.collections.LazyLoadingEntitiesCollection;
+import net.dankito.jpa.relationship.collections.LazyLoadingManyToManyEntitiesCollection;
 import net.dankito.jpa.relationship.collections.ManyToManyEntitiesCollection;
 import net.dankito.jpa.util.CrudOperation;
 
@@ -551,7 +552,7 @@ public class Dao {
     }
     else {
       if(collectionProperty.isLazyLoading()) {
-        // TODO
+        collection = new LazyLoadingManyToManyEntitiesCollection(object, collectionProperty, this, targetDao);
       }
       else {
         collection = new ManyToManyEntitiesCollection(object, collectionProperty, this, targetDao); // TODO: also pass JoinTable Dao
