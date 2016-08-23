@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.dankito.jpa.couchbaselite.Dao;
 import net.dankito.jpa.couchbaselite.DaoTestBase;
+import net.dankito.jpa.couchbaselite.testmodel.relationship.OneToManyBidirectionalEagerManySideEntity;
+import net.dankito.jpa.couchbaselite.testmodel.relationship.OneToManyBidirectionalEagerOneSideEntity;
 import net.dankito.jpa.couchbaselite.testmodel.relationship.OneToManyBidirectionalManySideEntity;
 import net.dankito.jpa.couchbaselite.testmodel.relationship.OneToManyBidirectionalOneSideEntity;
 
@@ -25,23 +27,24 @@ import java.util.Set;
 /**
  * Created by ganymed on 18/08/16.
  */
-public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
+public abstract class OneToManyBidirectionalRelationshipDaoTestBase extends DaoTestBase {
 
   public static final int COUNT_TEST_MANY_SIDE_ENTITIES = 4;
 
   protected ObjectMapper objectMapper = new ObjectMapper();
 
 
-  @Override
-  protected Class[] getEntitiesToTest() {
-    return new Class[] { OneToManyBidirectionalOneSideEntity.class, OneToManyBidirectionalManySideEntity.class };
-  }
+  protected abstract OneToManyBidirectionalOneSideEntity createTestOneSideEntity(Collection<OneToManyBidirectionalManySideEntity> manySides);
+
+  protected abstract OneToManyBidirectionalManySideEntity createTestManySideEntity(int order);
+
+  protected abstract Dao getManySideDao();
 
 
   @Test
   public void oneToManyCreate_AllPropertiesGetPersistedCorrectly() throws Exception {
     Collection<OneToManyBidirectionalManySideEntity> manySides = createTestManySideEntities();
-    OneToManyBidirectionalOneSideEntity oneSide = new OneToManyBidirectionalOneSideEntity(manySides);
+    OneToManyBidirectionalOneSideEntity oneSide = createTestOneSideEntity(manySides);
 
     underTest.create(oneSide);
 
@@ -65,7 +68,7 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
   @Test
   public void oneToManyCreate_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
     Collection<OneToManyBidirectionalManySideEntity> manySides = createTestManySideEntities();
-    OneToManyBidirectionalOneSideEntity oneSide = new OneToManyBidirectionalOneSideEntity(manySides);
+    OneToManyBidirectionalOneSideEntity oneSide = createTestOneSideEntity(manySides);
 
     underTest.create(oneSide);
 
@@ -87,7 +90,7 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
   @Test
   public void oneToManyCreate_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
     Collection<OneToManyBidirectionalManySideEntity> manySides = createTestManySideEntities();
-    OneToManyBidirectionalOneSideEntity oneSide = new OneToManyBidirectionalOneSideEntity(manySides);
+    OneToManyBidirectionalOneSideEntity oneSide = createTestOneSideEntity(manySides);
 
     underTest.create(oneSide);
 
@@ -113,7 +116,7 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
 
   @Test
   public void oneToManyCreate_InverseSideIsNull_NoExceptionsAndAllPropertiesGetPersistedCorrectly() throws CouchbaseLiteException, SQLException {
-    OneToManyBidirectionalOneSideEntity oneSide = new OneToManyBidirectionalOneSideEntity(null);
+    OneToManyBidirectionalOneSideEntity oneSide = createTestOneSideEntity(null);
 
     underTest.create(oneSide);
 
@@ -127,7 +130,7 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
   @Test
   public void oneToManyRetrieve_AllPropertiesAreSetCorrectly() throws CouchbaseLiteException, SQLException {
     Collection<OneToManyBidirectionalManySideEntity> manySides = createTestManySideEntities();
-    OneToManyBidirectionalOneSideEntity oneSide = new OneToManyBidirectionalOneSideEntity(manySides);
+    OneToManyBidirectionalOneSideEntity oneSide = createTestOneSideEntity(manySides);
 
     underTest.create(oneSide);
 
@@ -146,8 +149,8 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
 
   @Test
   public void oneToManyRetrieve_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
-    Collection<OneToManyBidirectionalManySideEntity> inverseSides = createTestManySideEntities();
-    OneToManyBidirectionalOneSideEntity oneSide = new OneToManyBidirectionalOneSideEntity(inverseSides);
+    Collection<OneToManyBidirectionalManySideEntity> manySides = createTestManySideEntities();
+    OneToManyBidirectionalOneSideEntity oneSide = createTestOneSideEntity(manySides);
 
     underTest.create(oneSide);
 
@@ -172,8 +175,8 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
 
   @Test
   public void oneToManyRetrieve_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
-    Collection<OneToManyBidirectionalManySideEntity> inverseSides = createTestManySideEntities();
-    OneToManyBidirectionalOneSideEntity oneSide = new OneToManyBidirectionalOneSideEntity(inverseSides);
+    Collection<OneToManyBidirectionalManySideEntity> manySides = createTestManySideEntities();
+    OneToManyBidirectionalOneSideEntity oneSide = createTestOneSideEntity(manySides);
 
     underTest.create(oneSide);
 
@@ -203,8 +206,8 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
 
   @Test
   public void oneToManyUpdate_EntityGetsUpdatedCorrectly() throws CouchbaseLiteException, SQLException, IOException {
-    Collection<OneToManyBidirectionalManySideEntity> inverseSides = createTestManySideEntities();
-    OneToManyBidirectionalOneSideEntity oneSide = new OneToManyBidirectionalOneSideEntity(inverseSides);
+    Collection<OneToManyBidirectionalManySideEntity> manySides = createTestManySideEntities();
+    OneToManyBidirectionalOneSideEntity oneSide = createTestOneSideEntity(manySides);
 
     underTest.create(oneSide);
 
@@ -238,8 +241,8 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
 
   @Test
   public void oneToManyUpdate_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
-    Collection<OneToManyBidirectionalManySideEntity> inverseSides = createTestManySideEntities();
-    OneToManyBidirectionalOneSideEntity oneSide = new OneToManyBidirectionalOneSideEntity(inverseSides);
+    Collection<OneToManyBidirectionalManySideEntity> manySides = createTestManySideEntities();
+    OneToManyBidirectionalOneSideEntity oneSide = createTestOneSideEntity(manySides);
 
     underTest.create(oneSide);
 
@@ -257,7 +260,7 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
     Assert.assertNotNull(oneSide.getModifiedOn());
     Assert.assertNotEquals(modifiedOnBeforeUpdate, oneSide.getModifiedOn());
 
-    for(OneToManyBidirectionalManySideEntity inverseSide : inverseSides) { // assert manySides haven't been updated
+    for(OneToManyBidirectionalManySideEntity inverseSide : manySides) { // assert manySides haven't been updated
       Assert.assertNotNull(inverseSide.getId());
       Assert.assertNotNull(inverseSide.getVersion());
       Assert.assertTrue(inverseSide.getVersion().startsWith("1"));
@@ -269,8 +272,8 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
 
   @Test
   public void oneToManyUpdate_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
-    Collection<OneToManyBidirectionalManySideEntity> inverseSides = createTestManySideEntities();
-    OneToManyBidirectionalOneSideEntity oneSide = new OneToManyBidirectionalOneSideEntity(inverseSides);
+    Collection<OneToManyBidirectionalManySideEntity> manySides = createTestManySideEntities();
+    OneToManyBidirectionalOneSideEntity oneSide = createTestOneSideEntity(manySides);
 
     underTest.create(oneSide);
 
@@ -286,7 +289,7 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
     Assert.assertFalse(oneSide.hasPreRemoveBeenCalled());
     Assert.assertFalse(oneSide.hasPostRemoveBeenCalled());
 
-    for(OneToManyBidirectionalManySideEntity inverseSide : inverseSides) { // assert manySides haven't been updated
+    for(OneToManyBidirectionalManySideEntity inverseSide : manySides) { // assert manySides haven't been updated
       Assert.assertTrue(inverseSide.hasPrePersistBeenCalled());
       Assert.assertTrue(inverseSide.hasPostPersistBeenCalled());
       Assert.assertFalse(inverseSide.hasPostLoadBeenCalled());
@@ -300,8 +303,8 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
 
   @Test
   public void oneToManyDelete_EntityGetsDeletedCorrectly() throws CouchbaseLiteException, SQLException {
-    Collection<OneToManyBidirectionalManySideEntity> inverseSides = createTestManySideEntities();
-    OneToManyBidirectionalOneSideEntity oneSide = new OneToManyBidirectionalOneSideEntity(inverseSides);
+    Collection<OneToManyBidirectionalManySideEntity> manySides = createTestManySideEntities();
+    OneToManyBidirectionalOneSideEntity oneSide = createTestOneSideEntity(manySides);
 
     underTest.create(oneSide);
 
@@ -313,7 +316,7 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
     Document persistedOwningSideDocument = database.getExistingDocument(oneSide.getId());
     Assert.assertNull(persistedOwningSideDocument); // null means it doesn't exist
 
-    for(OneToManyBidirectionalManySideEntity inverseSide : inverseSides) {
+    for(OneToManyBidirectionalManySideEntity inverseSide : manySides) {
       Document persistedInverseSideDocument = database.getExistingDocument(inverseSide.getId());
       Assert.assertNull(persistedInverseSideDocument); // null means it doesn't exist
     }
@@ -321,8 +324,8 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
 
   @Test
   public void oneToManyDelete_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
-    Collection<OneToManyBidirectionalManySideEntity> inverseSides = createTestManySideEntities();
-    OneToManyBidirectionalOneSideEntity oneSide = new OneToManyBidirectionalOneSideEntity(inverseSides);
+    Collection<OneToManyBidirectionalManySideEntity> manySides = createTestManySideEntities();
+    OneToManyBidirectionalOneSideEntity oneSide = createTestOneSideEntity(manySides);
 
     underTest.create(oneSide);
 
@@ -341,7 +344,7 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
     Assert.assertNotEquals(owningSideModifiedOnBeforeDeletion, oneSide.getModifiedOn());
 
     // test CascadeType.Remove
-    for(OneToManyBidirectionalManySideEntity inverseSide : inverseSides) {
+    for(OneToManyBidirectionalManySideEntity inverseSide : manySides) {
       Assert.assertNotNull(inverseSide.getId());
       Assert.assertNull(inverseSide.getVersion());
       Assert.assertNotNull(inverseSide.getCreatedOn());
@@ -352,8 +355,8 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
 
   @Test
   public void oneToManyDelete_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
-    Collection<OneToManyBidirectionalManySideEntity> inverseSides = createTestManySideEntities();
-    OneToManyBidirectionalOneSideEntity oneSide = new OneToManyBidirectionalOneSideEntity(inverseSides);
+    Collection<OneToManyBidirectionalManySideEntity> manySides = createTestManySideEntities();
+    OneToManyBidirectionalOneSideEntity oneSide = createTestOneSideEntity(manySides);
 
     underTest.create(oneSide);
 
@@ -371,7 +374,7 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
     Assert.assertTrue(oneSide.hasPostRemoveBeenCalled());
 
     // test CascadeType.Remove
-    for(OneToManyBidirectionalManySideEntity inverseSide : inverseSides) {
+    for(OneToManyBidirectionalManySideEntity inverseSide : manySides) {
       Assert.assertTrue(inverseSide.hasPrePersistBeenCalled());
       Assert.assertTrue(inverseSide.hasPostPersistBeenCalled());
       Assert.assertFalse(inverseSide.hasPostLoadBeenCalled());
@@ -393,7 +396,7 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
     Set<OneToManyBidirectionalManySideEntity> manySides = new HashSet<>();
 
     for(int i = 0; i < COUNT_TEST_MANY_SIDE_ENTITIES; i++) {
-      OneToManyBidirectionalManySideEntity testEntity = new OneToManyBidirectionalManySideEntity(i);
+      OneToManyBidirectionalManySideEntity testEntity = createTestManySideEntity(i);
       manySides.add(testEntity);
     }
 
@@ -416,10 +419,10 @@ public class OneToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
     }
 
 
-    Dao manySideDao = relationshipDaoCache.getDaoForEntity(OneToManyBidirectionalManySideEntity.class);
+    Dao manySideDao = getManySideDao();
 
     for(int i = COUNT_TEST_MANY_SIDE_ENTITIES; i < COUNT_TEST_MANY_SIDE_ENTITIES + 3; i++) {
-      OneToManyBidirectionalManySideEntity testEntity = new OneToManyBidirectionalManySideEntity(i);
+      OneToManyBidirectionalManySideEntity testEntity = createTestManySideEntity(i);
       manySideDao.create(testEntity);
 
       oneSide.addManySide(testEntity);

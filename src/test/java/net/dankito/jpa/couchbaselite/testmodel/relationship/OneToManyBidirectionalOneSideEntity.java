@@ -8,60 +8,26 @@ import java.util.HashSet;
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
+import javax.persistence.MappedSuperclass;
 import javax.persistence.OneToMany;
 import javax.persistence.OrderBy;
 
 /**
  * Created by ganymed on 18/08/16.
  */
-@Entity
-public class OneToManyBidirectionalOneSideEntity extends BaseEntity {
-
-
-  @OneToMany(mappedBy = "oneSide", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-  @OrderBy("order ASC")
-  protected Collection<OneToManyBidirectionalManySideEntity> manySides = new HashSet<>();
+@MappedSuperclass
+public abstract class OneToManyBidirectionalOneSideEntity extends BaseEntity {
 
 
   public OneToManyBidirectionalOneSideEntity() {
 
   }
 
-  public OneToManyBidirectionalOneSideEntity(Collection<OneToManyBidirectionalManySideEntity> manySides) {
-    if(this.manySides != null) {
-      for(OneToManyBidirectionalManySideEntity manySide : this.manySides) {
-        manySide.setOneSide(null);
-      }
-    }
 
-    this.manySides = manySides;
+  public abstract Collection<OneToManyBidirectionalManySideEntity> getManySides();
 
-    if(manySides != null) {
-      for (OneToManyBidirectionalManySideEntity item : manySides) {
-        item.setOneSide(this);
-      }
-    }
-  }
+  public abstract void addManySide(OneToManyBidirectionalManySideEntity manySide);
 
-
-  public Collection<OneToManyBidirectionalManySideEntity> getManySides() {
-    return manySides;
-  }
-
-  public void addManySide(OneToManyBidirectionalManySideEntity manySide) {
-    if(manySide != null) {
-      manySide.setOneSide(this);
-
-      manySides.add(manySide);
-    }
-  }
-
-  public void removeManySide(OneToManyBidirectionalManySideEntity manySide) {
-    if(manySide != null) {
-      manySide.setOneSide(null);
-
-      manySides.remove(manySide);
-    }
-  }
+  public abstract void removeManySide(OneToManyBidirectionalManySideEntity manySide);
 
 }
