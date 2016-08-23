@@ -243,7 +243,7 @@ public class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
       Document persistedInverseSideDocument = database.getDocument(persistedInverseSide.getId());
       Assert.assertNotNull(persistedInverseSideDocument);
 
-      List inverseSideTargetEntityIds = getTargetEntityIds(persistedInverseSideDocument, "inverse_side_id");
+      List inverseSideTargetEntityIds = getTargetEntityIds(persistedInverseSideDocument, "owningSides");
       Assert.assertTrue(inverseSideTargetEntityIds.contains(owningSide.getId()));
     }
   }

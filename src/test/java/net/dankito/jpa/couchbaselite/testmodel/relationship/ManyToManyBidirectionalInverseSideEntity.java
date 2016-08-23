@@ -8,6 +8,7 @@ import java.util.HashSet;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.ManyToMany;
 
 /**
@@ -17,7 +18,7 @@ import javax.persistence.ManyToMany;
 public class ManyToManyBidirectionalInverseSideEntity extends BaseEntity {
 
 
-  @ManyToMany(cascade = CascadeType.ALL, mappedBy = "inverseSides")
+  @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "inverseSides")
   protected Collection<ManyToManyBidirectionalOwningSideEntity> owningSides = new HashSet<>();
 
   @Column

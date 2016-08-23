@@ -222,7 +222,7 @@ public class Dao {
     }
     else {
       Collection<Object> itemIds = parseJoinedEntityIdsToList(joinedEntityIdsString, property);
-      Collection<Object> retrievedItems = retrieve(itemIds);
+      Collection<Object> retrievedItems = targetDao.retrieve(itemIds);
 
       Collection collection = (Collection)propertyValue;
       collection.clear();

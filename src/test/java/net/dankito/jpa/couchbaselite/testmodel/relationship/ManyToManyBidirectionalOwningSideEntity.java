@@ -7,6 +7,7 @@ import java.util.HashSet;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
@@ -24,7 +25,7 @@ public class ManyToManyBidirectionalOwningSideEntity extends BaseEntity {
   public static final String JOIN_TABLE_INVERSE_SIDE_COLUMN_NAME = "inverse_side_id";
 
 
-  @ManyToMany(cascade = CascadeType.ALL)
+  @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
   @JoinTable(
       name = JOIN_TABLE_NAME,
       joinColumns = { @JoinColumn(name = JOIN_TABLE_OWNING_SIDE_COLUMN_NAME) },
@@ -57,6 +58,22 @@ public class ManyToManyBidirectionalOwningSideEntity extends BaseEntity {
 
   public Collection<ManyToManyBidirectionalInverseSideEntity> getInverseSides() {
     return inverseSides;
+  }
+
+  public void addInverseSide(ManyToManyBidirectionalInverseSideEntity inverseSide) {
+    if(inverseSide != null) {
+      inverseSide.addOwningSide(this);
+
+      inverseSides.add(inverseSide);
+    }
+  }
+
+  public void removeInverseSide(ManyToManyBidirectionalInverseSideEntity inverseSide) {
+    if(inverseSide != null) {
+      inverseSide.removeOwningSide(this);
+
+      inverseSides.remove(inverseSide);
+    }
   }
 
 }
