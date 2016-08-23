@@ -272,12 +272,10 @@ public class ManyToManyBidirectionalRelationshipDaoTest extends DaoTestBase {
       Assert.assertNotNull(owningSide.getModifiedOn());
       Assert.assertNotEquals(modifiedOnBeforeUpdate, owningSide.getModifiedOn());
 
-      for (ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) { // assert inverseSides haven't been updated
+      for (ManyToManyBidirectionalInverseSideEntity inverseSide : owningSide.getInverseSides()) {
         Assert.assertNotNull(inverseSide.getId());
         Assert.assertNotNull(inverseSide.getVersion());
-        Assert.assertTrue(inverseSide.getVersion().startsWith("1"));
         Assert.assertNotNull(inverseSide.getCreatedOn());
-        Assert.assertEquals(inverseSide.getCreatedOn(), inverseSide.getModifiedOn());
         Assert.assertNotNull(inverseSide.getModifiedOn());
       }
     }
