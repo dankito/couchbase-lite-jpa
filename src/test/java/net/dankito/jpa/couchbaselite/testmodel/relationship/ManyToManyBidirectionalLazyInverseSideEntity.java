@@ -17,7 +17,7 @@ import javax.persistence.ManyToMany;
 public class ManyToManyBidirectionalLazyInverseSideEntity extends ManyToManyBidirectionalInverseSideEntity {
 
 
-  @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "inverseSides")
+  @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "inverseSides")
   protected Collection<ManyToManyBidirectionalLazyOwningSideEntity> owningSides = new HashSet<>();
 
 

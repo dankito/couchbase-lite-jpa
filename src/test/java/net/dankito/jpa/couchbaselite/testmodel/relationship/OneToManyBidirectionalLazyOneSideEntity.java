@@ -35,6 +35,9 @@ public class OneToManyBidirectionalLazyOneSideEntity extends OneToManyBidirectio
     }
   }
 
+  public Collection<OneToManyBidirectionalLazyManySideEntity> getUncastedManySides() {
+    return manySides;
+  }
 
   @Override
   public Collection<OneToManyBidirectionalManySideEntity> getManySides() {

@@ -25,7 +25,7 @@ public class ManyToManyBidirectionalLazyOwningSideEntity extends ManyToManyBidir
   public static final String JOIN_TABLE_INVERSE_SIDE_COLUMN_NAME = "inverse_side_id";
 
 
-  @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+  @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
   @JoinTable(
       name = JOIN_TABLE_NAME,
       joinColumns = { @JoinColumn(name = JOIN_TABLE_OWNING_SIDE_COLUMN_NAME) },
@@ -47,6 +47,10 @@ public class ManyToManyBidirectionalLazyOwningSideEntity extends ManyToManyBidir
     }
   }
 
+
+  public Collection<ManyToManyBidirectionalLazyInverseSideEntity> getUncastedInverseSides() {
+    return inverseSides;
+  }
 
   public Collection<ManyToManyBidirectionalInverseSideEntity> getInverseSides() {
     List<ManyToManyBidirectionalInverseSideEntity> castedInverseSides = new ArrayList<>();

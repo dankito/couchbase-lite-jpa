@@ -1,6 +1,9 @@
 package net.dankito.jpa.cache;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -38,6 +41,17 @@ public class ObjectCache {
     }
 
     return null;
+  }
+
+  public Collection<Object> getAllOfClass(Class entityClass) {
+    Set<Object> cachedEntitiesOfClass = new HashSet<>();
+
+    if(cache.containsKey(entityClass)) {
+      Map<Object, Object> entityMap = cache.get(entityClass);
+      cachedEntitiesOfClass.addAll(entityMap.values());
+    }
+
+    return cachedEntitiesOfClass;
   }
 
   public Object remove(Class entityClass, Object id) {
