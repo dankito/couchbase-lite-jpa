@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import net.dankito.jpa.annotationreader.config.EntityConfig;
 import net.dankito.jpa.annotationreader.config.OrderByConfig;
 import net.dankito.jpa.annotationreader.config.PropertyConfig;
+import net.dankito.jpa.annotationreader.config.inheritance.DiscriminatorColumnConfig;
 import net.dankito.jpa.cache.ObjectCache;
 import net.dankito.jpa.cache.RelationshipDaoCache;
 import net.dankito.jpa.relationship.collections.EntitiesCollection;
@@ -629,7 +630,11 @@ public class Dao {
   protected Object getPropertyValue(Object object, PropertyConfig property) throws SQLException {
     Object value;
 
-    if(shouldUseGetter(property)) {
+    if(property instanceof DiscriminatorColumnConfig) {
+      DiscriminatorColumnConfig discriminatorColumn = (DiscriminatorColumnConfig)property;
+      return discriminatorColumn.getDiscriminatorValue(object);
+    }
+    else if(shouldUseGetter(property)) {
       try {
         value = property.getFieldGetMethod().invoke(object);
       } catch (Exception e) {
