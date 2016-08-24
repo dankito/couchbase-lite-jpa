@@ -43,6 +43,8 @@ import javax.persistence.InheritanceType;
  */
 public class Dao {
 
+  public static final String TYPE_COLUMN_NAME = "type";
+
   public static final String PARENT_DOCUMENT_ID_COLUMN_NAME = "parentDocumentId";
 
 
@@ -513,6 +515,9 @@ public class Dao {
     boolean isInitialPersist = storedDocument == null;
     if(storedDocument != null) {
       mappedProperties.putAll(storedDocument.getProperties());
+    }
+    else { // persist Entity's type on initial persist
+      mappedProperties.put(TYPE_COLUMN_NAME, entityConfig.getEntityClass().getName());
     }
 
     for(PropertyConfig property : entityConfig.getProperties()) {
