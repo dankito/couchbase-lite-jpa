@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import javax.persistence.AccessType;
+import javax.persistence.InheritanceType;
 
 /**
  * In contrary to JPA standard a bidirectional @OneToMany additionally stores its joined entity ids also on the one side in a String array.
@@ -40,6 +41,9 @@ import javax.persistence.AccessType;
  * Created by ganymed on 15/08/16.
  */
 public class Dao {
+
+  public static final String PARENT_DOCUMENT_ID_COLUMN_NAME = "_parentDocument";
+
 
   protected Database database;
 
@@ -69,11 +73,16 @@ public class Dao {
       return false;
     }
 
+    checkIfCrudOperationCanBePerformedOnObjectOfClass(object, CrudOperation.CREATE);
+
     entityConfig.invokePrePersistLifeCycleMethod(object);
 
-    Document objectDocument = createEntityInDb(object);
-
-    createCascadePersistPropertiesAndUpdateDocument(object, objectDocument);
+    if(entityConfig.getInheritance() != InheritanceType.JOINED) {
+      createEntityInDb(object);
+    }
+    else {
+      createEntityHierarchyInDb(object);
+    }
 
     entityConfig.invokePostPersistLifeCycleMethod(object);
 
@@ -81,11 +90,17 @@ public class Dao {
   }
 
   protected Document createEntityInDb(Object object) throws SQLException, CouchbaseLiteException {
-    checkIfCrudOperationCanBePerformedOnObjectOfClass(object, CrudOperation.CREATE);
+    return createEntityInDb(object, null);
+  }
 
+  protected Document createEntityInDb(Object object, String parentDocumentId) throws SQLException, CouchbaseLiteException {
     Document newDocument = database.createDocument();
 
     Map<String, Object> mappedProperties = mapProperties(object, entityConfig, null);
+
+    if(parentDocumentId != null) { // for Joined Table inheritance
+      mappedProperties.put(PARENT_DOCUMENT_ID_COLUMN_NAME, parentDocumentId);
+    }
 
     newDocument.putProperties(mappedProperties);
 
@@ -94,7 +109,21 @@ public class Dao {
 
     objectCache.add(entityClass, newDocument.getId(), object);
 
+    createCascadePersistPropertiesAndUpdateDocument(object, newDocument);
+
     return newDocument;
+  }
+
+  protected void createEntityHierarchyInDb(Object object) throws CouchbaseLiteException, SQLException {
+    String parentDocumentId = null;
+
+    for(EntityConfig parentEntityConfig : entityConfig.getTopDownInheritanceHierarchy()) {
+      Dao parentDao = relationshipDaoCache.getDaoForEntity(parentEntityConfig.getEntityClass());
+
+      Document parentDocument = parentDao.createEntityInDb(object, parentDocumentId);
+
+      parentDocumentId = parentDocument.getId();
+    }
   }
 
   protected void createCascadePersistPropertiesAndUpdateDocument(Object object, Document objectDocument) throws SQLException, CouchbaseLiteException {
