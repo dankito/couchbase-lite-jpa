@@ -290,7 +290,24 @@ public class Dao {
   public boolean update(Object object) throws SQLException, CouchbaseLiteException {
     checkIfCrudOperationCanBePerformedOnObjectOfClass(object, CrudOperation.UPDATE);
 
-    Document storedDocument = retrieveStoredDocument(object);
+    if(entityConfig.getInheritance() != InheritanceType.JOINED) {
+      updateEntityInDb(object);
+    }
+    else {
+      updateEntityHierarchyInDb(object);
+    }
+
+    return true;
+  }
+
+  protected void updateEntityInDb(Object object) throws SQLException, CouchbaseLiteException {
+    updateEntityInDb(object, null);
+  }
+
+  protected void updateEntityInDb(Object object, Document storedDocument) throws SQLException, CouchbaseLiteException {
+    if(storedDocument == null) { // only for Joined Table inheritance storedDocument is not null
+      storedDocument = retrieveStoredDocument(object);
+    }
 
     entityConfig.invokePreUpdateLifeCycleMethod(object);
 
@@ -303,8 +320,19 @@ public class Dao {
     // TODO: is there a kind of Cascade Update?
 
     entityConfig.invokePostUpdateLifeCycleMethod(object);
+  }
 
-    return true;
+  protected void updateEntityHierarchyInDb(Object object) throws CouchbaseLiteException, SQLException {
+    String parentDocumentId = getObjectId(object);
+
+    while(parentDocumentId != null) {
+      Document parentDocument = database.getDocument(parentDocumentId);
+
+      Dao parentDao = relationshipDaoCache.getDaoForEntity(getEntityClassFromDocument(parentDocument));
+      parentDao.updateEntityInDb(object, parentDocument);
+
+      parentDocumentId = (String)parentDocument.getProperty(PARENT_DOCUMENT_ID_COLUMN_NAME);
+    }
   }
 
 
@@ -322,6 +350,14 @@ public class Dao {
     }
 
     return storedDocument;
+  }
+
+  protected Class getEntityClassFromDocument(Document document) throws SQLException {
+    try {
+      return Class.forName((String) document.getProperty(TYPE_COLUMN_NAME));
+    } catch(Exception e) {
+      throw new SQLException("Could not find Class for " + document.getProperty(TYPE_COLUMN_NAME), e);
+    }
   }
 
 
