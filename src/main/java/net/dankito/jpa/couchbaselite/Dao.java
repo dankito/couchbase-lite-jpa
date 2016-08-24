@@ -110,7 +110,7 @@ public class Dao {
     setIdOnObject(object, newDocument);
     updateVersionOnObject(object, newDocument);
 
-    objectCache.add(entityClass, newDocument.getId(), object);
+    addObjectToCache(object, newDocument);
 
     createCascadePersistPropertiesAndUpdateDocument(object, newDocument);
 
@@ -199,12 +199,14 @@ public class Dao {
   }
 
   public Object retrieve(Object id) throws SQLException {
-    if(objectCache.containsObjectForId(entityClass, id)) {
-      return objectCache.get(entityClass, id);
+    if(isObjectCachedForId(id)) {
+      return getObjectFromCache(id);
     }
     else {
       Document storedDocument = retrieveStoredDocumentForId(id);
       Object retrievedObject = createObjectFromDocument(storedDocument);
+
+      setPropertiesOnObject(retrievedObject, storedDocument);
 
       entityConfig.invokePostLoadLifeCycleMethod(retrievedObject);
 
@@ -216,9 +218,7 @@ public class Dao {
     try {
       Object newInstance = entityConfig.getConstructor().newInstance();
 
-      objectCache.add(entityClass, document.getId(), newInstance);
-
-      setPropertiesOnObject(newInstance, document);
+      addObjectToCache(newInstance, document);
 
       return newInstance;
     } catch(Exception e) {
@@ -375,7 +375,7 @@ public class Dao {
       // TODO: should id be reset on Object?
       updateVersionOnObject(object, storedDocument); // TODO: after delete documents version is set to null -> really update object's version?
 
-      objectCache.remove(entityClass, id);
+      removeObjectFromCache(id);
 
       deleteCascadeRemoveProperties(object);
 
@@ -720,6 +720,24 @@ public class Dao {
   protected boolean shouldUseSetter(PropertyConfig property) {
     return (entityConfig.getAccess() == AccessType.PROPERTY && property.getFieldSetMethod() != null) ||
         (property.getField() == null && property.getFieldSetMethod() != null);
+  }
+
+
+
+  protected boolean isObjectCachedForId(Object id) {
+    return objectCache.containsObjectForId(entityClass, id);
+  }
+
+  protected Object getObjectFromCache(Object id) {
+    return objectCache.get(entityClass, id);
+  }
+
+  protected void addObjectToCache(Object object, Document newDocument) {
+    objectCache.add(entityClass, newDocument.getId(), object);
+  }
+
+  protected void removeObjectFromCache(String id) {
+    objectCache.remove(entityClass, id);
   }
 
 
