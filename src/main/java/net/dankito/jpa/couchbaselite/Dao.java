@@ -43,7 +43,7 @@ import javax.persistence.InheritanceType;
  */
 public class Dao {
 
-  public static final String PARENT_DOCUMENT_ID_COLUMN_NAME = "_parentDocument";
+  public static final String PARENT_DOCUMENT_ID_COLUMN_NAME = "parentDocumentId";
 
 
   protected Database database;
