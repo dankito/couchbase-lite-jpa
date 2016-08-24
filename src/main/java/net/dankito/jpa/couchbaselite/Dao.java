@@ -625,7 +625,7 @@ public class Dao {
 
 
   protected boolean shouldPropertyBeAdded(boolean isInitialPersist, PropertyConfig property) {
-    return ! ( isInitialPersist && isCouchbaseLiteSystemProperty(property) );
+    return isCouchbaseLiteSystemProperty(property) == false;
   }
 
   protected boolean isCouchbaseLiteSystemProperty(PropertyConfig property) {
