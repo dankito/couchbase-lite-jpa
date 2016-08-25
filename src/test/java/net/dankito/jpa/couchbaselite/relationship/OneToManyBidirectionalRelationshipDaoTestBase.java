@@ -317,6 +317,9 @@ public abstract class OneToManyBidirectionalRelationshipDaoTestBase extends DaoT
     Assert.assertNull(persistedOwningSideDocument); // null means it doesn't exist
 
     for(OneToManyBidirectionalManySideEntity inverseSide : manySides) {
+      Document document = database.getDocument(inverseSide.getId());
+      Assert.assertTrue(document.isDeleted());
+
       Document persistedInverseSideDocument = database.getExistingDocument(inverseSide.getId());
       Assert.assertNull(persistedInverseSideDocument); // null means it doesn't exist
     }

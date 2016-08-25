@@ -279,11 +279,17 @@ public class OneToOneBidirectionalRelationshipDaoTest extends DaoTestBase {
 
     underTest.delete(owningSide);
 
-    Document persistedOwningSideDocument = database.getExistingDocument(owningSide.getId());
-    Assert.assertNull(persistedOwningSideDocument); // null means it doesn't exist
+    Document persistedOwningSideDocument = database.getDocument(owningSide.getId());
+    Assert.assertTrue(persistedOwningSideDocument.isDeleted());
 
-    Document persistedInverseSideDocument = database.getExistingDocument(inverseSide.getId());
-    Assert.assertNull(persistedInverseSideDocument); // null means it doesn't exist
+    Document persistedOwningSideExistingDocument = database.getExistingDocument(owningSide.getId());
+    Assert.assertNull(persistedOwningSideExistingDocument); // null means it doesn't exist
+
+    Document persistedInverseSideDocument = database.getDocument(owningSide.getId());
+    Assert.assertTrue(persistedInverseSideDocument.isDeleted());
+
+    Document persistedInverseSideExistingDocument = database.getExistingDocument(inverseSide.getId());
+    Assert.assertNull(persistedInverseSideExistingDocument); // null means it doesn't exist
   }
 
   @Test

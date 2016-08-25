@@ -208,6 +208,9 @@ public class NonRelationshipEntityDaoTest extends DaoTestBase {
 
     underTest.delete(testEntity);
 
+    Document document = database.getDocument(testEntity.getId());
+    Assert.assertTrue(document.isDeleted());
+
     Document persistedDocument = database.getExistingDocument(testEntity.getId());
     Assert.assertNull(persistedDocument); // null means it doesn't exist
   }

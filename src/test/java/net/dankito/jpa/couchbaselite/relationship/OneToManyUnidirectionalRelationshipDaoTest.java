@@ -300,6 +300,9 @@ public class OneToManyUnidirectionalRelationshipDaoTest extends DaoTestBase {
     Assert.assertNull(persistedOwningSideDocument); // null means it doesn't exist
 
     for(OneToManyUnidirectionalInverseEntity inverseSide : inverseSides) {
+      Document document = database.getDocument(inverseSide.getId());
+      Assert.assertTrue(document.isDeleted());
+
       Document persistedInverseSideDocument = database.getExistingDocument(inverseSide.getId());
       Assert.assertNull(persistedInverseSideDocument); // null means it doesn't exist
     }
