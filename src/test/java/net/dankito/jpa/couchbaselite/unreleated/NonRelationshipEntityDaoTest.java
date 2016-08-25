@@ -1,16 +1,13 @@
-package net.dankito.jpa.couchbaselite.single_entity;
+package net.dankito.jpa.couchbaselite.unreleated;
 
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Document;
 
-import net.dankito.jpa.annotationreader.JpaEntityConfigurationReader;
-import net.dankito.jpa.annotationreader.config.EntityConfig;
 import net.dankito.jpa.couchbaselite.DaoTestBase;
 import net.dankito.jpa.couchbaselite.testmodel.EntityWithAllDataTypes;
 import net.dankito.jpa.couchbaselite.testmodel.ManyToManyOwningSide;
 
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.SQLException;

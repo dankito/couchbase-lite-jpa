@@ -110,7 +110,7 @@ public class Dao {
     setIdOnObject(object, newDocument);
     updateVersionOnObject(object, newDocument);
 
-    addObjectToCache(object, newDocument);
+    addObjectToCache(object, newDocument.getId());
 
     createCascadePersistPropertiesAndUpdateDocument(object, newDocument);
 
@@ -199,26 +199,61 @@ public class Dao {
   }
 
   public Object retrieve(Object id) throws SQLException {
+    // TODO: don't call contains as this is of O(n), get it directly and check for != null
     if(isObjectCachedForId(id)) {
       return getObjectFromCache(id);
     }
     else {
-      Document storedDocument = retrieveStoredDocumentForId(id);
-      Object retrievedObject = createObjectFromDocument(storedDocument);
-
-      setPropertiesOnObject(retrievedObject, storedDocument);
-
-      entityConfig.invokePostLoadLifeCycleMethod(retrievedObject);
-
-      return retrievedObject;
+      if(entityConfig.getInheritance() != InheritanceType.JOINED) {
+        return retrieveObjectFromDb(id);
+      }
+      else {
+        return retrieveHierarchicalObjectFromDb(id);
+      }
     }
   }
 
-  protected Object createObjectFromDocument(Document document) throws SQLException {
+  protected Object retrieveObjectFromDb(Object id) throws SQLException {
+    Document storedDocument = retrieveStoredDocumentForId(id);
+
+    Object retrievedObject = createObjectFromDocument(id);
+
+    setPropertiesOnObject(retrievedObject, storedDocument);
+
+    entityConfig.invokePostLoadLifeCycleMethod(retrievedObject);
+
+    return retrievedObject;
+  }
+
+  protected Object retrieveHierarchicalObjectFromDb(Object id) throws SQLException {
+    Document storedDocument = retrieveStoredDocumentForId(id);
+
+    Object retrievedObject = createObjectFromDocument(id);
+
+    setPropertiesOnObject(retrievedObject, storedDocument);
+
+    Object parentDocumentId = getParentIdFromDocument(storedDocument);
+
+    while(parentDocumentId != null) {
+      Document parentDocument = retrieveStoredDocumentForId(parentDocumentId);
+      Dao parentDao = relationshipDaoCache.getDaoForEntity(getEntityClassFromDocument(parentDocument));
+
+      parentDao.setPropertiesOnObject(retrievedObject, parentDocument);
+
+      parentDocumentId = getParentIdFromDocument(parentDocument);
+    }
+
+    entityConfig.invokePostLoadLifeCycleMethod(retrievedObject);
+
+    return retrievedObject;
+  }
+
+
+  protected Object createObjectFromDocument(Object id) throws SQLException {
     try {
       Object newInstance = entityConfig.getConstructor().newInstance();
 
-      addObjectToCache(newInstance, document);
+      addObjectToCache(newInstance, id);
 
       return newInstance;
     } catch(Exception e) {
@@ -227,11 +262,13 @@ public class Dao {
   }
 
   protected void setPropertiesOnObject(Object object, Document document) throws SQLException {
-    setIdOnObject(object, document);
+    if(getObjectId(object) == null) { // on Entities with Inheritance ID might already be (correctly) set -> don't overwrite it
+      setIdOnObject(object, document);
+    }
     updateVersionOnObject(object, document);
 
     for(PropertyConfig property : entityConfig.getProperties()) {
-      if(isCouchbaseLiteSystemProperty(property) == false) {
+      if(isCouchbaseLiteSystemProperty(property) == false && property instanceof DiscriminatorColumnConfig == false) {
         setPropertyOnObject(object, document, property); // TODO: catch Exception for setting single Property or let it bubble up and therefor stop Object creation?
       }
     }
@@ -331,7 +368,7 @@ public class Dao {
       Dao parentDao = relationshipDaoCache.getDaoForEntity(getEntityClassFromDocument(parentDocument));
       parentDao.updateEntityInDb(object, parentDocument);
 
-      parentDocumentId = (String)parentDocument.getProperty(PARENT_DOCUMENT_ID_COLUMN_NAME);
+      parentDocumentId = getParentIdFromDocument(parentDocument);
     }
   }
 
@@ -668,6 +705,10 @@ public class Dao {
     return property.isId() || property.isVersion();
   }
 
+  protected String getParentIdFromDocument(Document document) {
+    return (String)document.getProperty(PARENT_DOCUMENT_ID_COLUMN_NAME);
+  }
+
   protected Object getPropertyValue(Object object, PropertyConfig property) throws SQLException {
     Object value;
 
@@ -732,8 +773,8 @@ public class Dao {
     return objectCache.get(entityClass, id);
   }
 
-  protected void addObjectToCache(Object object, Document newDocument) {
-    objectCache.add(entityClass, newDocument.getId(), object);
+  protected void addObjectToCache(Object object, Object id) {
+    objectCache.add(entityClass, id, object);
   }
 
   protected void removeObjectFromCache(String id) {

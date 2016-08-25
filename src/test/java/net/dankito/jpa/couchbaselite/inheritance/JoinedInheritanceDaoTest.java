@@ -202,6 +202,85 @@ public class JoinedInheritanceDaoTest {
 
 
   @Test
+  public void retrievJoined_AllPropertiesGetPersistedCorrectly() throws CouchbaseLiteException, SQLException {
+    JoinTableChild_1 joinTableChild_1 = createTestChild_1_Entity();
+    JoinTableChild_2_1 joinTableChild_2_1 = createTestChild_2_1_Entity();
+    JoinTableChild_2_2 joinTableChild_2_2 = createTestChild_2_2_Entity();
+    JoinTableChild_3 joinTableChild_3 = createTestChild_3_Entity();
+
+    Document persistedChild_1_Document = database.getDocument(joinTableChild_1.getId());
+    Assert.assertNotNull(persistedChild_1_Document);
+    Assert.assertEquals(CHILD_1_DAY_OF_BIRTH.getTime(), persistedChild_1_Document.getProperty(JoinTableChild_1.DAY_OF_BIRTH_COLUMN_NAME));
+
+    Document persistedChild_1_ParentDocument = database.getDocument((String)persistedChild_1_Document.getProperty(Dao.PARENT_DOCUMENT_ID_COLUMN_NAME));
+    Assert.assertEquals(CHILD_1_NAME, persistedChild_1_ParentDocument.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
+
+    Document persistedChild_2_1_Document = database.getDocument(joinTableChild_2_1.getId());
+    Assert.assertNotNull(persistedChild_2_1_Document);
+    Assert.assertEquals(CHILD_2_1_GIVEN_NAME, persistedChild_2_1_Document.getProperty(JoinTableChild_2_MappedSuperclass.GIVEN_NAME_COLUMN_NAME));
+    Assert.assertEquals(CHILD_2_1_HEIGHT, persistedChild_2_1_Document.getProperty(JoinTableChild_2_1.HEIGHT_COLUMN_NAME));
+
+    Document persistedChild_2_1_ParentDocument = database.getDocument((String)persistedChild_2_1_Document.getProperty(Dao.PARENT_DOCUMENT_ID_COLUMN_NAME));
+    Assert.assertEquals(CHILD_2_1_NAME, persistedChild_2_1_ParentDocument.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
+
+    Document persistedChild_2_2_Document = database.getDocument(joinTableChild_2_2.getId());
+    Assert.assertNotNull(persistedChild_2_2_Document);
+    Assert.assertEquals(CHILD_2_2_GIVEN_NAME, persistedChild_2_2_Document.getProperty(JoinTableChild_2_MappedSuperclass.GIVEN_NAME_COLUMN_NAME));
+    Assert.assertEquals(CHILD_2_2_SALARY.doubleValue(), persistedChild_2_2_Document.getProperty(JoinTableChild_2_2.SALARY_COLUMN_NAME));
+
+    Document persistedChild_2_2_ParentDocument = database.getDocument((String)persistedChild_2_2_Document.getProperty(Dao.PARENT_DOCUMENT_ID_COLUMN_NAME));
+    Assert.assertEquals(CHILD_2_2_NAME, persistedChild_2_2_ParentDocument.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
+
+    Document persistedChild_3_Document = database.getDocument(joinTableChild_3.getId());
+    Assert.assertNotNull(persistedChild_3_Document);
+    Assert.assertEquals(CHILD_3_GENDER.toString(), persistedChild_3_Document.getProperty(JoinTableChild_3.GENDER_COLUMN_NAME));
+
+    Document persistedChild_3_ParentDocument = database.getDocument((String)persistedChild_3_Document.getProperty(Dao.PARENT_DOCUMENT_ID_COLUMN_NAME));
+    Assert.assertEquals(CHILD_3_NAME, persistedChild_3_ParentDocument.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
+  }
+
+  @Test
+  public void retrieveJoined_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
+    List<JoinedTableBase> testEntities = createTestEntities();
+
+    objectCache.clear();
+
+    for(JoinedTableBase testEntity : testEntities) {
+      Dao dao = relationshipDaoCache.getDaoForEntity(testEntity.getClass());
+      JoinedTableBase persistedEntity = (JoinedTableBase)dao.retrieve(testEntity.getId());
+
+      Assert.assertNotNull(persistedEntity.getId());
+      Assert.assertEquals(testEntity.getId(), persistedEntity.getId());
+      Assert.assertNotNull(persistedEntity.getVersion());
+      Assert.assertTrue(persistedEntity.getVersion().startsWith("1"));
+      Assert.assertNotNull(persistedEntity.getCreatedOn());
+      Assert.assertNotNull(persistedEntity.getModifiedOn());
+      Assert.assertEquals(persistedEntity.getCreatedOn(), testEntity.getModifiedOn());
+    }
+  }
+
+  @Test
+  public void retrieveJoined_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
+    List<JoinedTableBase> testEntities = createTestEntities();
+
+    objectCache.clear();
+
+    for(JoinedTableBase testEntity : testEntities) {
+      Dao dao = relationshipDaoCache.getDaoForEntity(testEntity.getClass());
+      JoinedTableBase persistedEntity = (JoinedTableBase)dao.retrieve(testEntity.getId());
+
+      Assert.assertFalse(persistedEntity.hasPrePersistBeenCalled());
+      Assert.assertFalse(persistedEntity.hasPostPersistBeenCalled());
+      Assert.assertTrue(persistedEntity.hasPostLoadBeenCalled());
+      Assert.assertFalse(persistedEntity.hasPreUpdateBeenCalled());
+      Assert.assertFalse(persistedEntity.hasPostUpdateBeenCalled());
+      Assert.assertFalse(persistedEntity.hasPreRemoveBeenCalled());
+      Assert.assertFalse(persistedEntity.hasPostRemoveBeenCalled());
+    }
+  }
+
+
+  @Test
   public void updateJoined_AllPropertiesGetPersistedCorrectly() throws CouchbaseLiteException, SQLException {
     JoinTableChild_1 joinTableChild_1 = createAndUpdateTestChild_1_Entity();
     JoinTableChild_2_1 joinTableChild_2_1 = createAndUpdateTestChild_2_1_Entity();
