@@ -63,6 +63,10 @@ public class Dao {
   protected ObjectMapper objectMapper = null;
 
 
+  public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, DaoCache daoCache) {
+    this(database, entityConfig, objectCache, daoCache, new ValueConverter());
+  }
+
   public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, DaoCache daoCache, ValueConverter valueConverter) {
     this.database = database;
     this.entityConfig = entityConfig;
