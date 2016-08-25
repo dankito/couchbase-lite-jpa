@@ -675,8 +675,30 @@ public class Dao {
 
   protected void updateVersionOnObject(Object object, Document newDocument) throws SQLException {
     if(entityConfig.isVersionPropertySet()) {
-      setValueOnObject(object, entityConfig.getVersionProperty(), newDocument.getCurrentRevisionId());
+      Object version = getDocumentVersion(newDocument);
+
+      setValueOnObject(object, entityConfig.getVersionProperty(), version);
     }
+  }
+
+  protected Object getDocumentVersion(Document document) throws SQLException {
+    String revisionId = document.getCurrentRevisionId();
+    revisionId = revisionId.substring(0, revisionId.indexOf('-')); // Version and Revision UUID are separated by a '-'
+
+    Object version = Long.parseLong(revisionId);
+
+    Class versionDataType = entityConfig.getVersionProperty().getType();
+    if(int.class.equals(versionDataType) || Integer.class.equals(versionDataType)) {
+      version = (int)version;
+    }
+    else if(short.class.equals(versionDataType) || Short.class.equals(versionDataType)) {
+      version = (short)version;
+    }
+    else if(java.sql.Timestamp.class.equals(versionDataType)) {
+      throw new SQLException("Sorry, but Timestamps are not supported as Version by Couchbase Lite");
+    }
+
+    return version;
   }
 
 
