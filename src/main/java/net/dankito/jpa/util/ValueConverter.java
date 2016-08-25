@@ -21,7 +21,7 @@ public class ValueConverter {
     if(property.getType() == Date.class && retrievedValue instanceof Long) {
       convertedValue = convertToDate(retrievedValue);
     }
-    else if(property.getType().isEnum() && retrievedValue instanceof Enum == false) {
+    else if(property.isEnumType() && retrievedValue instanceof Enum == false) {
       convertedValue = convertToEnum(property, retrievedValue);
     }
     else if(property.getType() == BigDecimal.class && retrievedValue instanceof BigDecimal == false) {
@@ -87,7 +87,7 @@ public class ValueConverter {
 
     Object persistableValue = propertyValue;
 
-    if(property.getType().isEnum()) {
+    if(property.isEnumType()) {
       if(property.getDataType() == DataType.ENUM_STRING) {
         persistableValue = propertyValue.toString();
       }
