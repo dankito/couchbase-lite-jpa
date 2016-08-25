@@ -353,15 +353,20 @@ public class Dao {
   protected void setPropertyOnObject(Object object, Document document, PropertyConfig property) throws SQLException {
     Object propertyValue = getValueFromDocument(document, property);
 
-    if(propertyValue == null || property.isRelationshipProperty() == false) {
+    if(property.isRelationshipProperty() == false) {
       setValueOnObject(object, property, propertyValue);
     }
     else {
       Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(property);
 
       if(property.isCollectionProperty() == false) {
-        Object deserializedTargetInstance = targetDao.retrieve(propertyValue);
-        setValueOnObject(object, property, deserializedTargetInstance);
+        if(propertyValue == null) {
+          setValueOnObject(object, property, propertyValue);
+        }
+        else {
+          Object deserializedTargetInstance = targetDao.retrieve(propertyValue);
+          setValueOnObject(object, property, deserializedTargetInstance);
+        }
       }
       else {
         setCollectionPropertyOnObject(object, property, targetDao, (String)propertyValue);
