@@ -17,13 +17,12 @@ import net.dankito.jpa.relationship.collections.LazyLoadingEntitiesCollection;
 import net.dankito.jpa.relationship.collections.LazyLoadingManyToManyEntitiesCollection;
 import net.dankito.jpa.relationship.collections.ManyToManyEntitiesCollection;
 import net.dankito.jpa.util.CrudOperation;
+import net.dankito.jpa.util.ValueConverter;
 
-import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -44,7 +43,7 @@ import javax.persistence.InheritanceType;
  */
 public class Dao {
 
-  public static final String TYPE_COLUMN_NAME = "type";
+  public static final String TYPE_COLUMN_NAME = "type_";
 
   public static final String PARENT_DOCUMENT_ID_COLUMN_NAME = "parentDocumentId";
 
@@ -59,14 +58,17 @@ public class Dao {
 
   protected RelationshipDaoCache relationshipDaoCache;
 
+  protected ValueConverter valueConverter;
+
   protected ObjectMapper objectMapper = null;
 
 
-  public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, RelationshipDaoCache relationshipDaoCache) {
+  public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, RelationshipDaoCache relationshipDaoCache, ValueConverter valueConverter) {
     this.database = database;
     this.entityConfig = entityConfig;
     this.objectCache = objectCache;
     this.relationshipDaoCache = relationshipDaoCache;
+    this.valueConverter = valueConverter;
 
     this.entityClass = entityConfig.getEntityClass();
   }
@@ -317,38 +319,7 @@ public class Dao {
   protected Object getValueFromDocument(Document document, PropertyConfig property) {
     Object value = document.getProperty(property.getColumnName());
 
-    if(property.getType() == Date.class && value instanceof Long) {
-      value = new Date((long)value);
-    }
-    else if(property.getType().isEnum() && value instanceof Enum == false) {
-      if(value instanceof String) {
-        value = Enum.valueOf(property.getType(), (String)value);
-      }
-      else if(value instanceof Integer) {
-        int ordinal = (int)value;
-        for(Object enumValue : property.getType().getEnumConstants()) {
-          if(((Enum)enumValue).ordinal() == ordinal) {
-            value = enumValue;
-          }
-        }
-      }
-    }
-    else if(property.getType() == BigDecimal.class && value instanceof BigDecimal == false) {
-      if(value instanceof Integer) {
-        value = new BigDecimal((Integer) value);
-      }
-      else if(value instanceof Long) {
-        value = new BigDecimal((Long) value);
-      }
-      else if(value instanceof Double) {
-        value = new BigDecimal((Double) value);
-      }
-      else if(value instanceof String) {
-        value = new BigDecimal((String) value);
-      }
-    }
-
-    return value;
+    return valueConverter.convertRetrievedValue(property, value);
   }
 
 

@@ -9,6 +9,7 @@ import net.dankito.jpa.annotationreader.JpaEntityConfigurationReader;
 import net.dankito.jpa.annotationreader.config.EntityConfig;
 import net.dankito.jpa.cache.ObjectCache;
 import net.dankito.jpa.cache.RelationshipDaoCache;
+import net.dankito.jpa.util.ValueConverter;
 
 import org.junit.After;
 import org.junit.Before;
@@ -33,6 +34,8 @@ public abstract class DaoTestBase {
 
   protected RelationshipDaoCache relationshipDaoCache;
 
+  protected ValueConverter valueConverter;
+
 
   @Before
   public void setUp() throws Exception {
@@ -42,14 +45,15 @@ public abstract class DaoTestBase {
 
     objectCache = new ObjectCache();
     relationshipDaoCache = new RelationshipDaoCache();
+    valueConverter = new ValueConverter();
 
     entityConfig = readEntities[0];
 
-    underTest = new Dao(database, entityConfig, objectCache, relationshipDaoCache);
+    underTest = new Dao(database, entityConfig, objectCache, relationshipDaoCache, valueConverter);
     relationshipDaoCache.addDao(entityConfig.getEntityClass(), underTest);
 
     for(int i = 1; i < readEntities.length; i++) {
-      Dao dao = new Dao(database, readEntities[i], objectCache, relationshipDaoCache);
+      Dao dao = new Dao(database, readEntities[i], objectCache, relationshipDaoCache, valueConverter);
       relationshipDaoCache.addDao(readEntities[i].getEntityClass(), dao);
     }
   }
