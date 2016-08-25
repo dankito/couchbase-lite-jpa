@@ -19,7 +19,7 @@ public class JoinTableChild_3 extends JoinedTableBase {
 
 
   @Column(name = GENDER_COLUMN_NAME)
-  @Enumerated(value = EnumType.ORDINAL)
+  @Enumerated(value = EnumType.STRING)
   protected Gender gender;
 
 

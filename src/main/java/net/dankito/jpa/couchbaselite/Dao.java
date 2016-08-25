@@ -713,7 +713,7 @@ public class Dao {
 
     if(property instanceof DiscriminatorColumnConfig) {
       DiscriminatorColumnConfig discriminatorColumn = (DiscriminatorColumnConfig)property;
-      return discriminatorColumn.getDiscriminatorValue(object);
+      value = discriminatorColumn.getDiscriminatorValue(object);
     }
     else if(shouldUseGetter(property)) {
       try {
@@ -729,6 +729,8 @@ public class Dao {
         throw new SQLException("Could not get field value for " + property, e);
       }
     }
+
+    value = valueConverter.convertValueForPersistence(property, value);
 
     return value;
   }

@@ -1,5 +1,6 @@
 package net.dankito.jpa.util;
 
+import net.dankito.jpa.annotationreader.config.DataType;
 import net.dankito.jpa.annotationreader.config.PropertyConfig;
 
 import java.math.BigDecimal;
@@ -11,6 +12,10 @@ import java.util.Date;
 public class ValueConverter {
 
   public Object convertRetrievedValue(PropertyConfig property, Object retrievedValue) {
+    if(retrievedValue == null) {
+      return retrievedValue;
+    }
+
     Object convertedValue = retrievedValue;
 
     if(property.getType() == Date.class && retrievedValue instanceof Long) {
@@ -48,6 +53,7 @@ public class ValueConverter {
       for(Object enumValue : property.getType().getEnumConstants()) {
         if(((Enum)enumValue).ordinal() == ordinal) {
           convertedValue = enumValue;
+          break;
         }
       }
     }
@@ -74,4 +80,22 @@ public class ValueConverter {
     return convertedValue;
   }
 
+  public Object convertValueForPersistence(PropertyConfig property, Object propertyValue) {
+    if(propertyValue == null) {
+      return propertyValue;
+    }
+
+    Object persistableValue = propertyValue;
+
+    if(property.getType().isEnum()) {
+      if(property.getDataType() == DataType.ENUM_STRING) {
+        persistableValue = propertyValue.toString();
+      }
+      else if(property.getDataType() == DataType.ENUM_INTEGER) {
+        persistableValue = ((Enum)propertyValue).ordinal();
+      }
+    }
+
+    return persistableValue;
+  }
 }
