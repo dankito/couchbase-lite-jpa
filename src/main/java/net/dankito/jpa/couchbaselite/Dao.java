@@ -3,6 +3,11 @@ package net.dankito.jpa.couchbaselite;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Document;
+import com.couchbase.lite.Emitter;
+import com.couchbase.lite.Mapper;
+import com.couchbase.lite.QueryEnumerator;
+import com.couchbase.lite.QueryRow;
+import com.couchbase.lite.View;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -30,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.persistence.AccessType;
 import javax.persistence.InheritanceType;
@@ -62,6 +68,8 @@ public class Dao {
   protected IValueConverter valueConverter;
 
   protected ObjectMapper objectMapper = null;
+
+  protected Map<Class, View> queryForAllEntitiesOfDataTypeViews = new ConcurrentHashMap<>();
 
 
   public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, DaoCache daoCache) {
@@ -234,7 +242,11 @@ public class Dao {
   protected Object retrieveObjectFromDb(Object id) throws SQLException {
     Document storedDocument = retrieveStoredDocumentForId(id);
 
-    Object retrievedObject = createObjectFromDocument(id);
+    return createObjectFromDocument(storedDocument, id);
+  }
+
+  protected Object createObjectFromDocument(Document storedDocument, Object id) throws SQLException {
+    Object retrievedObject = createObjectInstance(id);
 
     setPropertiesOnObject(retrievedObject, storedDocument);
 
@@ -246,7 +258,7 @@ public class Dao {
   protected Object retrieveHierarchicalObjectFromDb(Object id) throws SQLException {
     Document storedDocument = retrieveStoredDocumentForId(id);
 
-    Object retrievedObject = createObjectFromDocument(id);
+    Object retrievedObject = createObjectInstance(id);
 
     setPropertiesOnObject(retrievedObject, storedDocument);
 
@@ -267,7 +279,53 @@ public class Dao {
   }
 
 
-  protected Object createObjectFromDocument(Object id) throws SQLException {
+  public <T> List<T> retrieveAllEntitiesOfType(Class<T> entityType) {
+    View queryForAllEntitiesOfDataTypeView = queryForAllEntitiesOfDataTypeViews.get(entityType);
+    if(queryForAllEntitiesOfDataTypeView == null) {
+      queryForAllEntitiesOfDataTypeView = createQueryForAllEntitiesOfDataTypeView(entityType);
+      queryForAllEntitiesOfDataTypeViews.put(entityType, queryForAllEntitiesOfDataTypeView);
+    }
+
+    return queryForAllEntitiesOfDataType(queryForAllEntitiesOfDataTypeView);
+  }
+
+  protected  <T> View createQueryForAllEntitiesOfDataTypeView(Class<T> type) {
+    final String fullTypeName = type.getName();
+    View queryForAllEntitiesOfDataTypeView = database.getView(fullTypeName);
+
+    queryForAllEntitiesOfDataTypeView.setMap(new Mapper() {
+      @Override
+      public void map(Map<String, Object> document, Emitter emitter) {
+        if(fullTypeName.equals(document.get(Dao.TYPE_COLUMN_NAME))) {
+          emitter.emit(document.get("_id"), document); // we need the whole document as the result
+        }
+      }
+    }, "1"); // TODO: what about the version string?
+
+    return queryForAllEntitiesOfDataTypeView;
+  }
+
+  protected <T> List<T> queryForAllEntitiesOfDataType(View queryForAllEntitiesOfDataTypeView) {
+    List<T> queryResult = new ArrayList<T>();
+
+    try {
+      QueryEnumerator enumerator = queryForAllEntitiesOfDataTypeView.createQuery().run();
+      while(enumerator.hasNext()) {
+        QueryRow nextResultItem = enumerator.next();
+        T retrievedEntity = (T)createObjectFromDocument(nextResultItem.getDocument(), nextResultItem.getDocumentId());
+        if(retrievedEntity != null) {
+          queryResult.add(retrievedEntity);
+        }
+      }
+    } catch(Exception e) {
+//      log.error("Could not query for all Entities of Data Type " + entityType, e);
+    }
+
+    return queryResult;
+  }
+
+
+  protected Object createObjectInstance(Object id) throws SQLException {
     try {
       Object newInstance = entityConfig.getConstructor().newInstance();
 
