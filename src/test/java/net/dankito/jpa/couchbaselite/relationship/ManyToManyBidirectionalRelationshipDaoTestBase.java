@@ -80,7 +80,7 @@ public abstract class ManyToManyBidirectionalRelationshipDaoTestBase extends Dao
     for(ManyToManyBidirectionalOwningSideEntity owningSide : owningSides) {
       Assert.assertNotNull(owningSide.getId());
       Assert.assertNotNull(owningSide.getVersion());
-      Assert.assertTrue(owningSide.getVersion().startsWith("1"));
+      Assert.assertEquals(1L, (long)owningSide.getVersion());
       Assert.assertNotNull(owningSide.getCreatedOn());
       Assert.assertNotNull(owningSide.getModifiedOn());
       Assert.assertEquals(owningSide.getCreatedOn(), owningSide.getModifiedOn());
@@ -88,7 +88,7 @@ public abstract class ManyToManyBidirectionalRelationshipDaoTestBase extends Dao
       for (ManyToManyBidirectionalInverseSideEntity inverseSide : owningSide.getInverseSides()) {
         Assert.assertNotNull(inverseSide.getId());
         Assert.assertNotNull(inverseSide.getVersion());
-        Assert.assertTrue(inverseSide.getVersion().startsWith("1"));
+        Assert.assertEquals(1L, (long)inverseSide.getVersion());
         Assert.assertNotNull(inverseSide.getCreatedOn());
         Assert.assertNotNull(inverseSide.getModifiedOn());
         Assert.assertEquals(inverseSide.getCreatedOn(), inverseSide.getModifiedOn());
@@ -173,14 +173,14 @@ public abstract class ManyToManyBidirectionalRelationshipDaoTestBase extends Dao
 
       Assert.assertNotNull(persistedOwningSide.getId());
       Assert.assertNotNull(persistedOwningSide.getVersion());
-      Assert.assertTrue(persistedOwningSide.getVersion().startsWith("2"));
+      Assert.assertEquals(2L, (long)persistedOwningSide.getVersion());
       Assert.assertNotNull(persistedOwningSide.getCreatedOn());
       Assert.assertNotNull(persistedOwningSide.getModifiedOn());
 
       for (ManyToManyBidirectionalInverseSideEntity persistedInverseSide : persistedOwningSide.getInverseSides()) {
         Assert.assertNotNull(persistedInverseSide.getId());
         Assert.assertNotNull(persistedInverseSide.getVersion());
-        Assert.assertTrue(persistedInverseSide.getVersion().startsWith("2"));
+        Assert.assertEquals(2L, (long)persistedInverseSide.getVersion());
         Assert.assertNotNull(persistedInverseSide.getCreatedOn());
         Assert.assertNotNull(persistedInverseSide.getModifiedOn());
       }
@@ -269,7 +269,7 @@ public abstract class ManyToManyBidirectionalRelationshipDaoTestBase extends Dao
 
       Assert.assertNotNull(owningSide.getId());
       Assert.assertNotNull(owningSide.getVersion());
-      Assert.assertTrue(owningSide.getVersion().startsWith("3"));
+      Assert.assertEquals(3L, (long)owningSide.getVersion());
       Assert.assertNotNull(owningSide.getCreatedOn());
       Assert.assertNotEquals(owningSide.getCreatedOn(), owningSide.getModifiedOn());
       Assert.assertNotNull(owningSide.getModifiedOn());

@@ -27,7 +27,7 @@ public class BaseEntity {
   protected String id;
 
   @Version
-  protected String version;
+  protected Long version = 0L;
 
   @Column(name = "created_on", updatable = false)
   @Temporal(TemporalType.TIMESTAMP)
@@ -101,7 +101,7 @@ public class BaseEntity {
     return id;
   }
 
-  public String getVersion() {
+  public Long getVersion() {
     return version;
   }
 

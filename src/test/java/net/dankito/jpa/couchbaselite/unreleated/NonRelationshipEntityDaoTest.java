@@ -72,7 +72,7 @@ public class NonRelationshipEntityDaoTest extends DaoTestBase {
 
     Assert.assertNotNull(testEntity.getId());
     Assert.assertNotNull(testEntity.getVersion());
-    Assert.assertTrue(testEntity.getVersion().startsWith("1"));
+    Assert.assertEquals(1L, (long)testEntity.getVersion());
     Assert.assertNotNull(testEntity.getCreatedOn());
     Assert.assertNotNull(testEntity.getModifiedOn());
     Assert.assertEquals(testEntity.getCreatedOn(), testEntity.getModifiedOn());
@@ -120,7 +120,7 @@ public class NonRelationshipEntityDaoTest extends DaoTestBase {
 
     Assert.assertNotNull(persistedEntity.getId());
     Assert.assertNotNull(persistedEntity.getVersion());
-    Assert.assertTrue(persistedEntity.getVersion().startsWith("1"));
+    Assert.assertEquals(1L, (long)persistedEntity.getVersion());
     Assert.assertNotNull(persistedEntity.getCreatedOn());
     Assert.assertNotNull(persistedEntity.getModifiedOn());
   }
@@ -173,7 +173,7 @@ public class NonRelationshipEntityDaoTest extends DaoTestBase {
 
     Assert.assertNotNull(testEntity.getId());
     Assert.assertNotNull(testEntity.getVersion());
-    Assert.assertTrue(testEntity.getVersion().startsWith("2"));
+    Assert.assertEquals(2L, (long)testEntity.getVersion());
     Assert.assertNotNull(testEntity.getCreatedOn());
     Assert.assertNotEquals(testEntity.getCreatedOn(), testEntity.getModifiedOn());
     Assert.assertNotNull(testEntity.getModifiedOn());

@@ -160,14 +160,14 @@ public abstract class OneToManyBidirectionalRelationshipDaoTestBase extends DaoT
 
     Assert.assertNotNull(persistedOwningSide.getId());
     Assert.assertNotNull(persistedOwningSide.getVersion());
-    Assert.assertTrue(persistedOwningSide.getVersion().startsWith("2"));
+    Assert.assertEquals(2L, (long)persistedOwningSide.getVersion());
     Assert.assertNotNull(persistedOwningSide.getCreatedOn());
     Assert.assertNotNull(persistedOwningSide.getModifiedOn());
 
     for(OneToManyBidirectionalManySideEntity persistedInverseSide : persistedOwningSide.getManySides()) {
       Assert.assertNotNull(persistedInverseSide.getId());
       Assert.assertNotNull(persistedInverseSide.getVersion());
-      Assert.assertTrue(persistedInverseSide.getVersion().startsWith("1"));
+      Assert.assertEquals(1L, (long)persistedInverseSide.getVersion());
       Assert.assertNotNull(persistedInverseSide.getCreatedOn());
       Assert.assertNotNull(persistedInverseSide.getModifiedOn());
     }
@@ -254,7 +254,7 @@ public abstract class OneToManyBidirectionalRelationshipDaoTestBase extends DaoT
 
     Assert.assertNotNull(oneSide.getId());
     Assert.assertNotNull(oneSide.getVersion());
-    Assert.assertTrue(oneSide.getVersion().startsWith("3"));
+    Assert.assertEquals(3L, (long)oneSide.getVersion());
     Assert.assertNotNull(oneSide.getCreatedOn());
     Assert.assertNotEquals(oneSide.getCreatedOn(), oneSide.getModifiedOn());
     Assert.assertNotNull(oneSide.getModifiedOn());
@@ -263,7 +263,7 @@ public abstract class OneToManyBidirectionalRelationshipDaoTestBase extends DaoT
     for(OneToManyBidirectionalManySideEntity inverseSide : manySides) { // assert manySides haven't been updated
       Assert.assertNotNull(inverseSide.getId());
       Assert.assertNotNull(inverseSide.getVersion());
-      Assert.assertTrue(inverseSide.getVersion().startsWith("1"));
+      Assert.assertEquals(1L, (long)inverseSide.getVersion());
       Assert.assertNotNull(inverseSide.getCreatedOn());
       Assert.assertEquals(inverseSide.getCreatedOn(), inverseSide.getModifiedOn());
       Assert.assertNotNull(inverseSide.getModifiedOn());
