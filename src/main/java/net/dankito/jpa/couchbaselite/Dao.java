@@ -11,7 +11,7 @@ import net.dankito.jpa.annotationreader.config.OrderByConfig;
 import net.dankito.jpa.annotationreader.config.PropertyConfig;
 import net.dankito.jpa.annotationreader.config.inheritance.DiscriminatorColumnConfig;
 import net.dankito.jpa.cache.ObjectCache;
-import net.dankito.jpa.cache.RelationshipDaoCache;
+import net.dankito.jpa.cache.DaoCache;
 import net.dankito.jpa.relationship.collections.EntitiesCollection;
 import net.dankito.jpa.relationship.collections.LazyLoadingEntitiesCollection;
 import net.dankito.jpa.relationship.collections.LazyLoadingManyToManyEntitiesCollection;
@@ -56,18 +56,18 @@ public class Dao {
 
   protected ObjectCache objectCache;
 
-  protected RelationshipDaoCache relationshipDaoCache;
+  protected DaoCache daoCache;
 
   protected ValueConverter valueConverter;
 
   protected ObjectMapper objectMapper = null;
 
 
-  public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, RelationshipDaoCache relationshipDaoCache, ValueConverter valueConverter) {
+  public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, DaoCache daoCache, ValueConverter valueConverter) {
     this.database = database;
     this.entityConfig = entityConfig;
     this.objectCache = objectCache;
-    this.relationshipDaoCache = relationshipDaoCache;
+    this.daoCache = daoCache;
     this.valueConverter = valueConverter;
 
     this.entityClass = entityConfig.getEntityClass();
@@ -124,7 +124,7 @@ public class Dao {
     String parentDocumentId = null;
 
     for(EntityConfig parentEntityConfig : entityConfig.getTopDownInheritanceHierarchy()) {
-      Dao parentDao = relationshipDaoCache.getDaoForEntity(parentEntityConfig.getEntityClass());
+      Dao parentDao = daoCache.getDaoForEntity(parentEntityConfig.getEntityClass());
 
       Document parentDocument = parentDao.createEntityInDb(object, parentDocumentId);
 
@@ -148,7 +148,7 @@ public class Dao {
     Map<String, Object> cascadedProperties = new HashMap<>();
 
     for(PropertyConfig cascadePersistProperty : entityConfig.getRelationshipPropertiesWithCascadePersist()) {
-      Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(cascadePersistProperty);
+      Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(cascadePersistProperty);
       Object propertyValue = getPropertyValue(object, cascadePersistProperty);
 
       if(propertyValue != null) {
@@ -239,7 +239,7 @@ public class Dao {
 
     while(parentDocumentId != null) {
       Document parentDocument = retrieveStoredDocumentForId(parentDocumentId);
-      Dao parentDao = relationshipDaoCache.getDaoForEntity(getEntityClassFromDocument(parentDocument));
+      Dao parentDao = daoCache.getDaoForEntity(getEntityClassFromDocument(parentDocument));
 
       parentDao.setPropertiesOnObject(retrievedObject, parentDocument);
 
@@ -284,7 +284,7 @@ public class Dao {
       setValueOnObject(object, property, propertyValue);
     }
     else {
-      Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(property);
+      Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(property);
 
       if(property.isCollectionProperty() == false) {
         Object deserializedTargetInstance = targetDao.retrieve(propertyValue);
@@ -364,7 +364,7 @@ public class Dao {
     while(parentDocumentId != null) {
       Document parentDocument = database.getDocument(parentDocumentId);
 
-      Dao parentDao = relationshipDaoCache.getDaoForEntity(getEntityClassFromDocument(parentDocument));
+      Dao parentDao = daoCache.getDaoForEntity(getEntityClassFromDocument(parentDocument));
       parentDao.updateEntityInDb(object, parentDocument);
 
       parentDocumentId = getParentIdFromDocument(parentDocument);
@@ -440,7 +440,7 @@ public class Dao {
 
     while(parentDocument != null) {
       String parentDocumentId = getParentIdFromDocument(parentDocument); // first get parentDocumentId as after deleting getting properties from Document is not possible anymore
-      Dao parentDao = relationshipDaoCache.getDaoForEntity(getEntityClassFromDocument(parentDocument));
+      Dao parentDao = daoCache.getDaoForEntity(getEntityClassFromDocument(parentDocument));
 
       result &= parentDao.deleteObjectInDb(object, parentDocument);
 
@@ -458,7 +458,7 @@ public class Dao {
 
   protected void deleteCascadeRemoveProperties(Object object) throws SQLException, CouchbaseLiteException {
     for(PropertyConfig cascadeRemoveProperty : entityConfig.getRelationshipPropertiesWithCascadeRemove()) {
-      Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(cascadeRemoveProperty);
+      Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(cascadeRemoveProperty);
       Object propertyValue = getPropertyValue(object, cascadeRemoveProperty);
 
       if(propertyValue != null) { // TODO: check if propertyValue's ID is set (if null means already deleted)?
@@ -644,8 +644,8 @@ public class Dao {
       if(propertyValue == null) {
         mappedProperties.put(property.getColumnName(), null);
       }
-      else if(relationshipDaoCache.containsTargetDaoForRelationshipProperty(property)) { // on correctly configured Entities should actually never be false
-        Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(property);
+      else if(daoCache.containsTargetDaoForRelationshipProperty(property)) { // on correctly configured Entities should actually never be false
+        Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(property);
         if(property.isCollectionProperty() == false) {
           mappedProperties.put(property.getColumnName(), targetDao.getObjectId(propertyValue));
         }
@@ -679,7 +679,7 @@ public class Dao {
   }
 
   protected Collection createEntitiesCollection(Object object, PropertyConfig collectionProperty) throws SQLException {
-    Dao targetDao = relationshipDaoCache.getTargetDaoForRelationshipProperty(collectionProperty);
+    Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(collectionProperty);
     Collection collection = null;
 
     if(collectionProperty.isManyToManyField() == false) {

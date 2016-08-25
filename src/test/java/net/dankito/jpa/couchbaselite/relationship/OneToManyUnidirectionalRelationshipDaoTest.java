@@ -399,7 +399,7 @@ public class OneToManyUnidirectionalRelationshipDaoTest extends DaoTestBase {
     }
 
 
-    Dao inverseSideDao = relationshipDaoCache.getDaoForEntity(OneToManyUnidirectionalInverseEntity.class);
+    Dao inverseSideDao = daoCache.getDaoForEntity(OneToManyUnidirectionalInverseEntity.class);
 
     for(int i = COUNT_TEST_INVERSE_SIDE_ENTITIES; i < COUNT_TEST_INVERSE_SIDE_ENTITIES + 3; i++) {
       OneToManyUnidirectionalInverseEntity testEntity = new OneToManyUnidirectionalInverseEntity(i);

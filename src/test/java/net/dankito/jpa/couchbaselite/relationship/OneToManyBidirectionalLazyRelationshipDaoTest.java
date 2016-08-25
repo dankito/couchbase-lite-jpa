@@ -45,7 +45,7 @@ public class OneToManyBidirectionalLazyRelationshipDaoTest extends OneToManyBidi
   }
 
   protected Dao getManySideDao() {
-    return relationshipDaoCache.getDaoForEntity(OneToManyBidirectionalLazyManySideEntity.class);
+    return daoCache.getDaoForEntity(OneToManyBidirectionalLazyManySideEntity.class);
   }
 
 

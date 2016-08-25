@@ -37,7 +37,7 @@ public class ManyToManyBidirectionalLazyRelationshipDaoTest extends ManyToManyBi
   }
 
   protected Dao getTargetDao() {
-    return relationshipDaoCache.getDaoForEntity(ManyToManyBidirectionalLazyInverseSideEntity.class);
+    return daoCache.getDaoForEntity(ManyToManyBidirectionalLazyInverseSideEntity.class);
   }
 
 

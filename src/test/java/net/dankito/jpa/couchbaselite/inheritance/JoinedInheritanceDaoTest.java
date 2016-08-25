@@ -11,7 +11,7 @@ import net.dankito.jpa.annotationreader.JpaEntityConfigurationReader;
 import net.dankito.jpa.annotationreader.config.EntityConfig;
 import net.dankito.jpa.annotationreader.util.ConfigRegistry;
 import net.dankito.jpa.cache.ObjectCache;
-import net.dankito.jpa.cache.RelationshipDaoCache;
+import net.dankito.jpa.cache.DaoCache;
 import net.dankito.jpa.couchbaselite.Dao;
 import net.dankito.jpa.couchbaselite.testmodel.enums.Gender;
 import net.dankito.jpa.couchbaselite.testmodel.inheritance.JoinTableChild_1;
@@ -77,7 +77,7 @@ public class JoinedInheritanceDaoTest {
 
   protected ObjectCache objectCache;
 
-  protected RelationshipDaoCache relationshipDaoCache;
+  protected DaoCache daoCache;
 
   protected ValueConverter valueConverter;
 
@@ -91,7 +91,7 @@ public class JoinedInheritanceDaoTest {
     setUpDatabase();
 
     objectCache = new ObjectCache();
-    relationshipDaoCache = new RelationshipDaoCache();
+    daoCache = new DaoCache();
     valueConverter = new ValueConverter();
 
     createDao(configRegistry);
@@ -99,24 +99,24 @@ public class JoinedInheritanceDaoTest {
 
   protected void createDao(ConfigRegistry configRegistry) {
     EntityConfig joinedTableBaseConfig = configRegistry.getEntityConfiguration(JoinedTableBase.class);
-    joinedTableDao = new Dao(database, joinedTableBaseConfig, objectCache, relationshipDaoCache, valueConverter);
-    relationshipDaoCache.addDao(joinedTableBaseConfig.getEntityClass(), joinedTableDao);
+    joinedTableDao = new Dao(database, joinedTableBaseConfig, objectCache, daoCache, valueConverter);
+    daoCache.addDao(joinedTableBaseConfig.getEntityClass(), joinedTableDao);
 
     EntityConfig child1Config = configRegistry.getEntityConfiguration(JoinTableChild_1.class);
-    joinChild_1_Dao = new Dao(database, child1Config, objectCache, relationshipDaoCache, valueConverter);
-    relationshipDaoCache.addDao(child1Config.getEntityClass(), joinChild_1_Dao);
+    joinChild_1_Dao = new Dao(database, child1Config, objectCache, daoCache, valueConverter);
+    daoCache.addDao(child1Config.getEntityClass(), joinChild_1_Dao);
 
     EntityConfig child2_1Config = configRegistry.getEntityConfiguration(JoinTableChild_2_1.class);
-    joinChild_2_1_Dao = new Dao(database, child2_1Config, objectCache, relationshipDaoCache, valueConverter);
-    relationshipDaoCache.addDao(child2_1Config.getEntityClass(), joinChild_2_1_Dao);
+    joinChild_2_1_Dao = new Dao(database, child2_1Config, objectCache, daoCache, valueConverter);
+    daoCache.addDao(child2_1Config.getEntityClass(), joinChild_2_1_Dao);
 
     EntityConfig child2_2Config = configRegistry.getEntityConfiguration(JoinTableChild_2_2.class);
-    joinChild_2_2_Dao = new Dao(database, child2_2Config, objectCache, relationshipDaoCache, valueConverter);
-    relationshipDaoCache.addDao(child2_2Config.getEntityClass(), joinChild_2_2_Dao);
+    joinChild_2_2_Dao = new Dao(database, child2_2Config, objectCache, daoCache, valueConverter);
+    daoCache.addDao(child2_2Config.getEntityClass(), joinChild_2_2_Dao);
 
     EntityConfig child3Config = configRegistry.getEntityConfiguration(JoinTableChild_3.class);
-    joinChild_3_Dao = new Dao(database, child3Config, objectCache, relationshipDaoCache, valueConverter);
-    relationshipDaoCache.addDao(child3Config.getEntityClass(), joinChild_3_Dao);
+    joinChild_3_Dao = new Dao(database, child3Config, objectCache, daoCache, valueConverter);
+    daoCache.addDao(child3Config.getEntityClass(), joinChild_3_Dao);
   }
 
   protected void setUpDatabase() throws Exception {
@@ -242,7 +242,7 @@ public class JoinedInheritanceDaoTest {
     objectCache.clear();
 
     for(JoinedTableBase testEntity : testEntities) {
-      Dao dao = relationshipDaoCache.getDaoForEntity(testEntity.getClass());
+      Dao dao = daoCache.getDaoForEntity(testEntity.getClass());
       JoinedTableBase persistedEntity = (JoinedTableBase)dao.retrieve(testEntity.getId());
 
       Assert.assertNotNull(persistedEntity.getId());
@@ -262,7 +262,7 @@ public class JoinedInheritanceDaoTest {
     objectCache.clear();
 
     for(JoinedTableBase testEntity : testEntities) {
-      Dao dao = relationshipDaoCache.getDaoForEntity(testEntity.getClass());
+      Dao dao = daoCache.getDaoForEntity(testEntity.getClass());
       JoinedTableBase persistedEntity = (JoinedTableBase)dao.retrieve(testEntity.getId());
 
       Assert.assertFalse(persistedEntity.hasPrePersistBeenCalled());
@@ -351,7 +351,7 @@ public class JoinedInheritanceDaoTest {
     List<String> documentIds = extractAllDocumentIdsIncludingParentDocuments(testEntities);
 
     for(JoinedTableBase testEntity : testEntities) {
-      Dao dao = relationshipDaoCache.getDaoForEntity(testEntity.getClass());
+      Dao dao = daoCache.getDaoForEntity(testEntity.getClass());
       dao.delete(testEntity);
     }
 
@@ -369,7 +369,7 @@ public class JoinedInheritanceDaoTest {
     List<JoinedTableBase> testEntities = createTestEntities();
 
     for(JoinedTableBase testEntity : testEntities) {
-      Dao dao = relationshipDaoCache.getDaoForEntity(testEntity.getClass());
+      Dao dao = daoCache.getDaoForEntity(testEntity.getClass());
       dao.delete(testEntity);
     }
 
@@ -387,7 +387,7 @@ public class JoinedInheritanceDaoTest {
     List<JoinedTableBase> testEntities = createTestEntities();
 
     for(JoinedTableBase testEntity : testEntities) {
-      Dao dao = relationshipDaoCache.getDaoForEntity(testEntity.getClass());
+      Dao dao = daoCache.getDaoForEntity(testEntity.getClass());
       dao.delete(testEntity);
     }
 

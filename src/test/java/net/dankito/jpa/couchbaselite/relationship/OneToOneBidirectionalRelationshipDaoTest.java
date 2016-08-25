@@ -111,7 +111,7 @@ public class OneToOneBidirectionalRelationshipDaoTest extends DaoTestBase {
 
     objectCache.clear();
 
-    Dao inverseSideDao = relationshipDaoCache.getDaoForEntity(OneToOneInverseEntity.class);
+    Dao inverseSideDao = daoCache.getDaoForEntity(OneToOneInverseEntity.class);
 
     OneToOneOwningEntity persistedOwningSide = (OneToOneOwningEntity) underTest.retrieve(owningSide.getId());
     OneToOneInverseEntity persistedInverseSide = (OneToOneInverseEntity) inverseSideDao.retrieve(inverseSide.getId());
@@ -188,7 +188,7 @@ public class OneToOneBidirectionalRelationshipDaoTest extends DaoTestBase {
     updateOwningSide_SetNewInverseSide(owningSide);
     underTest.update(owningSide);
 
-    Dao inverseSideDao = relationshipDaoCache.getDaoForEntity(OneToOneInverseEntity.class);
+    Dao inverseSideDao = daoCache.getDaoForEntity(OneToOneInverseEntity.class);
     inverseSideDao.update(owningSide.getInverseSide());
     inverseSideDao.update(inverseSide);
 
@@ -357,7 +357,7 @@ public class OneToOneBidirectionalRelationshipDaoTest extends DaoTestBase {
   protected void updateOwningSide_SetNewInverseSide(OneToOneOwningEntity owningSide) throws CouchbaseLiteException, SQLException {
     OneToOneInverseEntity newInverseSide = new OneToOneInverseEntity();
 
-    Dao inverseSideDao = relationshipDaoCache.getDaoForEntity(OneToOneInverseEntity.class);
+    Dao inverseSideDao = daoCache.getDaoForEntity(OneToOneInverseEntity.class);
     inverseSideDao.create(newInverseSide);
 
     owningSide.setInverseSide(newInverseSide);

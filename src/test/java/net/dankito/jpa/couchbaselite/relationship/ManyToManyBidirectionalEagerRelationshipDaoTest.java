@@ -29,7 +29,7 @@ public class ManyToManyBidirectionalEagerRelationshipDaoTest extends ManyToManyB
   }
 
   protected Dao getTargetDao() {
-    return relationshipDaoCache.getDaoForEntity(ManyToManyBidirectionalEagerInverseSideEntity.class);
+    return daoCache.getDaoForEntity(ManyToManyBidirectionalEagerInverseSideEntity.class);
   }
 
 }

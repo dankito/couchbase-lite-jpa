@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Created by ganymed on 18/08/16.
  */
-public class RelationshipDaoCache {
+public class DaoCache {
 
   protected Map<Class, Dao> cache = new ConcurrentHashMap<>();
 
