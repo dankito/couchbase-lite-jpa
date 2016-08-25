@@ -9,6 +9,7 @@ import net.dankito.jpa.annotationreader.JpaEntityConfigurationReader;
 import net.dankito.jpa.annotationreader.config.EntityConfig;
 import net.dankito.jpa.cache.ObjectCache;
 import net.dankito.jpa.cache.DaoCache;
+import net.dankito.jpa.util.IValueConverter;
 import net.dankito.jpa.util.ValueConverter;
 
 import org.junit.After;
@@ -34,7 +35,7 @@ public abstract class DaoTestBase {
 
   protected DaoCache daoCache;
 
-  protected ValueConverter valueConverter;
+  protected IValueConverter valueConverter;
 
 
   @Before

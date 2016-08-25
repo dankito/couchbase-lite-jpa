@@ -17,6 +17,7 @@ import net.dankito.jpa.relationship.collections.LazyLoadingEntitiesCollection;
 import net.dankito.jpa.relationship.collections.LazyLoadingManyToManyEntitiesCollection;
 import net.dankito.jpa.relationship.collections.ManyToManyEntitiesCollection;
 import net.dankito.jpa.util.CrudOperation;
+import net.dankito.jpa.util.IValueConverter;
 import net.dankito.jpa.util.ValueConverter;
 
 import java.sql.SQLException;
@@ -58,7 +59,7 @@ public class Dao {
 
   protected DaoCache daoCache;
 
-  protected ValueConverter valueConverter;
+  protected IValueConverter valueConverter;
 
   protected ObjectMapper objectMapper = null;
 
@@ -67,7 +68,7 @@ public class Dao {
     this(database, entityConfig, objectCache, daoCache, new ValueConverter());
   }
 
-  public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, DaoCache daoCache, ValueConverter valueConverter) {
+  public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, DaoCache daoCache, IValueConverter valueConverter) {
     this.database = database;
     this.entityConfig = entityConfig;
     this.objectCache = objectCache;

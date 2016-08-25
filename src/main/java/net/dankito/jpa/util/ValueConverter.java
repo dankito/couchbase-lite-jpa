@@ -9,8 +9,9 @@ import java.util.Date;
 /**
  * Created by ganymed on 25/08/16.
  */
-public class ValueConverter {
+public class ValueConverter implements IValueConverter {
 
+  @Override
   public Object convertRetrievedValue(PropertyConfig property, Object retrievedValue) {
     if(retrievedValue == null) {
       return retrievedValue;
@@ -80,6 +81,7 @@ public class ValueConverter {
     return convertedValue;
   }
 
+  @Override
   public Object convertValueForPersistence(PropertyConfig property, Object propertyValue) {
     if(propertyValue == null) {
       return propertyValue;

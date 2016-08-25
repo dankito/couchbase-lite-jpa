@@ -20,6 +20,7 @@ import net.dankito.jpa.couchbaselite.testmodel.inheritance.JoinTableChild_2_2;
 import net.dankito.jpa.couchbaselite.testmodel.inheritance.JoinTableChild_2_MappedSuperclass;
 import net.dankito.jpa.couchbaselite.testmodel.inheritance.JoinTableChild_3;
 import net.dankito.jpa.couchbaselite.testmodel.inheritance.JoinedTableBase;
+import net.dankito.jpa.util.IValueConverter;
 import net.dankito.jpa.util.ValueConverter;
 
 import org.junit.After;
@@ -79,7 +80,7 @@ public class JoinedInheritanceDaoTest {
 
   protected DaoCache daoCache;
 
-  protected ValueConverter valueConverter;
+  protected IValueConverter valueConverter;
 
 
   @Before
