@@ -344,6 +344,65 @@ public class JoinedInheritanceDaoTest {
   }
 
 
+  @Test
+  public void deleteEntity_EntityGetsDeletedCorrectly() throws CouchbaseLiteException, SQLException {
+    List<JoinedTableBase> testEntities = createTestEntities();
+
+    List<String> documentIds = extractAllDocumentIdsIncludingParentDocuments(testEntities);
+
+    for(JoinedTableBase testEntity : testEntities) {
+      Dao dao = relationshipDaoCache.getDaoForEntity(testEntity.getClass());
+      dao.delete(testEntity);
+    }
+
+    for(String documentId : documentIds) {
+      Document document = database.getDocument(documentId);
+      Assert.assertTrue(document.isDeleted());
+
+      Document persistedDocument = database.getExistingDocument(documentId);
+      Assert.assertNull(persistedDocument);
+    }
+  }
+
+  @Test
+  public void deleteEntity_InfrastructurePropertiesGetSetCorrectly() throws CouchbaseLiteException, SQLException {
+    List<JoinedTableBase> testEntities = createTestEntities();
+
+    for(JoinedTableBase testEntity : testEntities) {
+      Dao dao = relationshipDaoCache.getDaoForEntity(testEntity.getClass());
+      dao.delete(testEntity);
+    }
+
+    for(JoinedTableBase testEntity : testEntities) {
+      Assert.assertNotNull(testEntity.getId());
+      Assert.assertNull(testEntity.getVersion());
+      Assert.assertNotNull(testEntity.getCreatedOn());
+      Assert.assertNotEquals(testEntity.getCreatedOn(), testEntity.getModifiedOn());
+      Assert.assertNotNull(testEntity.getModifiedOn());
+    }
+  }
+
+  @Test
+  public void deleteEntity_LifeCycleMethodsGetCalledCorrectly() throws CouchbaseLiteException, SQLException {
+    List<JoinedTableBase> testEntities = createTestEntities();
+
+    for(JoinedTableBase testEntity : testEntities) {
+      Dao dao = relationshipDaoCache.getDaoForEntity(testEntity.getClass());
+      dao.delete(testEntity);
+    }
+
+    for(JoinedTableBase testEntity : testEntities) {
+      Assert.assertTrue(testEntity.hasPrePersistBeenCalled());
+      Assert.assertTrue(testEntity.hasPostPersistBeenCalled());
+      Assert.assertFalse(testEntity.hasPostLoadBeenCalled());
+      Assert.assertFalse(testEntity.hasPreUpdateBeenCalled());
+      Assert.assertFalse(testEntity.hasPostUpdateBeenCalled());
+      Assert.assertTrue(testEntity.hasPreRemoveBeenCalled());
+      Assert.assertTrue(testEntity.hasPostRemoveBeenCalled());
+    }
+  }
+
+
 
   protected List<JoinedTableBase> createTestEntities() throws CouchbaseLiteException, SQLException {
     List<JoinedTableBase> testEntities = new ArrayList<>();
@@ -444,6 +503,24 @@ public class JoinedInheritanceDaoTest {
     joinChild_3_Dao.update(testEntity);
 
     return testEntity;
+  }
+
+
+  protected List<String> extractAllDocumentIdsIncludingParentDocuments(List<JoinedTableBase> entities) {
+    List<String> documentIds = new ArrayList<>();
+
+    for(JoinedTableBase entity : entities) {
+      String parentDocumentId = entity.getId();
+
+      while(parentDocumentId != null) {
+        Document parentDocument = database.getExistingDocument(parentDocumentId);
+        documentIds.add(parentDocument.getId());
+
+        parentDocumentId = (String)parentDocument.getProperty(Dao.PARENT_DOCUMENT_ID_COLUMN_NAME);
+      }
+    }
+
+    return documentIds;
   }
 
 }

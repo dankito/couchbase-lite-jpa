@@ -401,27 +401,60 @@ public class Dao {
     checkIfCrudOperationCanBePerformedOnObjectOfClass(object, CrudOperation.DELETE);
 
     Document storedDocument = retrieveStoredDocument(object);
+    boolean result = false;
 
     if(storedDocument.isDeleted() == false) {
       entityConfig.invokePreRemoveLifeCycleMethod(object);
       String id = storedDocument.getId();
 
-      boolean result = storedDocument.delete();
+      if(entityConfig.getInheritance() != InheritanceType.JOINED) {
+        result = deleteObjectInDb(object, storedDocument);
+      }
+      else {
+        result = deleteHierarchicalObjectInDb(object, storedDocument);
+      }
 
       // TODO: should id be reset on Object?
-      updateVersionOnObject(object, storedDocument); // TODO: after delete documents version is set to null -> really update object's version?
 
       removeObjectFromCache(id);
 
       deleteCascadeRemoveProperties(object);
 
       entityConfig.invokePostRemoveLifeCycleMethod(object);
-
-      return result;
     }
 
-    return false;
+    return result;
   }
+
+  protected boolean deleteObjectInDb(Object object, Document storedDocument) throws CouchbaseLiteException, SQLException {
+    boolean result = storedDocument.delete();
+
+    updateVersionOnObject(object, storedDocument); // TODO: after delete documents version is set to null -> really update object's version?
+
+    return result;
+  }
+
+  protected boolean deleteHierarchicalObjectInDb(Object object, Document storedDocument) throws CouchbaseLiteException, SQLException {
+    boolean result = true;
+    Document parentDocument = storedDocument;
+
+    while(parentDocument != null) {
+      String parentDocumentId = getParentIdFromDocument(parentDocument); // first get parentDocumentId as after deleting getting properties from Document is not possible anymore
+      Dao parentDao = relationshipDaoCache.getDaoForEntity(getEntityClassFromDocument(parentDocument));
+
+      result &= parentDao.deleteObjectInDb(object, parentDocument);
+
+      if(parentDocumentId != null) {
+        parentDocument = retrieveStoredDocumentForId(parentDocumentId);
+      }
+      else {
+        break;
+      }
+    }
+
+    return result;
+  }
+
 
   protected void deleteCascadeRemoveProperties(Object object) throws SQLException, CouchbaseLiteException {
     for(PropertyConfig cascadeRemoveProperty : entityConfig.getRelationshipPropertiesWithCascadeRemove()) {
