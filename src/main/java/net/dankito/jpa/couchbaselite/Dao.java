@@ -715,7 +715,19 @@ public class Dao {
       DiscriminatorColumnConfig discriminatorColumn = (DiscriminatorColumnConfig)property;
       value = discriminatorColumn.getDiscriminatorValue(object);
     }
-    else if(shouldUseGetter(property)) {
+    else {
+      value = extractValueFromObject(object, property);
+    }
+
+    value = valueConverter.convertValueForPersistence(property, value);
+
+    return value;
+  }
+
+  protected Object extractValueFromObject(Object object, PropertyConfig property) throws SQLException {
+    Object value;
+
+    if(shouldUseGetter(property)) {
       try {
         value = property.getFieldGetMethod().invoke(object);
       } catch (Exception e) {
@@ -729,8 +741,6 @@ public class Dao {
         throw new SQLException("Could not get field value for " + property, e);
       }
     }
-
-    value = valueConverter.convertValueForPersistence(property, value);
 
     return value;
   }
