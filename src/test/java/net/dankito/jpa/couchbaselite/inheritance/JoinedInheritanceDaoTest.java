@@ -199,7 +199,7 @@ public class JoinedInheritanceDaoTest {
 
 
   @Test
-  public void retrieveJoined_AllPropertiesGetPersistedCorrectly() throws CouchbaseLiteException, SQLException {
+  public void retrieveJoined_AllPropertiesGetRetrievedCorrectly() throws CouchbaseLiteException, SQLException {
     JoinTableChild_1 joinTableChild_1 = createTestChild_1_Entity();
     JoinTableChild_2_1 joinTableChild_2_1 = createTestChild_2_1_Entity();
     JoinTableChild_2_2 joinTableChild_2_2 = createTestChild_2_2_Entity();
@@ -266,6 +266,37 @@ public class JoinedInheritanceDaoTest {
       Assert.assertFalse(persistedEntity.hasPreRemoveBeenCalled());
       Assert.assertFalse(persistedEntity.hasPostRemoveBeenCalled());
     }
+  }
+
+
+  @Test
+  public void retrieveJoinedByParentClass_AllPropertiesGetRetrievedCorrectly() throws CouchbaseLiteException, SQLException {
+    JoinTableChild_1 joinTableChild_1 = createTestChild_1_Entity();
+    JoinTableChild_2_1 joinTableChild_2_1 = createTestChild_2_1_Entity();
+    JoinTableChild_2_2 joinTableChild_2_2 = createTestChild_2_2_Entity();
+    JoinTableChild_3 joinTableChild_3 = createTestChild_3_Entity();
+
+    JoinTableChild_1 persistedChild_1 = (JoinTableChild_1)joinedTableDao.retrieve(joinTableChild_1.getId());
+    Assert.assertNotNull(persistedChild_1);
+    Assert.assertEquals(CHILD_1_NAME, persistedChild_1.getName());
+    Assert.assertEquals(CHILD_1_DAY_OF_BIRTH, persistedChild_1.getDayOfBirth());
+
+    JoinTableChild_2_1 persistedChild_2_1 = (JoinTableChild_2_1)joinedTableDao.retrieve(joinTableChild_2_1.getId());
+    Assert.assertNotNull(persistedChild_2_1);
+    Assert.assertEquals(CHILD_2_1_NAME, persistedChild_2_1.getName());
+    Assert.assertEquals(CHILD_2_1_GIVEN_NAME, persistedChild_2_1.getGivenName());
+    Assert.assertEquals(CHILD_2_1_HEIGHT, persistedChild_2_1.getHeightInMeter(), 0.001);
+
+    JoinTableChild_2_2 persistedChild_2_2 = (JoinTableChild_2_2)joinedTableDao.retrieve(joinTableChild_2_2.getId());
+    Assert.assertNotNull(persistedChild_2_2);
+    Assert.assertEquals(CHILD_2_2_NAME, persistedChild_2_2.getName());
+    Assert.assertEquals(CHILD_2_2_GIVEN_NAME, persistedChild_2_2.getGivenName());
+    Assert.assertEquals(CHILD_2_2_SALARY, persistedChild_2_2.getSalary());
+
+    JoinTableChild_3 persistedChild_3 = (JoinTableChild_3)joinedTableDao.retrieve(joinTableChild_3.getId());
+    Assert.assertNotNull(persistedChild_3);
+    Assert.assertEquals(CHILD_3_NAME, persistedChild_3.getName());
+    Assert.assertEquals(CHILD_3_GENDER, persistedChild_3.getGender());
   }
 
 

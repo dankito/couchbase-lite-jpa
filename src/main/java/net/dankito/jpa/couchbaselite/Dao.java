@@ -215,13 +215,21 @@ public class Dao {
   }
 
   protected Object createObjectFromDocument(Document storedDocument, Object id) throws SQLException {
-    Object retrievedObject = createObjectInstance(id);
+    Class entityRealClass = getEntityClassFromDocument(storedDocument);
 
-    setPropertiesOnObject(retrievedObject, storedDocument);
+    if(entityConfig.getEntityClass().equals(entityRealClass)) {
+      Object retrievedObject = createObjectInstance(id);
 
-    entityConfig.invokePostLoadLifeCycleMethod(retrievedObject);
+      setPropertiesOnObject(retrievedObject, storedDocument);
 
-    return retrievedObject;
+      entityConfig.invokePostLoadLifeCycleMethod(retrievedObject);
+
+      return retrievedObject;
+    }
+    else { // for classes with inheritance may for a parent class is queried, but we need to create an instance of child class
+      Dao childDao = daoCache.getDaoForEntity(entityRealClass);
+      return childDao.createObjectFromDocument(storedDocument, id);
+    }
   }
 
 
