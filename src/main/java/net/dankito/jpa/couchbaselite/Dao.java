@@ -39,7 +39,6 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.persistence.AccessType;
-import javax.persistence.InheritanceType;
 
 /**
  * In contrary to JPA standard a bidirectional @OneToMany additionally stores its joined entity ids also on the one side in a String array.
@@ -52,6 +51,8 @@ import javax.persistence.InheritanceType;
 public class Dao {
 
   public static final String TYPE_COLUMN_NAME = "type_";
+
+  public static final String PARENT_ENTITY_CLASSES_COLUMN_NAME = "parent_entity_classes";
 
 
   protected Database database;
@@ -227,6 +228,11 @@ public class Dao {
       return retrievedObject;
     }
     else { // for classes with inheritance may for a parent class is queried, but we need to create an instance of child class
+      if(containsParentEntityClass(storedDocument, entityClass) == false) {
+        throw new SQLException("Trying to retrieve an Object of Type " + entityClass + " of ID " + id + ", but Document with this ID says it's of Type " + entityRealClass + " " +
+            "which is not a child class of " + entityClass);
+      }
+
       Dao childDao = daoCache.getDaoForEntity(entityRealClass);
       return childDao.createObjectFromDocument(storedDocument, id);
     }
@@ -632,6 +638,9 @@ public class Dao {
     }
     else { // persist Entity's type on initial persist
       mappedProperties.put(TYPE_COLUMN_NAME, entityConfig.getEntityClass().getName());
+      if(entityConfig.hasParentEntityConfig()) {
+        writeParentEntityClasses(mappedProperties);
+      }
     }
 
     for(PropertyConfig property : entityConfig.getPropertiesIncludingInheritedOnes()) {
@@ -735,6 +744,23 @@ public class Dao {
     } catch (JsonProcessingException e) {
       throw new SQLException("Could not persist IDs of Collection Items", e);
     }
+  }
+
+
+  protected void writeParentEntityClasses(Map<String, Object> mappedProperties) throws SQLException {
+    try {
+      ObjectMapper objectMapper = getObjectMapper();
+      String serializedParentEntityClasses = objectMapper.writeValueAsString(entityConfig.getParentEntityClasses());
+      mappedProperties.put(PARENT_ENTITY_CLASSES_COLUMN_NAME, serializedParentEntityClasses);
+    } catch (JsonProcessingException e) {
+      throw new SQLException("Could not persist Parent Entity Classes", e);
+    }
+  }
+
+  protected boolean containsParentEntityClass(Document storedDocument, Class parentClass) {
+    String parentClassInfo = (String)storedDocument.getProperty(PARENT_ENTITY_CLASSES_COLUMN_NAME);
+
+    return parentClassInfo != null && parentClassInfo.contains(parentClass.getName());
   }
 
 
