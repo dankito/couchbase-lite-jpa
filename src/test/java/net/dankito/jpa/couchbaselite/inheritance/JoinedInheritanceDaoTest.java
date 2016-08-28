@@ -20,6 +20,7 @@ import net.dankito.jpa.couchbaselite.testmodel.inheritance.JoinTableChild_2_2;
 import net.dankito.jpa.couchbaselite.testmodel.inheritance.JoinTableChild_2_MappedSuperclass;
 import net.dankito.jpa.couchbaselite.testmodel.inheritance.JoinTableChild_3;
 import net.dankito.jpa.couchbaselite.testmodel.inheritance.JoinedTableBase;
+import net.dankito.jpa.couchbaselite.testmodel.relationship.ManyToManyBidirectionalEagerInverseSideEntity;
 import net.dankito.jpa.util.IValueConverter;
 import net.dankito.jpa.util.ValueConverter;
 
@@ -66,6 +67,7 @@ public class JoinedInheritanceDaoTest {
   public static final Gender CHILD_3_UPDATED_GENDER = Gender.NEUTRUM;
 
 
+  protected Dao baseEntityDao;
   protected Dao joinedTableDao;
   protected Dao joinChild_1_Dao;
   protected Dao joinChild_2_1_Dao;
@@ -270,7 +272,7 @@ public class JoinedInheritanceDaoTest {
 
 
   @Test
-  public void retrieveJoinedByParentClass_AllPropertiesGetRetrievedCorrectly() throws CouchbaseLiteException, SQLException {
+  public void retrieveJoinedByJoinedTableParentClass_AllPropertiesGetRetrievedCorrectly() throws CouchbaseLiteException, SQLException {
     JoinTableChild_1 joinTableChild_1 = createTestChild_1_Entity();
     JoinTableChild_2_1 joinTableChild_2_1 = createTestChild_2_1_Entity();
     JoinTableChild_2_2 joinTableChild_2_2 = createTestChild_2_2_Entity();
@@ -297,6 +299,15 @@ public class JoinedInheritanceDaoTest {
     Assert.assertNotNull(persistedChild_3);
     Assert.assertEquals(CHILD_3_NAME, persistedChild_3.getName());
     Assert.assertEquals(CHILD_3_GENDER, persistedChild_3.getGender());
+  }
+
+  @Test(expected = SQLException.class)
+  public void retrieveJoinedByWrongParentClass_ExceptionGetsThrown() throws CouchbaseLiteException, SQLException {
+    Dao wrongParentClassDao = new Dao(database, new EntityConfig(ManyToManyBidirectionalEagerInverseSideEntity.class), objectCache, daoCache);
+
+    JoinTableChild_1 joinTableChild_1 = createTestChild_1_Entity();
+
+    JoinTableChild_1 persistedChild_1 = (JoinTableChild_1)wrongParentClassDao.retrieve(joinTableChild_1.getId());
   }
 
 
