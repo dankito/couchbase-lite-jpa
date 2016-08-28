@@ -1,5 +1,7 @@
 package net.dankito.jpa.util;
 
+import net.dankito.jpa.couchbaselite.Dao;
+
 /**
  * Created by ganymed on 24/08/16.
  */
@@ -21,7 +23,7 @@ public class DatabaseSettings {
     switch(extractedColumnName) {
       case "_id":
       case "_revision":
-      case "_type": // yeah, actually not a Couchbase default 'Column', but i use it for Storing Entity Name // TODO: create a Constant for it
+      case Dao.TYPE_COLUMN_NAME: // yeah, actually not a Couchbase default 'Column', but i use it for Storing Entity Name // TODO: create a Constant for it
       default:
         return false;
     }
