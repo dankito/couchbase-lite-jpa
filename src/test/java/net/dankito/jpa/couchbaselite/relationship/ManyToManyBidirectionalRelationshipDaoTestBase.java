@@ -55,7 +55,7 @@ public abstract class ManyToManyBidirectionalRelationshipDaoTestBase extends Dao
       Document persistedOwningSideDocument = database.getDocument(owningSide.getId());
       Assert.assertNotNull(persistedOwningSideDocument);
 
-      List itemIds = getTargetEntityIds(persistedOwningSideDocument, "owning_side_id"); // TODO: this column name is wrong
+      List itemIds = getTargetEntityIds(persistedOwningSideDocument, "inverseSides");
 
       Assert.assertEquals(itemIds.size(), owningSide.getInverseSides().size());
       Assert.assertEquals(COUNT_INVERSE_SIDES_PER_OWNING_SIDE, owningSide.getInverseSides().size());
@@ -132,7 +132,7 @@ public abstract class ManyToManyBidirectionalRelationshipDaoTestBase extends Dao
     Document persistedOneSideDocument = database.getDocument(owningSide.getId());
     Assert.assertNotNull(persistedOneSideDocument);
 
-    Assert.assertEquals(null, persistedOneSideDocument.getProperty("owning_side_id"));
+    Assert.assertEquals(null, persistedOneSideDocument.getProperty("inverseSides"));
   }
 
 
@@ -233,7 +233,7 @@ public abstract class ManyToManyBidirectionalRelationshipDaoTestBase extends Dao
       Document persistedOwningSideDocument = database.getDocument(owningSide.getId());
       Assert.assertNotNull(persistedOwningSideDocument);
 
-      List itemIds = getTargetEntityIds(persistedOwningSideDocument, "owning_side_id");
+      List itemIds = getTargetEntityIds(persistedOwningSideDocument, "inverseSides");
       Assert.assertEquals(itemIds.size(), owningSide.getInverseSides().size());
 
       ManyToManyBidirectionalOwningSideEntity persistedOwningSide = (ManyToManyBidirectionalOwningSideEntity) underTest.retrieve(owningSide.getId());
