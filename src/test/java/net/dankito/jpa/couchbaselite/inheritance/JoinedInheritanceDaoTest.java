@@ -67,7 +67,6 @@ public class JoinedInheritanceDaoTest {
   public static final Gender CHILD_3_UPDATED_GENDER = Gender.NEUTRUM;
 
 
-  protected Dao baseEntityDao;
   protected Dao joinedTableDao;
   protected Dao joinChild_1_Dao;
   protected Dao joinChild_2_1_Dao;
