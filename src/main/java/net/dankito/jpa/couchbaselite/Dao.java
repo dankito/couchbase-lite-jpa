@@ -53,8 +53,6 @@ public class Dao {
 
   public static final String TYPE_COLUMN_NAME = "type_";
 
-  public static final String PARENT_DOCUMENT_ID_COLUMN_NAME = "parentDocumentId";
-
 
   protected Database database;
 
@@ -97,35 +95,22 @@ public class Dao {
 
     entityConfig.invokePrePersistLifeCycleMethod(object);
 
-    if(entityConfig.getInheritance() != InheritanceType.JOINED) {
-      createEntityInDb(object);
-    }
-    else {
-      createEntityHierarchyInDb(object);
-    }
+    createEntityInDb(object);
 
     entityConfig.invokePostPersistLifeCycleMethod(object);
 
     return true;
   }
 
-  protected Document createEntityInDb(Object object) throws SQLException, CouchbaseLiteException {
-    return createEntityInDb(object, null);
-  }
-
   public static Long NextDocumentId = 1L; // TODO: remove again
 
-  protected Document createEntityInDb(Object object, String parentDocumentId) throws SQLException, CouchbaseLiteException {
+  protected Document createEntityInDb(Object object) throws SQLException, CouchbaseLiteException {
 //    Document newDocument = database.createDocument();
     // TODO: remove again
     NextDocumentId++;
     Document newDocument = database.getDocument(NextDocumentId.toString());
 
     Map<String, Object> mappedProperties = mapProperties(object, entityConfig, null);
-
-    if(parentDocumentId != null) { // for Joined Table inheritance
-      mappedProperties.put(PARENT_DOCUMENT_ID_COLUMN_NAME, parentDocumentId);
-    }
 
     newDocument.putProperties(mappedProperties);
 
@@ -137,18 +122,6 @@ public class Dao {
     createCascadePersistPropertiesAndUpdateDocument(object, newDocument);
 
     return newDocument;
-  }
-
-  protected void createEntityHierarchyInDb(Object object) throws CouchbaseLiteException, SQLException {
-    String parentDocumentId = null;
-
-    for(EntityConfig parentEntityConfig : entityConfig.getTopDownInheritanceHierarchy()) {
-      Dao parentDao = daoCache.getDaoForEntity(parentEntityConfig.getEntityClass());
-
-      Document parentDocument = parentDao.createEntityInDb(object, parentDocumentId);
-
-      parentDocumentId = parentDocument.getId();
-    }
   }
 
   protected void createCascadePersistPropertiesAndUpdateDocument(Object object, Document objectDocument) throws SQLException, CouchbaseLiteException {
@@ -166,7 +139,7 @@ public class Dao {
   protected Map<String, Object> createCascadePersistProperties(Object object) throws SQLException, CouchbaseLiteException {
     Map<String, Object> cascadedProperties = new HashMap<>();
 
-    for(PropertyConfig cascadePersistProperty : entityConfig.getRelationshipPropertiesWithCascadePersist()) {
+    for(PropertyConfig cascadePersistProperty : entityConfig.getRelationshipPropertiesWithCascadePersistIncludingInheritedOnes()) {
       Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(cascadePersistProperty);
       Object propertyValue = getPropertyValue(object, cascadePersistProperty);
 
@@ -231,12 +204,7 @@ public class Dao {
       return getObjectFromCache(id);
     }
     else {
-      if(entityConfig.getInheritance() != InheritanceType.JOINED) {
-        return retrieveObjectFromDb(id);
-      }
-      else {
-        return retrieveHierarchicalObjectFromDb(id);
-      }
+      return retrieveObjectFromDb(id);
     }
   }
 
@@ -250,29 +218,6 @@ public class Dao {
     Object retrievedObject = createObjectInstance(id);
 
     setPropertiesOnObject(retrievedObject, storedDocument);
-
-    entityConfig.invokePostLoadLifeCycleMethod(retrievedObject);
-
-    return retrievedObject;
-  }
-
-  protected Object retrieveHierarchicalObjectFromDb(Object id) throws SQLException {
-    Document storedDocument = retrieveStoredDocumentForId(id);
-
-    Object retrievedObject = createObjectInstance(id);
-
-    setPropertiesOnObject(retrievedObject, storedDocument);
-
-    Object parentDocumentId = getParentIdFromDocument(storedDocument);
-
-    while(parentDocumentId != null) {
-      Document parentDocument = retrieveStoredDocumentForId(parentDocumentId);
-      Dao parentDao = daoCache.getDaoForEntity(getEntityClassFromDocument(parentDocument));
-
-      parentDao.setPropertiesOnObject(retrievedObject, parentDocument);
-
-      parentDocumentId = getParentIdFromDocument(parentDocument);
-    }
 
     entityConfig.invokePostLoadLifeCycleMethod(retrievedObject);
 
@@ -344,7 +289,7 @@ public class Dao {
     }
     updateVersionOnObject(object, document);
 
-    for(PropertyConfig property : entityConfig.getProperties()) {
+    for(PropertyConfig property : entityConfig.getPropertiesIncludingInheritedOnes()) {
       if(isCouchbaseLiteSystemProperty(property) == false && property instanceof DiscriminatorColumnConfig == false) {
         setPropertyOnObject(object, document, property); // TODO: catch Exception for setting single Property or let it bubble up and therefor stop Object creation?
       }
@@ -405,24 +350,13 @@ public class Dao {
   public boolean update(Object object) throws SQLException, CouchbaseLiteException {
     checkIfCrudOperationCanBePerformedOnObjectOfClass(object, CrudOperation.UPDATE);
 
-    if(entityConfig.getInheritance() != InheritanceType.JOINED) {
-      updateEntityInDb(object);
-    }
-    else {
-      updateEntityHierarchyInDb(object);
-    }
+    updateEntityInDb(object);
 
     return true;
   }
 
   protected void updateEntityInDb(Object object) throws SQLException, CouchbaseLiteException {
-    updateEntityInDb(object, null);
-  }
-
-  protected void updateEntityInDb(Object object, Document storedDocument) throws SQLException, CouchbaseLiteException {
-    if(storedDocument == null) { // only for Joined Table inheritance storedDocument is not null
-      storedDocument = retrieveStoredDocument(object);
-    }
+    Document storedDocument = retrieveStoredDocument(object);
 
     entityConfig.invokePreUpdateLifeCycleMethod(object);
 
@@ -435,19 +369,6 @@ public class Dao {
     // TODO: is there a kind of Cascade Update?
 
     entityConfig.invokePostUpdateLifeCycleMethod(object);
-  }
-
-  protected void updateEntityHierarchyInDb(Object object) throws CouchbaseLiteException, SQLException {
-    String parentDocumentId = getObjectId(object);
-
-    while(parentDocumentId != null) {
-      Document parentDocument = database.getDocument(parentDocumentId);
-
-      Dao parentDao = daoCache.getDaoForEntity(getEntityClassFromDocument(parentDocument));
-      parentDao.updateEntityInDb(object, parentDocument);
-
-      parentDocumentId = getParentIdFromDocument(parentDocument);
-    }
   }
 
 
@@ -486,12 +407,7 @@ public class Dao {
       entityConfig.invokePreRemoveLifeCycleMethod(object);
       String id = storedDocument.getId();
 
-      if(entityConfig.getInheritance() != InheritanceType.JOINED) {
-        result = deleteObjectInDb(object, storedDocument);
-      }
-      else {
-        result = deleteHierarchicalObjectInDb(object, storedDocument);
-      }
+      result = deleteObjectInDb(object, storedDocument);
 
       // TODO: should id be reset on Object?
 
@@ -513,30 +429,9 @@ public class Dao {
     return result;
   }
 
-  protected boolean deleteHierarchicalObjectInDb(Object object, Document storedDocument) throws CouchbaseLiteException, SQLException {
-    boolean result = true;
-    Document parentDocument = storedDocument;
-
-    while(parentDocument != null) {
-      String parentDocumentId = getParentIdFromDocument(parentDocument); // first get parentDocumentId as after deleting getting properties from Document is not possible anymore
-      Dao parentDao = daoCache.getDaoForEntity(getEntityClassFromDocument(parentDocument));
-
-      result &= parentDao.deleteObjectInDb(object, parentDocument);
-
-      if(parentDocumentId != null) {
-        parentDocument = retrieveStoredDocumentForId(parentDocumentId);
-      }
-      else {
-        break;
-      }
-    }
-
-    return result;
-  }
-
 
   protected void deleteCascadeRemoveProperties(Object object) throws SQLException, CouchbaseLiteException {
-    for(PropertyConfig cascadeRemoveProperty : entityConfig.getRelationshipPropertiesWithCascadeRemove()) {
+    for(PropertyConfig cascadeRemoveProperty : entityConfig.getRelationshipPropertiesWithCascadeRemoveIncludingInheritedOnes()) {
       Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(cascadeRemoveProperty);
       Object propertyValue = getPropertyValue(object, cascadeRemoveProperty);
 
@@ -731,7 +626,7 @@ public class Dao {
       mappedProperties.put(TYPE_COLUMN_NAME, entityConfig.getEntityClass().getName());
     }
 
-    for(PropertyConfig property : entityConfig.getProperties()) {
+    for(PropertyConfig property : entityConfig.getPropertiesIncludingInheritedOnes()) {
       if(shouldPropertyBeAdded(isInitialPersist, property)) {
         mapProperty(object, mappedProperties, property, isInitialPersist);
       }
@@ -841,10 +736,6 @@ public class Dao {
 
   protected boolean isCouchbaseLiteSystemProperty(PropertyConfig property) {
     return property.isId() || property.isVersion();
-  }
-
-  protected String getParentIdFromDocument(Document document) {
-    return (String)document.getProperty(PARENT_DOCUMENT_ID_COLUMN_NAME);
   }
 
   protected Object getPropertyValue(Object object, PropertyConfig property) throws SQLException {
