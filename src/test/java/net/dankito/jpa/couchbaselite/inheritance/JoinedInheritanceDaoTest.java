@@ -148,32 +148,24 @@ public class JoinedInheritanceDaoTest {
     Document persistedChild_1_Document = database.getDocument(joinTableChild_1.getId());
     Assert.assertNotNull(persistedChild_1_Document);
     Assert.assertEquals(CHILD_1_DAY_OF_BIRTH.getTime(), persistedChild_1_Document.getProperty(JoinTableChild_1.DAY_OF_BIRTH_COLUMN_NAME));
-
-    Document persistedChild_1_ParentDocument = database.getDocument((String)persistedChild_1_Document.getProperty(Dao.PARENT_DOCUMENT_ID_COLUMN_NAME));
-    Assert.assertEquals(CHILD_1_NAME, persistedChild_1_ParentDocument.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
+    Assert.assertEquals(CHILD_1_NAME, persistedChild_1_Document.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
 
     Document persistedChild_2_1_Document = database.getDocument(joinTableChild_2_1.getId());
     Assert.assertNotNull(persistedChild_2_1_Document);
     Assert.assertEquals(CHILD_2_1_GIVEN_NAME, persistedChild_2_1_Document.getProperty(JoinTableChild_2_MappedSuperclass.GIVEN_NAME_COLUMN_NAME));
     Assert.assertEquals(CHILD_2_1_HEIGHT, persistedChild_2_1_Document.getProperty(JoinTableChild_2_1.HEIGHT_COLUMN_NAME));
-
-    Document persistedChild_2_1_ParentDocument = database.getDocument((String)persistedChild_2_1_Document.getProperty(Dao.PARENT_DOCUMENT_ID_COLUMN_NAME));
-    Assert.assertEquals(CHILD_2_1_NAME, persistedChild_2_1_ParentDocument.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
+    Assert.assertEquals(CHILD_2_1_NAME, persistedChild_2_1_Document.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
 
     Document persistedChild_2_2_Document = database.getDocument(joinTableChild_2_2.getId());
     Assert.assertNotNull(persistedChild_2_2_Document);
     Assert.assertEquals(CHILD_2_2_GIVEN_NAME, persistedChild_2_2_Document.getProperty(JoinTableChild_2_MappedSuperclass.GIVEN_NAME_COLUMN_NAME));
     Assert.assertEquals(CHILD_2_2_SALARY.doubleValue(), persistedChild_2_2_Document.getProperty(JoinTableChild_2_2.SALARY_COLUMN_NAME));
-
-    Document persistedChild_2_2_ParentDocument = database.getDocument((String)persistedChild_2_2_Document.getProperty(Dao.PARENT_DOCUMENT_ID_COLUMN_NAME));
-    Assert.assertEquals(CHILD_2_2_NAME, persistedChild_2_2_ParentDocument.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
+    Assert.assertEquals(CHILD_2_2_NAME, persistedChild_2_2_Document.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
 
     Document persistedChild_3_Document = database.getDocument(joinTableChild_3.getId());
     Assert.assertNotNull(persistedChild_3_Document);
     Assert.assertEquals(CHILD_3_GENDER.toString(), persistedChild_3_Document.getProperty(JoinTableChild_3.GENDER_COLUMN_NAME));
-
-    Document persistedChild_3_ParentDocument = database.getDocument((String)persistedChild_3_Document.getProperty(Dao.PARENT_DOCUMENT_ID_COLUMN_NAME));
-    Assert.assertEquals(CHILD_3_NAME, persistedChild_3_ParentDocument.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
+    Assert.assertEquals(CHILD_3_NAME, persistedChild_3_Document.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
   }
 
   @Test
@@ -287,32 +279,24 @@ public class JoinedInheritanceDaoTest {
     Document persistedChild_1_Document = database.getDocument(joinTableChild_1.getId());
     Assert.assertNotNull(persistedChild_1_Document);
     Assert.assertEquals(CHILD_1_UPDATED_DAY_OF_BIRTH, persistedChild_1_Document.getProperty(JoinTableChild_1.DAY_OF_BIRTH_COLUMN_NAME));
-
-    Document persistedChild_1_ParentDocument = database.getDocument((String)persistedChild_1_Document.getProperty(Dao.PARENT_DOCUMENT_ID_COLUMN_NAME));
-    Assert.assertEquals(CHILD_1_UPDATED_NAME, persistedChild_1_ParentDocument.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
+    Assert.assertEquals(CHILD_1_UPDATED_NAME, persistedChild_1_Document.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
 
     Document persistedChild_2_1_Document = database.getDocument(joinTableChild_2_1.getId());
     Assert.assertNotNull(persistedChild_2_1_Document);
     Assert.assertEquals(CHILD_2_1_UPDATED_GIVEN_NAME, persistedChild_2_1_Document.getProperty(JoinTableChild_2_MappedSuperclass.GIVEN_NAME_COLUMN_NAME));
     Assert.assertEquals(CHILD_2_1_UPDATED_HEIGHT, persistedChild_2_1_Document.getProperty(JoinTableChild_2_1.HEIGHT_COLUMN_NAME));
-
-    Document persistedChild_2_1_ParentDocument = database.getDocument((String)persistedChild_2_1_Document.getProperty(Dao.PARENT_DOCUMENT_ID_COLUMN_NAME));
-    Assert.assertEquals(CHILD_2_1_UPDATED_NAME, persistedChild_2_1_ParentDocument.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
+    Assert.assertEquals(CHILD_2_1_UPDATED_NAME, persistedChild_2_1_Document.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
 
     Document persistedChild_2_2_Document = database.getDocument(joinTableChild_2_2.getId());
     Assert.assertNotNull(persistedChild_2_2_Document);
     Assert.assertEquals(CHILD_2_2_UPDATED_GIVEN_NAME, persistedChild_2_2_Document.getProperty(JoinTableChild_2_MappedSuperclass.GIVEN_NAME_COLUMN_NAME));
     Assert.assertEquals(CHILD_2_2_UPDATED_SALARY, persistedChild_2_2_Document.getProperty(JoinTableChild_2_2.SALARY_COLUMN_NAME));
-
-    Document persistedChild_2_2_ParentDocument = database.getDocument((String)persistedChild_2_2_Document.getProperty(Dao.PARENT_DOCUMENT_ID_COLUMN_NAME));
-    Assert.assertEquals(CHILD_2_2_UPDATED_NAME, persistedChild_2_2_ParentDocument.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
+    Assert.assertEquals(CHILD_2_2_UPDATED_NAME, persistedChild_2_2_Document.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
 
     Document persistedChild_3_Document = database.getDocument(joinTableChild_3.getId());
     Assert.assertNotNull(persistedChild_3_Document);
     Assert.assertEquals(CHILD_3_UPDATED_GENDER.toString(), persistedChild_3_Document.getProperty(JoinTableChild_3.GENDER_COLUMN_NAME));
-
-    Document persistedChild_3_ParentDocument = database.getDocument((String)persistedChild_3_Document.getProperty(Dao.PARENT_DOCUMENT_ID_COLUMN_NAME));
-    Assert.assertEquals(CHILD_3_UPDATED_NAME, persistedChild_3_ParentDocument.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
+    Assert.assertEquals(CHILD_3_UPDATED_NAME, persistedChild_3_Document.getProperty(JoinedTableBase.NAME_COLUMN_NAME));
   }
 
   @Test
@@ -349,18 +333,16 @@ public class JoinedInheritanceDaoTest {
   public void deleteEntity_EntityGetsDeletedCorrectly() throws CouchbaseLiteException, SQLException {
     List<JoinedTableBase> testEntities = createTestEntities();
 
-    List<String> documentIds = extractAllDocumentIdsIncludingParentDocuments(testEntities);
-
     for(JoinedTableBase testEntity : testEntities) {
       Dao dao = daoCache.getDaoForEntity(testEntity.getClass());
       dao.delete(testEntity);
     }
 
-    for(String documentId : documentIds) {
-      Document document = database.getDocument(documentId);
+    for(JoinedTableBase testEntity : testEntities) {
+      Document document = database.getDocument(testEntity.getId());
       Assert.assertTrue(document.isDeleted());
 
-      Document persistedDocument = database.getExistingDocument(documentId);
+      Document persistedDocument = database.getExistingDocument(testEntity.getId());
       Assert.assertNull(persistedDocument);
     }
   }
@@ -504,24 +486,6 @@ public class JoinedInheritanceDaoTest {
     joinChild_3_Dao.update(testEntity);
 
     return testEntity;
-  }
-
-
-  protected List<String> extractAllDocumentIdsIncludingParentDocuments(List<JoinedTableBase> entities) {
-    List<String> documentIds = new ArrayList<>();
-
-    for(JoinedTableBase entity : entities) {
-      String parentDocumentId = entity.getId();
-
-      while(parentDocumentId != null) {
-        Document parentDocument = database.getExistingDocument(parentDocumentId);
-        documentIds.add(parentDocument.getId());
-
-        parentDocumentId = (String)parentDocument.getProperty(Dao.PARENT_DOCUMENT_ID_COLUMN_NAME);
-      }
-    }
-
-    return documentIds;
   }
 
 }
