@@ -157,7 +157,8 @@ public class Dao {
             createAndSetEntitiesCollectionAndAddExistingItems(object, cascadePersistProperty, propertyValue);
           }
         }
-        else if (targetDao.create(propertyValue)) {
+        else {
+          targetDao.create(propertyValue); // don't check return value of create() as if entity has been created in the meantime it would return false and its id therefore won't get persisted
           cascadedProperties.put(cascadePersistProperty.getColumnName(), targetDao.getObjectId(propertyValue));
         }
       }
