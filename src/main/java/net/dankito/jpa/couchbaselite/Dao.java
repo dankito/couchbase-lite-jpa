@@ -15,8 +15,8 @@ import net.dankito.jpa.annotationreader.config.EntityConfig;
 import net.dankito.jpa.annotationreader.config.OrderByConfig;
 import net.dankito.jpa.annotationreader.config.PropertyConfig;
 import net.dankito.jpa.annotationreader.config.inheritance.DiscriminatorColumnConfig;
-import net.dankito.jpa.cache.ObjectCache;
 import net.dankito.jpa.cache.DaoCache;
+import net.dankito.jpa.cache.ObjectCache;
 import net.dankito.jpa.relationship.collections.EntitiesCollection;
 import net.dankito.jpa.relationship.collections.LazyLoadingEntitiesCollection;
 import net.dankito.jpa.relationship.collections.LazyLoadingManyToManyEntitiesCollection;
@@ -29,6 +29,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -695,7 +696,7 @@ public class Dao {
       version = (short)version;
     }
     else if(java.sql.Timestamp.class.equals(versionDataType)) {
-      throw new SQLException("Sorry, but Timestamps are not supported as Version by Couchbase Lite");
+      version = new java.sql.Timestamp(new Date().getTime());
     }
 
     return version;
