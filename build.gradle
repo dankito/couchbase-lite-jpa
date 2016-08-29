@@ -13,11 +13,14 @@ repositories {
 def couchbaseLiteVersion = '1.3.0'
 
 dependencies {
-    compile 'com.couchbase.lite:couchbase-lite-java-core:' + couchbaseLiteVersion
+//    compile 'com.couchbase.lite:couchbase-lite-java-core:' + couchbaseLiteVersion
+    compile project(':couchbase-lite-java-core')
     compile project(':JpaAnnotationReader')
 
     compile 'org.slf4j:slf4j-api:1.7.12'
 
     testCompile group: 'junit', name: 'junit', version: '4.11'
-    testCompile 'com.couchbase.lite:couchbase-lite-java:' + couchbaseLiteVersion
+
+//    testCompile 'com.couchbase.lite:couchbase-lite-java:' + couchbaseLiteVersion
+    testCompile project(':couchbase-lite-java')
 }
