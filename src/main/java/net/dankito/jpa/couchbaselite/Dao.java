@@ -103,13 +103,8 @@ public class Dao {
     return true;
   }
 
-  public static Long NextDocumentId = 1L; // TODO: remove again
-
   protected Document createEntityInDb(Object object) throws SQLException, CouchbaseLiteException {
-//    Document newDocument = database.createDocument();
-    // TODO: remove again
-    NextDocumentId++;
-    Document newDocument = database.getDocument(NextDocumentId.toString());
+    Document newDocument = database.createDocument();
 
     Map<String, Object> mappedProperties = mapProperties(object, entityConfig, null);
 
@@ -196,11 +191,6 @@ public class Dao {
   }
 
   public Object retrieve(Object id) throws SQLException {
-    // TODO: remove again
-    if(id instanceof Long) {
-      id = id.toString();
-    }
-
     // TODO: don't call contains as this is of O(n), get it directly and check for != null
     if(isObjectCachedForId(id)) {
       return getObjectFromCache(id);
@@ -812,10 +802,6 @@ public class Dao {
 
 
   protected void setValueOnObject(Object object, PropertyConfig property, Object value) throws SQLException {
-    if(property.isId() && value instanceof String && Long.class.equals(property.getType())) { // TODO: remove again
-      value = Long.parseLong((String)value);
-    }
-
     if(shouldUseSetter(property)) {
       try {
         property.getFieldSetMethod().invoke(object, value);
