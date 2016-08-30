@@ -423,10 +423,11 @@ public class Dao {
   }
 
   protected Class getEntityClassFromDocument(Document document) throws SQLException {
+    String className = (String) document.getProperty(TYPE_COLUMN_NAME);
     try {
-      return Class.forName((String) document.getProperty(TYPE_COLUMN_NAME));
+      return Class.forName(className);
     } catch(Exception e) {
-      throw new SQLException("Could not find Class for " + document.getProperty(TYPE_COLUMN_NAME), e);
+      throw new SQLException("Could not find Class for " + className, e);
     }
   }
 
