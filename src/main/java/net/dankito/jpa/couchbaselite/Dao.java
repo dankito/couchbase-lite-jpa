@@ -608,7 +608,7 @@ public class Dao {
   }
 
   protected void updateVersionOnObject(Object object, Document newDocument) throws SQLException {
-    if(entityConfig.isVersionPropertySet()) {
+    if(entityConfig.isVersionPropertySet() && newDocument.isDeleted() == false) { // TODO: what to do when document is deleted? set version to null?
       Object version = getDocumentVersion(newDocument);
 
       setValueOnObject(object, entityConfig.getVersionProperty(), version);
