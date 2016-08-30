@@ -825,7 +825,7 @@ public class Dao {
     return getPersistableCollectionTargetEntities(joinedEntityIds);
   }
 
-  protected String getPersistableCollectionTargetEntities(List joinedEntityIds) throws SQLException {
+  public String getPersistableCollectionTargetEntities(Collection joinedEntityIds) throws SQLException {
     try {
       ObjectMapper objectMapper = getObjectMapper();
       return objectMapper.writeValueAsString(joinedEntityIds);

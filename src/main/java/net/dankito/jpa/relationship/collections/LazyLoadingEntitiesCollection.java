@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,13 +34,15 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
   }
 
 
-  protected void initializeCollection() throws SQLException {
-    targetEntitiesIds = new CopyOnWriteArrayList<>();
-    cachedEntities = new ConcurrentHashMap<>();
+  @Override
+  protected void retrievedTargetEntityIds(Collection<Object> targetEntitiesIds) throws SQLException {
+    if(this.targetEntitiesIds == null) {
+      this.targetEntitiesIds = new CopyOnWriteArrayList<>();
+      this.cachedEntities = new ConcurrentHashMap<>();
+    }
 
-    targetEntitiesIds.addAll(getJoinedEntityIds());
+    this.targetEntitiesIds.addAll(getJoinedEntityIds());
   }
-
 
   @Override
   public Object get(int index) {
