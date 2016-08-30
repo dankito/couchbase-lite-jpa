@@ -101,4 +101,9 @@ public class EntitiesCollection extends AbstractList implements Set {
     items.clear();
   }
 
+  public void refresh() throws SQLException {
+    clear();
+    initializeCollection();
+  }
+
 }
