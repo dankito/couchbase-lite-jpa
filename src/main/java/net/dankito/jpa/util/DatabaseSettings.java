@@ -23,6 +23,8 @@ public class DatabaseSettings {
     switch(extractedColumnName) {
       case "_id":
       case "_revision":
+      case "attachments":
+      case "_deleted":
       case Dao.TYPE_COLUMN_NAME: // yeah, actually not a Couchbase default 'Column', but i use it for Storing Entity Name // TODO: create a Constant for it
       default:
         return false;
