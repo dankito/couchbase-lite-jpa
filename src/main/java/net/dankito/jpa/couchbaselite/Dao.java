@@ -79,6 +79,8 @@ public class Dao {
 
   protected boolean retrieveListOfIdsByView = true;
 
+  protected boolean retrieveDocumentsForSortingByView = true;
+
 
   public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, DaoCache daoCache) {
     this(database, entityConfig, objectCache, daoCache, new ValueConverter());
@@ -589,12 +591,31 @@ public class Dao {
    * @param property
    * @return
    */
-  protected Collection<Object> sortItems(Collection<Object> itemIds, PropertyConfig property) throws SQLException {
+  protected Collection<Object> sortItems(final Collection<Object> itemIds, final PropertyConfig property) throws SQLException {
     // there's not other way to sort ids then loading their Documents which may thwart Lazy Loading
-    final Map<Object, Document> mapIdToDocument = getDocumentsToIds(itemIds);
-    Set<Object> sortedSet = new HashSet(itemIds);
+    Collection<Object> sortedIds = new ArrayList<>();
+    Date startTime = new Date();
 
-    for(int i = property.getOrderColumns().size() - 1; i >= 0; i--) {
+    sortedIds = sortItemsByManualComparison(itemIds, property);
+
+    logOperationDurationDuration("Sorting " + itemIds.size() + " items", startTime);
+
+    if(sortedIds.size() != itemIds.size()) { // fallback is sortedIds doesn't contain all itemIds
+      sortedIds = itemIds;
+    }
+
+    return sortedIds;
+  }
+
+  protected Collection<Object> sortItemsByManualComparison(Collection<Object> itemIds, PropertyConfig property) throws SQLException {
+    Collection<Object> sortedIds = new HashSet<>(itemIds);
+    Date startTime = new Date();
+
+    final Map<Object, Document> mapIdToDocument = getDocumentsToIds(itemIds);
+    logOperationDurationDuration("Getting Documents for sorting", startTime);
+    startTime = new Date();
+
+    for (int i = property.getOrderColumns().size() - 1; i >= 0; i--) {
       final OrderByConfig orderBy = property.getOrderColumns().get(i);
 
       TreeSet<Object> sortedTempSet = new TreeSet<>(new Comparator<Object>() {
@@ -604,19 +625,56 @@ public class Dao {
         }
       });
 
-      sortedTempSet.addAll(sortedSet);
+      // TODO: for more then one OrderColumn this will not work
+      sortedTempSet.addAll(sortedIds);
 
-      sortedSet = sortedTempSet;
+      sortedIds = sortedTempSet;
     }
 
-    return sortedSet;
+    logOperationDurationDuration("Sorting Documents by OrderBy columns", startTime);
+
+    return sortedIds;
   }
 
   protected Map<Object, Document> getDocumentsToIds(Collection<Object> itemIds) throws SQLException {
     Map<Object, Document> mapIdToDocument = new HashMap<>();
 
-    for(Object id : itemIds) {
-      mapIdToDocument.put(id, retrieveStoredDocumentForId(id));
+    if(retrieveDocumentsForSortingByView) {
+      mapIdToDocument = getDocumentsToIdsByView(itemIds);
+    }
+    else {
+      for (Object id : itemIds) {
+        mapIdToDocument.put(id, retrieveStoredDocumentForId(id));
+      }
+    }
+
+
+    return mapIdToDocument;
+  }
+
+  protected Map<Object, Document> getDocumentsToIdsByView(Collection<Object> itemIds) {
+    Map<Object, Document> mapIdToDocument = new HashMap<>();
+
+    View view = getOrCreateQueryForAllEntitiesOfDataTypeView(entityClass);
+    Query query = view.createQuery();
+
+    if (itemIds instanceof List) {
+      query.setKeys((List<Object>) itemIds);
+    }
+    else {
+      query.setKeys(new ArrayList<Object>(itemIds));
+    }
+
+    try {
+      QueryEnumerator enumerator = query.run();
+
+      while (enumerator.hasNext()) {
+        QueryRow nextResultItem = enumerator.next();
+        mapIdToDocument.put(nextResultItem.getDocumentId(), nextResultItem.getDocument());
+      }
+    } catch (Exception e) {
+      log.error("Could not get documents for ids by view", e);
+//      throw new SQLException("Could not get documents for ids by view", e); // TODO: throw SQLException?
     }
 
     return mapIdToDocument;
