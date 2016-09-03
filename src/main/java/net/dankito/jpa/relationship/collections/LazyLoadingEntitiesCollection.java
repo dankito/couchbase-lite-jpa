@@ -29,8 +29,8 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
   protected boolean cacheEntities = true;
 
 
-  public LazyLoadingEntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao) throws SQLException {
-    super(object, property, holdingObjectDao, targetDao);
+  public LazyLoadingEntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao, Collection<Object> targetEntitiesIds) throws SQLException {
+    super(object, property, holdingObjectDao, targetDao, targetEntitiesIds);
   }
 
 
@@ -41,7 +41,7 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
       this.cachedEntities = new ConcurrentHashMap<>();
     }
 
-    this.targetEntitiesIds.addAll(getJoinedEntityIds());
+    this.targetEntitiesIds.addAll(targetEntitiesIds);
   }
 
   @Override
@@ -73,17 +73,17 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
   }
 
 
-  protected boolean itemAddedToCollection(int index, Object element) {
+  protected boolean itemAddedToCollection(int index, Object entity) {
     try {
-      Object id = targetDao.getObjectId(element);
+      Object id = targetDao.getObjectId(entity);
 
       targetEntitiesIds.add(index, id);
 
-      cacheEntity(id, element);
+      cacheEntity(id, entity);
 
       return true;
     } catch(Exception e) {
-      log.error("Could not add item " + element + " to Collection of Property " + property, e);
+      log.error("Could not add item " + entity + " to Collection of Property " + property, e);
     }
 
     return false;

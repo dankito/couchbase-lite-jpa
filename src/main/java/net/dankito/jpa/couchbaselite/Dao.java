@@ -389,13 +389,13 @@ public class Dao {
   protected void setCollectionPropertyOnObject(Object object, PropertyConfig property, Dao targetDao, String joinedEntityIdsString) throws SQLException {
     Object propertyValue = getPropertyValue(object, property);
 
+    Collection<Object> targetEntitiesIds = targetDao.parseAndSortJoinedEntityIdsFromJsonString(joinedEntityIdsString, property);
+
     if(propertyValue instanceof EntitiesCollection == false) {
-      // TODO: what to do with joinedEntityIdsString in this case? As EntitiesCollection re-retrieves it, this is a waste of CPU time
-      createAndSetEntitiesCollection(object, property); // EntitiesCollection will retrieve its items in Constructor
+      createAndSetEntitiesCollection(object, property, targetEntitiesIds);
     }
     else {
-      Collection<Object> itemIds = parseAndSortJoinedEntityIdsFromJsonString(joinedEntityIdsString, property);
-      Collection<Object> retrievedItems = targetDao.retrieve(itemIds);
+      Collection<Object> retrievedItems = targetDao.retrieve(targetEntitiesIds); // TODO: what if property is Lazy Loaded?
 
       Collection collection = (Collection)propertyValue;
       collection.clear();
@@ -416,7 +416,7 @@ public class Dao {
         deserializedPropertyValue = targetDao.retrieve(propertyValueFromDocument);
       }
       else {
-        Collection<Object> itemIds = parseAndSortJoinedEntityIdsFromJsonString((String)propertyValueFromDocument, property);
+        Collection<Object> itemIds = targetDao.parseAndSortJoinedEntityIdsFromJsonString((String)propertyValueFromDocument, property);
 
         deserializedPropertyValue = targetDao.retrieve(itemIds);
       }
@@ -426,7 +426,7 @@ public class Dao {
   }
 
   protected Collection<Object> deserializeCollectionPropertyValue(PropertyConfig property, Dao targetDao, String joinedEntityIdsString) throws SQLException {
-    Collection<Object> itemIds = parseAndSortJoinedEntityIdsFromJsonString(joinedEntityIdsString, property);
+    Collection<Object> itemIds = targetDao.parseAndSortJoinedEntityIdsFromJsonString(joinedEntityIdsString, property);
 
     return targetDao.retrieve(itemIds);
   }
@@ -782,38 +782,38 @@ public class Dao {
     writeOneToManyJoinedEntityIdsToProperty(joinedEntityIds, collectionProperty, mappedProperties);
   }
 
-  protected Collection createEntitiesCollection(Object object, PropertyConfig collectionProperty) throws SQLException {
+  protected Collection createEntitiesCollection(Object object, PropertyConfig collectionProperty, Collection<Object> targetEntitiesIds) throws SQLException {
     Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(collectionProperty);
     Collection collection = null;
 
     if(collectionProperty.isManyToManyField() == false) {
       if(collectionProperty.isLazyLoading()) {
-        collection = new LazyLoadingEntitiesCollection(object, collectionProperty, this, targetDao);
+        collection = new LazyLoadingEntitiesCollection(object, collectionProperty, this, targetDao, targetEntitiesIds);
       }
       else {
-        collection = new EntitiesCollection(object, collectionProperty, this, targetDao);
+        collection = new EntitiesCollection(object, collectionProperty, this, targetDao, targetEntitiesIds);
       }
     }
     else {
       if(collectionProperty.isLazyLoading()) {
-        collection = new LazyLoadingManyToManyEntitiesCollection(object, collectionProperty, this, targetDao);
+        collection = new LazyLoadingManyToManyEntitiesCollection(object, collectionProperty, this, targetDao, targetEntitiesIds);
       }
       else {
-        collection = new ManyToManyEntitiesCollection(object, collectionProperty, this, targetDao); // TODO: also pass JoinTable Dao
+        collection = new ManyToManyEntitiesCollection(object, collectionProperty, this, targetDao, targetEntitiesIds); // TODO: also pass JoinTable Dao
       }
     }
 
     return collection;
   }
 
-  protected void createAndSetEntitiesCollection(Object object, PropertyConfig collectionProperty) throws SQLException {
-    Collection collection = createEntitiesCollection(object, collectionProperty);
+  protected void createAndSetEntitiesCollection(Object object, PropertyConfig collectionProperty, Collection<Object> targetEntitiesIds) throws SQLException {
+    Collection collection = createEntitiesCollection(object, collectionProperty, targetEntitiesIds);
 
     setValueOnObject(object, collectionProperty, collection);
   }
 
   protected void createAndSetEntitiesCollectionAndAddExistingItems(Object object, PropertyConfig collectionProperty, Object propertyValue) throws SQLException {
-    Collection collection = createEntitiesCollection(object, collectionProperty);
+    Collection collection = createEntitiesCollection(object, collectionProperty, new ArrayList<Object>());
 
     for(Object currentItem : (Collection)propertyValue) {
       collection.add(currentItem);
