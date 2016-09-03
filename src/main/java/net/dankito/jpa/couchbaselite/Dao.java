@@ -5,6 +5,7 @@ import com.couchbase.lite.Database;
 import com.couchbase.lite.Document;
 import com.couchbase.lite.Emitter;
 import com.couchbase.lite.Mapper;
+import com.couchbase.lite.Query;
 import com.couchbase.lite.QueryEnumerator;
 import com.couchbase.lite.QueryRow;
 import com.couchbase.lite.View;
@@ -24,6 +25,9 @@ import net.dankito.jpa.relationship.collections.ManyToManyEntitiesCollection;
 import net.dankito.jpa.util.CrudOperation;
 import net.dankito.jpa.util.IValueConverter;
 import net.dankito.jpa.util.ValueConverter;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -49,6 +53,7 @@ import javax.persistence.AccessType;
  * Created by ganymed on 15/08/16.
  */
 public class Dao {
+  private static final Logger log = LoggerFactory.getLogger(Dao.class);
 
   public static final String TYPE_COLUMN_NAME = "type_";
 
@@ -70,6 +75,9 @@ public class Dao {
   protected ObjectMapper objectMapper = null;
 
   protected Map<Class, View> queryForAllEntitiesOfDataTypeViews = new ConcurrentHashMap<>();
+
+
+  protected boolean retrieveListOfIdsByView = true;
 
 
   public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, DaoCache daoCache) {
@@ -180,14 +188,63 @@ public class Dao {
   }
 
 
-  public Collection<Object> retrieve(Collection<Object> ids) throws SQLException {
+  public Collection<Object> retrieve(final Collection<Object> ids) throws SQLException {
     Collection<Object> retrievedObjects = new ArrayList<>();
 
-    for(Object id : ids) {
-      retrievedObjects.add(retrieve(id));
+    if(ids.size() > 0) {
+      if(retrieveListOfIdsByView) {
+        retrieveListOfIdsByView(ids, retrievedObjects);
+      }
+      else {
+        for(Object id : ids) {
+          retrievedObjects.add(retrieve(id));
+        }
+      }
     }
 
     return retrievedObjects;
+  }
+
+  protected void retrieveListOfIdsByView(Collection<Object> ids, Collection<Object> retrievedObjects) throws SQLException {
+    Date startTime = new Date();
+
+    View queryForAllEntitiesOfDataTypeView = getOrCreateQueryForAllEntitiesOfDataTypeView(entityClass);
+
+    Query query = queryForAllEntitiesOfDataTypeView.createQuery();
+    if (ids instanceof List) {
+      query.setKeys((List<Object>) ids);
+    }
+    else {
+      query.setKeys(new ArrayList<Object>(ids));
+    }
+
+    try {
+      QueryEnumerator enumerator = query.run();
+      while (enumerator.hasNext()) {
+        QueryRow nextResultItem = enumerator.next();
+        Object retrievedEntity = createObjectFromDocument(nextResultItem.getDocument(), nextResultItem.getDocumentId());
+        if (retrievedEntity != null) { // TODO: why checking for != null before adding to retrievedObjects?
+          objectCache.add(entityClass, nextResultItem.getDocumentId(), retrievedEntity);
+          retrievedObjects.add(retrievedEntity);
+        }
+      }
+    } catch (Exception e) {
+      log.error("Could not query for list of ids", e);
+      throw new SQLException("Could not query for list of ids", e);
+    }
+
+    logOperationDurationDuration("Retrieving " + ids.size() + " of Type " + entityClass.getSimpleName(), startTime);
+  }
+
+  protected void logOperationDurationDuration(String operationName, Date startTime) {
+    long millisecondsElapsed = (new Date().getTime() - startTime.getTime());
+    if(millisecondsElapsed > 2) {
+      log.info(operationName + " took " + createTimeElapsedString(millisecondsElapsed) + " seconds");
+    }
+  }
+
+  public String createTimeElapsedString(long millisecondsElapsed) {
+    return (millisecondsElapsed / 1000) + "." + String.format("%03d", millisecondsElapsed).substring(0, 3);
   }
 
   public Object retrieve(Object id) throws SQLException {
@@ -231,13 +288,18 @@ public class Dao {
 
 
   public <T> List<T> retrieveAllEntitiesOfType(Class<T> entityType) {
+    View queryForAllEntitiesOfDataTypeView = getOrCreateQueryForAllEntitiesOfDataTypeView(entityType);
+
+    return queryForAllEntitiesOfDataType(queryForAllEntitiesOfDataTypeView);
+  }
+
+  protected <T> View getOrCreateQueryForAllEntitiesOfDataTypeView(Class<T> entityType) {
     View queryForAllEntitiesOfDataTypeView = queryForAllEntitiesOfDataTypeViews.get(entityType);
     if(queryForAllEntitiesOfDataTypeView == null) {
       queryForAllEntitiesOfDataTypeView = createQueryForAllEntitiesOfDataTypeView(entityType);
       queryForAllEntitiesOfDataTypeViews.put(entityType, queryForAllEntitiesOfDataTypeView);
     }
-
-    return queryForAllEntitiesOfDataType(queryForAllEntitiesOfDataTypeView);
+    return queryForAllEntitiesOfDataTypeView;
   }
 
   protected  <T> View createQueryForAllEntitiesOfDataTypeView(Class<T> type) {
@@ -248,10 +310,10 @@ public class Dao {
       @Override
       public void map(Map<String, Object> document, Emitter emitter) {
         if(fullTypeName.equals(document.get(Dao.TYPE_COLUMN_NAME))) {
-          emitter.emit(document.get("_id"), document); // we need the whole document as the result
+          emitter.emit(document.get("_id"), null);
         }
       }
-    }, "1.0"); // TODO: what about the version string?
+    }, "1.0");
 
     return queryForAllEntitiesOfDataTypeView;
   }
@@ -269,7 +331,8 @@ public class Dao {
         }
       }
     } catch(Exception e) {
-//      log.error("Could not query for all Entities of Data Type " + entityType, e);
+      log.error("Could not query for all Entities of Data Type " + entityClass, e);
+      // TODO: throw SQLException?
     }
 
     return queryResult;
