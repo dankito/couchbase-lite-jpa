@@ -373,14 +373,12 @@ public class Dao {
     else {
       Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(property);
 
-      if(property.isCollectionProperty() == false) {
-        if(propertyValueFromDocument == null) {
-          setValueOnObject(object, property, propertyValueFromDocument);
-        }
-        else {
-          Object deserializedTargetInstance = targetDao.retrieve(propertyValueFromDocument);
-          setValueOnObject(object, property, deserializedTargetInstance);
-        }
+      if(propertyValueFromDocument == null) {
+        setValueOnObject(object, property, propertyValueFromDocument);
+      }
+      else if(property.isCollectionProperty() == false) {
+        Object deserializedTargetInstance = targetDao.retrieve(propertyValueFromDocument);
+        setValueOnObject(object, property, deserializedTargetInstance);
       }
       else {
         setCollectionPropertyOnObject(object, property, targetDao, (String)propertyValueFromDocument);
