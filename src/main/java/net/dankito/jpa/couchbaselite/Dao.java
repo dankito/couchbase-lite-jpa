@@ -369,16 +369,18 @@ public class Dao {
   protected void setPropertyOnObject(Object object, Document document, PropertyConfig property) throws SQLException {
     Object propertyValueFromDocument = getValueFromDocument(document, property);
 
-    if(property.isRelationshipProperty() == false) {
+    if(propertyValueFromDocument == null) {
+      if(document.getProperties().containsKey(property.getColumnName())) { // only if null value is explicitly set in Document (if it doesn't contain key property.getColumnName() also null is returned)
+        setValueOnObject(object, property, propertyValueFromDocument);
+      }
+    }
+    else if(property.isRelationshipProperty() == false) {
       setValueOnObject(object, property, propertyValueFromDocument);
     }
     else {
       Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(property);
 
-      if(propertyValueFromDocument == null) {
-        setValueOnObject(object, property, propertyValueFromDocument);
-      }
-      else if(property.isCollectionProperty() == false) {
+      if(property.isCollectionProperty() == false) {
         Object deserializedTargetInstance = targetDao.retrieve(propertyValueFromDocument);
         setValueOnObject(object, property, deserializedTargetInstance);
       }
@@ -798,14 +800,11 @@ public class Dao {
   protected void mapProperty(Object object, Map<String, Object> mappedProperties, PropertyConfig property, boolean isInitialPersist) throws SQLException {
     Object propertyValue = getPropertyValue(object, property);
 
-    if(property.isRelationshipProperty() == false) {
+    if(property.isRelationshipProperty() == false || propertyValue == null) {
       mappedProperties.put(property.getColumnName(), propertyValue);
     }
     else { // for Objects persist only its ID respectively their IDs for Collections
-      if(propertyValue == null) {
-        mappedProperties.put(property.getColumnName(), null);
-      }
-      else if(daoCache.containsTargetDaoForRelationshipProperty(property)) { // on correctly configured Entities should actually never be false
+      if(daoCache.containsTargetDaoForRelationshipProperty(property)) { // on correctly configured Entities should actually never be false
         Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(property);
         if(property.isCollectionProperty() == false) {
           mappedProperties.put(property.getColumnName(), targetDao.getObjectId(propertyValue));
