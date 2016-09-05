@@ -1,8 +1,8 @@
 .idea
 *.iml
 
-build/
-data/
+/build/
+/data/
 .gradle/
 
 src/main/java/net/dankito/jpa/annotationreader/
