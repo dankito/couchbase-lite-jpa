@@ -89,7 +89,16 @@ public class ValueConverter implements IValueConverter {
 
     Object persistableValue = propertyValue;
 
-    if(property.isEnumType()) {
+    if(Date.class.equals(property.getType())) {
+      // TODO: find a better way to set @Temporal
+      if(DataType.DATE_LONG.equals(property.getDataType())) {
+        if(propertyValue instanceof Date) {
+          persistableValue = ((Date) propertyValue).getTime();
+        }
+      }
+      // TODO: implement others
+    }
+    else if(property.isEnumType()) {
       if(property.getDataType() == DataType.ENUM_STRING) {
         persistableValue = propertyValue.toString();
       }

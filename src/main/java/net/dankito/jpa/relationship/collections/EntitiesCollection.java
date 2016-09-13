@@ -27,20 +27,26 @@ public class EntitiesCollection extends AbstractList implements Set {
   protected Dao targetDao;
 
 
-  public EntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao) throws SQLException {
+  public EntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao, Collection<Object> targetEntitiesIds) throws SQLException {
     this.holdingObject = object;
     this.property = property;
     this.holdingObjectDao = holdingObjectDao;
     this.targetDao = targetDao;
 
-    initializeCollection();
+    initializeCollection(targetEntitiesIds);
   }
 
 
-  protected void initializeCollection() throws SQLException {
-    Collection<Object> ids = getJoinedEntityIds();
+  protected void initializeCollection(Collection<Object> targetEntitiesIds) throws SQLException {
+    if(targetEntitiesIds == null) {
+      targetEntitiesIds = getJoinedEntityIds();
+    }
 
-    addAll(targetDao.retrieve(ids));
+    retrievedTargetEntityIds(targetEntitiesIds);
+  }
+
+  protected void retrievedTargetEntityIds(Collection<Object> targetEntitiesIds) throws SQLException {
+    addAll(targetDao.retrieve(targetEntitiesIds));
   }
 
   protected Collection<Object> getJoinedEntityIds() throws SQLException {
@@ -99,6 +105,11 @@ public class EntitiesCollection extends AbstractList implements Set {
   @Override
   public void clear() {
     items.clear();
+  }
+
+  public void refresh(Collection<Object> targetEntitiesIds) throws SQLException {
+    clear();
+    retrievedTargetEntityIds(targetEntitiesIds);
   }
 
 }

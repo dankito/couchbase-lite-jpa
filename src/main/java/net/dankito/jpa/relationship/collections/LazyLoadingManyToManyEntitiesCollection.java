@@ -12,8 +12,8 @@ import java.util.Collection;
 public class LazyLoadingManyToManyEntitiesCollection extends LazyLoadingEntitiesCollection {
 
 
-  public LazyLoadingManyToManyEntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao) throws SQLException {
-    super(object, property, holdingObjectDao, targetDao);
+  public LazyLoadingManyToManyEntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao, Collection<Object> targetEntitiesIds) throws SQLException {
+    super(object, property, holdingObjectDao, targetDao, targetEntitiesIds);
   }
 
 

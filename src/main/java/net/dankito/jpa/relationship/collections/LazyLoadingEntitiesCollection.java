@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,18 +29,20 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
   protected boolean cacheEntities = true;
 
 
-  public LazyLoadingEntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao) throws SQLException {
-    super(object, property, holdingObjectDao, targetDao);
+  public LazyLoadingEntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao, Collection<Object> targetEntitiesIds) throws SQLException {
+    super(object, property, holdingObjectDao, targetDao, targetEntitiesIds);
   }
 
 
-  protected void initializeCollection() throws SQLException {
-    targetEntitiesIds = new CopyOnWriteArrayList<>();
-    cachedEntities = new ConcurrentHashMap<>();
+  @Override
+  protected void retrievedTargetEntityIds(Collection<Object> targetEntitiesIds) throws SQLException {
+    if(this.targetEntitiesIds == null) {
+      this.targetEntitiesIds = new CopyOnWriteArrayList<>();
+      this.cachedEntities = new ConcurrentHashMap<>();
+    }
 
-    targetEntitiesIds.addAll(getJoinedEntityIds());
+    this.targetEntitiesIds.addAll(targetEntitiesIds);
   }
-
 
   @Override
   public Object get(int index) {
@@ -70,17 +73,17 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
   }
 
 
-  protected boolean itemAddedToCollection(int index, Object element) {
+  protected boolean itemAddedToCollection(int index, Object entity) {
     try {
-      Object id = targetDao.getObjectId(element);
+      Object id = targetDao.getObjectId(entity);
 
       targetEntitiesIds.add(index, id);
 
-      cacheEntity(id, element);
+      cacheEntity(id, entity);
 
       return true;
     } catch(Exception e) {
-      log.error("Could not add item " + element + " to Collection of Property " + property, e);
+      log.error("Could not add item " + entity + " to Collection of Property " + property, e);
     }
 
     return false;

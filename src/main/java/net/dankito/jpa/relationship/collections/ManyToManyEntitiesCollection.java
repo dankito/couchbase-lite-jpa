@@ -11,8 +11,8 @@ import java.util.Collection;
  */
 public class ManyToManyEntitiesCollection extends EntitiesCollection {
 
-  public ManyToManyEntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao) throws SQLException {
-    super(object, property, holdingObjectDao, targetDao);
+  public ManyToManyEntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao, Collection<Object> targetEntitiesIds) throws SQLException {
+    super(object, property, holdingObjectDao, targetDao, targetEntitiesIds);
   }
 
 
