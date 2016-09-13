@@ -142,7 +142,7 @@ public class OneToOneBidirectionalRelationshipDaoTest extends DaoTestBase {
 
     Assert.assertNotNull(persistedInverseSide.getId());
     Assert.assertNotNull(persistedInverseSide.getVersion());
-    Assert.assertEquals(1L, (long)persistedInverseSide.getVersion());
+    Assert.assertEquals(2L, (long)persistedInverseSide.getVersion());
     Assert.assertNotNull(persistedInverseSide.getCreatedOn());
     Assert.assertNotNull(persistedInverseSide.getModifiedOn());
   }

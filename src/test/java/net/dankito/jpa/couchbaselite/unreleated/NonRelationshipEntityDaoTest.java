@@ -157,7 +157,7 @@ public class NonRelationshipEntityDaoTest extends DaoTestBase {
 
     Assert.assertEquals(TEST_ENTITY_NAME_AFTER_UPDATE, persistedDocument.getProperty(EntityWithAllDataTypes.NAME_COLUMN_NAME));
     Assert.assertEquals(TEST_ENTITY_AGE_AFTER_UPDATE, persistedDocument.getProperty(EntityWithAllDataTypes.AGE_COLUMN_NAME));
-    Assert.assertEquals(TEST_ENTITY_DAY_OF_BIRTH_AFTER_UPDATE, persistedDocument.getProperty(EntityWithAllDataTypes.DAY_OF_BIRTH_COLUMN_NAME));
+    Assert.assertEquals(TEST_ENTITY_DAY_OF_BIRTH_AFTER_UPDATE.getTime(), persistedDocument.getProperty(EntityWithAllDataTypes.DAY_OF_BIRTH_COLUMN_NAME));
     Assert.assertEquals(TEST_ENTITY_IS_MARRIED_AFTER_UPDATE, persistedDocument.getProperty(EntityWithAllDataTypes.IS_MARRIED_COLUMN_NAME));
   }
 
