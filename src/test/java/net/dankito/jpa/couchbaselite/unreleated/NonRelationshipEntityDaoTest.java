@@ -12,6 +12,7 @@ import org.junit.Test;
 
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.UUID;
 
 /**
  * Created by ganymed on 15/08/16.
@@ -91,6 +92,26 @@ public class NonRelationshipEntityDaoTest extends DaoTestBase {
     Assert.assertFalse(testEntity.hasPostUpdateBeenCalled());
     Assert.assertFalse(testEntity.hasPreRemoveBeenCalled());
     Assert.assertFalse(testEntity.hasPostRemoveBeenCalled());
+  }
+
+  @Test
+  public void persistEntityWithSelfGeneratedId_EntityGetsPersistedCorrectly() throws CouchbaseLiteException, SQLException {
+    String selfCreatedId = UUID.randomUUID().toString();
+
+    EntityWithAllDataTypes testEntity = createTestEntity();
+    testEntity.setId(selfCreatedId);
+
+    underTest.create(testEntity);
+
+    Assert.assertEquals(selfCreatedId, testEntity.getId());
+
+    Document persistedDocument = database.getDocument(testEntity.getId());
+    Assert.assertNotNull(persistedDocument);
+
+    Assert.assertEquals(TEST_ENTITY_NAME, persistedDocument.getProperty(EntityWithAllDataTypes.NAME_COLUMN_NAME));
+    Assert.assertEquals(TEST_ENTITY_AGE, persistedDocument.getProperty(EntityWithAllDataTypes.AGE_COLUMN_NAME));
+    Assert.assertEquals(TEST_ENTITY_DAY_OF_BIRTH.getTime(), persistedDocument.getProperty(EntityWithAllDataTypes.DAY_OF_BIRTH_COLUMN_NAME));
+    Assert.assertEquals(TEST_ENTITY_IS_MARRIED, persistedDocument.getProperty(EntityWithAllDataTypes.IS_MARRIED_COLUMN_NAME));
   }
 
 

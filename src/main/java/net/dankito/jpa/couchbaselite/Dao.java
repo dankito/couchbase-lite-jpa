@@ -110,7 +110,7 @@ public class Dao {
   }
 
   protected Document createEntityInDb(Object object) throws SQLException, CouchbaseLiteException {
-    Document newDocument = database.createDocument();
+    Document newDocument = createDocumentForObject(object);
 
     Map<String, Object> mappedProperties = mapProperties(object, entityConfig, null);
 
@@ -124,6 +124,16 @@ public class Dao {
     createCascadePersistPropertiesAndUpdateDocument(object, newDocument);
 
     return newDocument;
+  }
+
+  protected Document createDocumentForObject(Object object) throws SQLException {
+    String objectId = getObjectId(object);
+    if(objectId != null) { // User has set Id, use that one
+      return database.getDocument(objectId);
+    }
+    else {
+      return database.createDocument();
+    }
   }
 
   protected void createCascadePersistPropertiesAndUpdateDocument(Object object, Document objectDocument) throws SQLException, CouchbaseLiteException {
@@ -771,10 +781,7 @@ public class Dao {
       throw new SQLException("Object to " + crudOperation + " of class " + object.getClass() + " is not of Dao's Entity class " + entityConfig.getEntityClass());
     }
 
-    if(crudOperation == CrudOperation.CREATE && isAlreadyPersisted(object) == true) {
-      throw new SQLException("Trying to Persist Object " + object + " but is already persisted.");
-    }
-    else if(crudOperation != CrudOperation.CREATE && isAlreadyPersisted(object) == false) {
+    if(crudOperation != CrudOperation.CREATE && isAlreadyPersisted(object) == false) {
       throw new SQLException("Object " + object + " is not persisted yet, cannot perform " + crudOperation + ".");
     }
   }
