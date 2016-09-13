@@ -224,10 +224,16 @@ public class Dao {
       QueryEnumerator enumerator = query.run();
       while (enumerator.hasNext()) {
         QueryRow nextResultItem = enumerator.next();
-        Object retrievedEntity = createObjectFromDocument(nextResultItem.getDocument(), nextResultItem.getDocumentId());
-        if (retrievedEntity != null) { // TODO: why checking for != null before adding to retrievedObjects?
-          objectCache.add(entityClass, nextResultItem.getDocumentId(), retrievedEntity);
-          retrievedObjects.add(retrievedEntity);
+        String objectId = nextResultItem.getDocumentId();
+
+        Object cachedOrRetrievedObject = objectCache.get(entityClass, objectId);
+        if(cachedOrRetrievedObject == null) {
+          cachedOrRetrievedObject = createObjectFromDocument(nextResultItem.getDocument(), objectId);
+          objectCache.add(entityClass, nextResultItem.getDocumentId(), cachedOrRetrievedObject);
+        }
+
+        if(cachedOrRetrievedObject != null) { // TODO: why checking for != null before adding to retrievedObjects?
+          retrievedObjects.add(cachedOrRetrievedObject);
         }
       }
     } catch (Exception e) {
