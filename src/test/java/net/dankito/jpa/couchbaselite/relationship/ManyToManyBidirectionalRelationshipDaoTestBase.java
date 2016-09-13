@@ -434,7 +434,9 @@ public abstract class ManyToManyBidirectionalRelationshipDaoTestBase extends Dao
     }
 
     for(ManyToManyBidirectionalOwningSideEntity testEntity : testOwningSides) {
-      underTest.create(testEntity);
+      if(testEntity.getId() == null) {
+        underTest.create(testEntity);
+      }
     }
 
     return testOwningSides;

@@ -88,10 +88,6 @@ public class Dao {
 
 
   public boolean create(Object object) throws SQLException, CouchbaseLiteException {
-    if(isAlreadyPersisted(object)) {
-      return false;
-    }
-
     checkIfCrudOperationCanBePerformedOnObjectOfClass(object, CrudOperation.CREATE);
 
     entityConfig.invokePrePersistLifeCycleMethod(object);
@@ -106,10 +102,10 @@ public class Dao {
   public static Long NextDocumentId = 1L; // TODO: remove again
 
   protected Document createEntityInDb(Object object) throws SQLException, CouchbaseLiteException {
-//    Document newDocument = database.createDocument();
+    Document newDocument = database.createDocument();
     // TODO: remove again
-    NextDocumentId++;
-    Document newDocument = database.getDocument(NextDocumentId.toString());
+//    NextDocumentId++;
+//    Document newDocument = database.getDocument(NextDocumentId.toString());
 
     Map<String, Object> mappedProperties = mapProperties(object, entityConfig, null);
 
@@ -157,8 +153,10 @@ public class Dao {
             createAndSetEntitiesCollectionAndAddExistingItems(object, cascadePersistProperty, propertyValue);
           }
         }
-        else if (targetDao.create(propertyValue)) {
-          cascadedProperties.put(cascadePersistProperty.getColumnName(), targetDao.getObjectId(propertyValue));
+        else {
+          if(isAlreadyPersisted(propertyValue) == false && targetDao.create(propertyValue)) {
+            cascadedProperties.put(cascadePersistProperty.getColumnName(), targetDao.getObjectId(propertyValue));
+          }
         }
       }
     }
@@ -170,7 +168,9 @@ public class Dao {
     List<String> persistedItemIds = new ArrayList<>();
 
     for(Object item : propertyValue) {
-      targetDao.create(item);
+      if(isAlreadyPersisted(item) == false) {
+        targetDao.create(item);
+      }
 
       persistedItemIds.add(targetDao.getObjectId(item));
     }
