@@ -744,11 +744,15 @@ public class Dao {
     setValueOnObject(object, entityConfig.getIdProperty(), newDocument.getId());
   }
 
-  protected void updateVersionOnObject(Object object, Document newDocument) throws SQLException {
-    if(entityConfig.isVersionPropertySet() && newDocument.isDeleted() == false) { // TODO: what to do when document is deleted? set version to null?
-      Object version = getDocumentVersion(newDocument);
-
-      setValueOnObject(object, entityConfig.getVersionProperty(), version);
+  protected void updateVersionOnObject(Object object, Document document) throws SQLException {
+    if(entityConfig.isVersionPropertySet()) {
+      if(document.isDeleted() == false) {
+        Object version = getDocumentVersion(document);
+        setValueOnObject(object, entityConfig.getVersionProperty(), version);
+      }
+      else { // TODO: what to do when document is deleted? set version to null?
+        setValueOnObject(object, entityConfig.getVersionProperty(), null);
+      }
     }
   }
 
