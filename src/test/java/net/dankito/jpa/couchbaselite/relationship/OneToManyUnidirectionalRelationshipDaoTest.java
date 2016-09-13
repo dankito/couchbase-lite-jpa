@@ -322,7 +322,7 @@ public class OneToManyUnidirectionalRelationshipDaoTest extends DaoTestBase {
 
     underTest.delete(owningSide);
 
-    Assert.assertNotNull(owningSide.getId());
+    Assert.assertNull(owningSide.getId());
     Assert.assertNull(owningSide.getVersion());
     Assert.assertNotNull(owningSide.getCreatedOn());
     Assert.assertNotEquals(owningSide.getCreatedOn(), owningSide.getModifiedOn());
@@ -331,7 +331,7 @@ public class OneToManyUnidirectionalRelationshipDaoTest extends DaoTestBase {
 
     // test CascadeType.Remove
     for(OneToManyUnidirectionalInverseEntity inverseSide : inverseSides) {
-      Assert.assertNotNull(inverseSide.getId());
+      Assert.assertNull(inverseSide.getId());
       Assert.assertNull(inverseSide.getVersion());
       Assert.assertNotNull(inverseSide.getCreatedOn());
       Assert.assertNotEquals(inverseSide.getCreatedOn(), inverseSide.getModifiedOn());

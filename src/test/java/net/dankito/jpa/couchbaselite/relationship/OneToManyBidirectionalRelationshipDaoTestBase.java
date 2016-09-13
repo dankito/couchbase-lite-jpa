@@ -339,7 +339,7 @@ public abstract class OneToManyBidirectionalRelationshipDaoTestBase extends DaoT
 
     underTest.delete(oneSide);
 
-    Assert.assertNotNull(oneSide.getId());
+    Assert.assertNull(oneSide.getId());
     Assert.assertNull(oneSide.getVersion());
     Assert.assertNotNull(oneSide.getCreatedOn());
     Assert.assertNotEquals(oneSide.getCreatedOn(), oneSide.getModifiedOn());
@@ -348,7 +348,7 @@ public abstract class OneToManyBidirectionalRelationshipDaoTestBase extends DaoT
 
     // test CascadeType.Remove
     for(OneToManyBidirectionalManySideEntity inverseSide : manySides) {
-      Assert.assertNotNull(inverseSide.getId());
+      Assert.assertNull(inverseSide.getId());
       Assert.assertNull(inverseSide.getVersion());
       Assert.assertNotNull(inverseSide.getCreatedOn());
       Assert.assertNotEquals(inverseSide.getCreatedOn(), inverseSide.getModifiedOn());

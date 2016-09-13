@@ -348,12 +348,9 @@ public abstract class ManyToManyBidirectionalRelationshipDaoTestBase extends Dao
     for(ManyToManyBidirectionalOwningSideEntity owningSide : owningSides) {
       Date owningSideModifiedOnBeforeDeletion = owningSide.getModifiedOn();
 
-      Document persistedDocumentBefore = database.getExistingDocument(owningSide.getId());
-      Assert.assertNotNull(persistedDocumentBefore);
-
       underTest.delete(owningSide);
 
-      Assert.assertNotNull(owningSide.getId());
+      Assert.assertNull(owningSide.getId());
       Assert.assertNull(owningSide.getVersion());
       Assert.assertNotNull(owningSide.getCreatedOn());
       Assert.assertNotEquals(owningSide.getCreatedOn(), owningSide.getModifiedOn());
@@ -362,7 +359,7 @@ public abstract class ManyToManyBidirectionalRelationshipDaoTestBase extends Dao
 
       // test CascadeType.Remove
       for (ManyToManyBidirectionalInverseSideEntity inverseSide : inverseSides) {
-        Assert.assertNotNull(inverseSide.getId());
+        Assert.assertNull(inverseSide.getId());
         Assert.assertNull(inverseSide.getVersion());
         Assert.assertNotNull(inverseSide.getCreatedOn());
         Assert.assertNotEquals(inverseSide.getCreatedOn(), inverseSide.getModifiedOn());
@@ -377,9 +374,6 @@ public abstract class ManyToManyBidirectionalRelationshipDaoTestBase extends Dao
     Collection<ManyToManyBidirectionalOwningSideEntity> owningSides = createTestOwningSideEntities(inverseSides);
 
     for(ManyToManyBidirectionalOwningSideEntity owningSide : owningSides) {
-      Document persistedDocumentBefore = database.getExistingDocument(owningSide.getId());
-      Assert.assertNotNull(persistedDocumentBefore);
-
       underTest.delete(owningSide);
 
       Assert.assertTrue(owningSide.hasPrePersistBeenCalled());

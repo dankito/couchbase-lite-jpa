@@ -540,7 +540,10 @@ public class Dao {
   protected boolean deleteObjectInDb(Object object, Document storedDocument) throws CouchbaseLiteException, SQLException {
     boolean result = storedDocument.delete();
 
-    updateVersionOnObject(object, storedDocument); // TODO: after delete documents version is set to null -> really update object's version?
+    if(result) {
+      setValueOnObject(object, entityConfig.getIdProperty(), null); // TODO: really set Id to null?
+      updateVersionOnObject(object, storedDocument); // TODO: after delete documents version is set to null -> really update object's version?
+    }
 
     return result;
   }
@@ -554,14 +557,18 @@ public class Dao {
       if(propertyValue != null) { // TODO: check if propertyValue's ID is set (if null means already deleted)?
         if(cascadeRemoveProperty.isCollectionProperty()) {
           for(Object item : (Collection)propertyValue) {
-            if(targetDao.delete(item)) {
-              // TODO: remove item from Collection then?
+            if(isAlreadyPersisted(item)) {
+              if(targetDao.delete(item)) {
+                // TODO: remove item from Collection then?
+              }
             }
           }
         }
         else {
-          if (targetDao.delete(propertyValue)) {
-            // TODO: set Property value to null then?
+          if(isAlreadyPersisted(propertyValue)) {
+            if(targetDao.delete(propertyValue)) {
+              // TODO: set Property value to null then?
+            }
           }
         }
       }

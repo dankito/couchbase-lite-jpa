@@ -398,7 +398,7 @@ public class JoinedInheritanceDaoTest {
     }
 
     for(JoinedTableBase testEntity : testEntities) {
-      Assert.assertNotNull(testEntity.getId());
+      Assert.assertNull(testEntity.getId());
       Assert.assertNull(testEntity.getVersion());
       Assert.assertNotNull(testEntity.getCreatedOn());
       Assert.assertNotEquals(testEntity.getCreatedOn(), testEntity.getModifiedOn());

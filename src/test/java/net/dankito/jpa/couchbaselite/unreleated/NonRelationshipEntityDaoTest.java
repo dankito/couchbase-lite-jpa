@@ -248,7 +248,7 @@ public class NonRelationshipEntityDaoTest extends DaoTestBase {
 
     underTest.delete(testEntity);
 
-    Assert.assertNotNull(testEntity.getId());
+    Assert.assertNull(testEntity.getId());
     Assert.assertNull(testEntity.getVersion());
     Assert.assertNotNull(testEntity.getCreatedOn());
     Assert.assertNotEquals(testEntity.getCreatedOn(), testEntity.getModifiedOn());
