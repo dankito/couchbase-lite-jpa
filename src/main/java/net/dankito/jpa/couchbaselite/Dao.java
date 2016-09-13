@@ -99,13 +99,8 @@ public class Dao {
     return true;
   }
 
-  public static Long NextDocumentId = 1L; // TODO: remove again
-
   protected Document createEntityInDb(Object object) throws SQLException, CouchbaseLiteException {
     Document newDocument = database.createDocument();
-    // TODO: remove again
-//    NextDocumentId++;
-//    Document newDocument = database.getDocument(NextDocumentId.toString());
 
     Map<String, Object> mappedProperties = mapProperties(object, entityConfig, null);
 
@@ -811,10 +806,6 @@ public class Dao {
 
 
   protected void setValueOnObject(Object object, PropertyConfig property, Object value) throws SQLException {
-    if(property.isId() && value instanceof String && Long.class.equals(property.getType())) { // TODO: remove again
-      value = Long.parseLong((String)value);
-    }
-
     if(shouldUseSetter(property)) {
       try {
         property.getFieldSetMethod().invoke(object, value);
