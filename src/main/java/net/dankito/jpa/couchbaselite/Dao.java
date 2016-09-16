@@ -845,13 +845,12 @@ public class Dao {
   protected void mapCollectionProperty(Object object, PropertyConfig collectionProperty, Map<String, Object> mappedProperties, Dao targetDao, Collection propertyValue, boolean isInitialPersist) throws SQLException {
     boolean isInitialPersistAndCascadePersistProperty = isInitialPersist && collectionProperty.cascadePersist();
 
-    if(propertyValue instanceof EntitiesCollection == false) {
-      if(isInitialPersistAndCascadePersistProperty == false) { // otherwise EntitiesCollection will then be created in createCascadePersistProperties()
+    // otherwise EntitiesCollection will then be created and itemIds be written in createCascadePersistProperties()
+    if(isInitialPersistAndCascadePersistProperty == false) {
+      if(propertyValue instanceof EntitiesCollection == false) {
         createAndSetEntitiesCollectionAndAddExistingItems(object, collectionProperty, propertyValue);
       }
-    }
 
-    if(isInitialPersistAndCascadePersistProperty == false) { // itemIds will then be written in cascadePersist() after items have been persisted (and therefore have an id)
       List joinedEntityIds = new ArrayList();
 
       for (Object item : propertyValue) {
