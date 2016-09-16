@@ -841,26 +841,26 @@ public class Dao {
   }
 
   protected void mapCollectionProperty(Object object, PropertyConfig collectionProperty, Map<String, Object> mappedProperties, Dao targetDao, Collection propertyValue, boolean isInitialPersist) throws SQLException {
-    // TODO: isn't this wrong as if Cascade isn't set to Persist then EntitiesCollection won't get created and Target Entities IDs won't get persisted
+    boolean isInitialPersistAndCascadePersistProperty = isInitialPersist && collectionProperty.cascadePersist();
+
     if(propertyValue instanceof EntitiesCollection == false) {
-      if(isInitialPersist) {
-        return; // EntitiesCollection will then be created in createCascadePersistProperties()
-      }
-      else {
+      if(isInitialPersistAndCascadePersistProperty == false) { // otherwise EntitiesCollection will then be created in createCascadePersistProperties()
         createAndSetEntitiesCollectionAndAddExistingItems(object, collectionProperty, propertyValue);
       }
     }
 
-    List joinedEntityIds = new ArrayList();
+    if(isInitialPersistAndCascadePersistProperty == false) { // itemIds will then be written in cascadePersist() after items have been persisted (and therefore have an id)
+      List joinedEntityIds = new ArrayList();
 
-    for(Object item : propertyValue) {
-      Object itemId = targetDao.getObjectId(item);
-      if(itemId != null) { // TODO: what if item is not persisted yet? // should actually never be the case as not persisted entities may not get added to EntitiesCollection
-        joinedEntityIds.add(itemId);
+      for (Object item : propertyValue) {
+        Object itemId = targetDao.getObjectId(item);
+        if (itemId != null) { // TODO: what if item is not persisted yet? // should actually never be the case as not persisted entities may not get added to EntitiesCollection
+          joinedEntityIds.add(itemId);
+        }
       }
-    }
 
-    writeOneToManyJoinedEntityIdsToProperty(joinedEntityIds, collectionProperty, mappedProperties);
+      writeOneToManyJoinedEntityIdsToProperty(joinedEntityIds, collectionProperty, mappedProperties);
+    }
   }
 
   protected Collection createEntitiesCollection(Object object, PropertyConfig collectionProperty, Collection<Object> targetEntitiesIds) throws SQLException {
