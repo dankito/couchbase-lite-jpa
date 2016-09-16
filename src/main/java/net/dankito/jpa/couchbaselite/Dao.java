@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -39,7 +40,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.persistence.AccessType;
@@ -635,7 +635,7 @@ public class Dao {
   }
 
   protected Collection<Object> sortItemsByManualComparison(Collection<Object> itemIds, PropertyConfig property) throws SQLException {
-    Collection<Object> sortedIds = new HashSet<>(itemIds);
+    List<Object> sortedIds = new ArrayList(itemIds); // do not use a HashSet as it ruins ordering
     Date startTime = new Date();
 
     final Map<Object, Document> mapIdToDocument = getDocumentsToIds(itemIds);
@@ -645,20 +645,16 @@ public class Dao {
     for (int i = property.getOrderColumns().size() - 1; i >= 0; i--) {
       final OrderByConfig orderBy = property.getOrderColumns().get(i);
 
-      TreeSet<Object> sortedTempSet = new TreeSet<>(new Comparator<Object>() {
+      // do not use a TreeSet as when Comparator returns 0, one of the two objects gets removed from TreeSet
+      Collections.sort(sortedIds, new Comparator<Object>() {
         @Override
         public int compare(Object id1, Object id2) {
           return compareObjects(mapIdToDocument, id1, id2, orderBy);
         }
       });
-
-      // TODO: for more then one OrderColumn this will not work
-      sortedTempSet.addAll(sortedIds);
-
-      sortedIds = sortedTempSet;
     }
 
-    logOperationDurationDuration("Sorting Documents by OrderBy columns", startTime);
+    logOperationDurationDuration("Sorting Documents of " + property + " by " + property.getOrderColumns().get(0), startTime);
 
     return sortedIds;
   }
