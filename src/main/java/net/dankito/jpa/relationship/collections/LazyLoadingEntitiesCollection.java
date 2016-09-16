@@ -21,9 +21,6 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
   private static final Logger log = LoggerFactory.getLogger(LazyLoadingEntitiesCollection.class);
 
 
-  // we need to put items in a specific order, so i use a List instead of a Set
-  protected List<Object> targetEntitiesIds;
-
   protected Map<Object, Object> cachedEntities;
 
   protected boolean cacheEntities = true;
@@ -31,17 +28,14 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
 
   public LazyLoadingEntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao, Collection<Object> targetEntitiesIds) throws SQLException {
     super(object, property, holdingObjectDao, targetDao, targetEntitiesIds);
+
+    this.cachedEntities = new ConcurrentHashMap<>();
   }
 
 
   @Override
-  protected void retrievedTargetEntityIds(Collection<Object> targetEntitiesIds) throws SQLException {
-    if(this.targetEntitiesIds == null) {
-      this.targetEntitiesIds = new CopyOnWriteArrayList<>();
-      this.cachedEntities = new ConcurrentHashMap<>();
-    }
-
-    this.targetEntitiesIds.addAll(targetEntitiesIds);
+  protected void retrievedTargetEntities(Collection<Object> targetEntitiesIds) throws SQLException {
+    // overwrite super class' behaviour, don't load anything here
   }
 
   @Override
@@ -73,36 +67,14 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
   }
 
 
-  protected boolean itemAddedToCollection(int index, Object entity) {
-    try {
-      Object id = targetDao.getObjectId(entity);
-
-      targetEntitiesIds.add(index, id);
-
-      cacheEntity(id, entity);
-
-      return true;
-    } catch(Exception e) {
-      log.error("Could not add item " + entity + " to Collection of Property " + property, e);
-    }
-
-    return false;
+  @Override
+  protected void itemAddedToCollection(int index, Object element, Object id) {
+    cacheEntity(id, element);
   }
 
-  protected boolean itemRemovedFromCollection(Object object) {
-    try {
-      Object id = targetDao.getObjectId(object);
-
-      boolean result = targetEntitiesIds.remove(id);
-
-      removeEntityFromCache(id, object);
-
-      return result;
-    } catch(Exception e) {
-      log.error("Could not remove Entity " + object + " from Property " + property, e);
-    }
-
-    return false;
+  @Override
+  protected void itemRemovedFromCollection(Object object, Object id) {
+    removeEntityFromCache(id, object);
   }
 
 

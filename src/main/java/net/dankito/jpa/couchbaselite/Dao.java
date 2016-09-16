@@ -848,25 +848,18 @@ public class Dao {
     // otherwise EntitiesCollection will then be created and itemIds be written in createCascadePersistProperties()
     if(isInitialPersistAndCascadePersistProperty == false) {
       if(propertyValue instanceof EntitiesCollection == false) {
-        createAndSetEntitiesCollectionAndAddExistingItems(object, collectionProperty, propertyValue);
+        propertyValue = createAndSetEntitiesCollectionAndAddExistingItems(object, collectionProperty, propertyValue);
       }
 
-      List joinedEntityIds = new ArrayList();
-
-      for (Object item : propertyValue) {
-        Object itemId = targetDao.getObjectId(item);
-        if (itemId != null) { // TODO: what if item is not persisted yet? // should actually never be the case as not persisted entities may not get added to EntitiesCollection
-          joinedEntityIds.add(itemId);
-        }
-      }
+      List joinedEntityIds = ((EntitiesCollection)propertyValue).getTargetEntitiesIds();
 
       writeOneToManyJoinedEntityIdsToProperty(joinedEntityIds, collectionProperty, mappedProperties);
     }
   }
 
-  protected Collection createEntitiesCollection(Object object, PropertyConfig collectionProperty, Collection<Object> targetEntitiesIds) throws SQLException {
+  protected EntitiesCollection createEntitiesCollection(Object object, PropertyConfig collectionProperty, Collection<Object> targetEntitiesIds) throws SQLException {
     Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(collectionProperty);
-    Collection collection = null;
+    EntitiesCollection collection = null;
 
     if(collectionProperty.isManyToManyField() == false) {
       if(collectionProperty.isLazyLoading()) {
@@ -894,14 +887,16 @@ public class Dao {
     setValueOnObject(object, collectionProperty, collection);
   }
 
-  protected void createAndSetEntitiesCollectionAndAddExistingItems(Object object, PropertyConfig collectionProperty, Object propertyValue) throws SQLException {
-    Collection collection = createEntitiesCollection(object, collectionProperty, new ArrayList<Object>());
+  protected EntitiesCollection createAndSetEntitiesCollectionAndAddExistingItems(Object object, PropertyConfig collectionProperty, Object propertyValue) throws SQLException {
+    EntitiesCollection collection = createEntitiesCollection(object, collectionProperty, new ArrayList<Object>());
 
     for(Object currentItem : (Collection)propertyValue) {
       collection.add(currentItem);
     }
 
     setValueOnObject(object, collectionProperty, collection);
+
+    return collection;
   }
 
   protected void writeOneToManyJoinedEntityIdsToProperty(List joinedEntityIds, PropertyConfig property, Map<String, Object> documentProperties) throws SQLException {
