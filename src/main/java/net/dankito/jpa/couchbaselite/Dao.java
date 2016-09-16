@@ -55,6 +55,8 @@ import javax.persistence.AccessType;
 public class Dao {
   private static final Logger log = LoggerFactory.getLogger(Dao.class);
 
+  public static final String ID_COLUMN_NAME = "_id";
+
   public static final String TYPE_COLUMN_NAME = "type_";
 
   public static final String PARENT_ENTITY_CLASSES_COLUMN_NAME = "parent_entity_classes";
@@ -328,7 +330,7 @@ public class Dao {
       @Override
       public void map(Map<String, Object> document, Emitter emitter) {
         if(fullTypeName.equals(document.get(Dao.TYPE_COLUMN_NAME))) {
-          emitter.emit(document.get("_id"), null);
+          emitter.emit(document.get(ID_COLUMN_NAME), null);
         }
       }
     }, "1.0");
