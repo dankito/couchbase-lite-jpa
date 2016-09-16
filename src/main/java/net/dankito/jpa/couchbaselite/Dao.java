@@ -417,14 +417,7 @@ public class Dao {
       createAndSetEntitiesCollection(object, property, targetEntitiesIds);
     }
     else {
-      Collection<Object> retrievedItems = targetDao.retrieve(targetEntitiesIds); // TODO: what if property is Lazy Loaded?
-
-      Collection collection = (Collection)propertyValue;
-      collection.clear();
-
-      for(Object item : retrievedItems) {
-        collection.add(item);
-      }
+      ((EntitiesCollection)propertyValue).refresh(targetEntitiesIds);
     }
   }
 
@@ -953,10 +946,15 @@ public class Dao {
   protected Object getPersistableCollectionPropertyValue(Dao targetDao, Collection propertyValue) throws SQLException {
     List joinedEntityIds = new ArrayList();
 
-    for(Object item : propertyValue) {
-      Object itemId = targetDao.getObjectId(item);
-      if(itemId != null) { // TODO: what if item is not persisted yet? // should actually never be the case as not persisted entities may not get added to EntitiesCollection
-        joinedEntityIds.add(itemId);
+    if(propertyValue instanceof EntitiesCollection) {
+      joinedEntityIds = ((EntitiesCollection)propertyValue).getTargetEntitiesIds();
+    }
+    else { // TODO: will it ever come to this?
+      for(Object item : propertyValue) {
+        Object itemId = targetDao.getObjectId(item);
+        if(itemId != null) { // TODO: what if item is not persisted yet? // should actually never be the case as not persisted entities may not get added to EntitiesCollection
+          joinedEntityIds.add(itemId);
+        }
       }
     }
 
