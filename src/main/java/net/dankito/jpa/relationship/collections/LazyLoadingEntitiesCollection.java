@@ -29,13 +29,18 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
   public LazyLoadingEntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao, Collection<Object> targetEntitiesIds) throws SQLException {
     super(object, property, holdingObjectDao, targetDao, targetEntitiesIds);
 
-    this.cachedEntities = new ConcurrentHashMap<>();
   }
 
 
   @Override
   protected void retrievedTargetEntities(Collection<Object> targetEntitiesIds) throws SQLException {
-    // overwrite super class' behaviour, don't load anything here
+    if(cachedEntities == null) { // on collection initializing
+      this.cachedEntities = new ConcurrentHashMap<>();
+    }
+    else {
+      targetEntitiesIds.clear();
+      targetEntitiesIds.addAll(targetEntitiesIds);
+    }
   }
 
   @Override
