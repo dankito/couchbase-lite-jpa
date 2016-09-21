@@ -8,10 +8,8 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Created by ganymed on 21/08/16.
@@ -38,8 +36,8 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
       this.cachedEntities = new ConcurrentHashMap<>();
     }
     else {
-      targetEntitiesIds.clear();
-      targetEntitiesIds.addAll(targetEntitiesIds);
+      this.targetEntitiesIds.clear();
+      this.targetEntitiesIds.addAll(targetEntitiesIds);
     }
   }
 
