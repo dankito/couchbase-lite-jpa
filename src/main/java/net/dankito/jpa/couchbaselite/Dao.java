@@ -61,6 +61,8 @@ public class Dao {
 
   public static final String PARENT_ENTITY_CLASSES_COLUMN_NAME = "parent_entity_classes";
 
+  protected static final int TOO_LARGE_TOO_RETRIEVE_BY_IDS = 500;
+
 
   protected Database database;
 
@@ -221,30 +223,14 @@ public class Dao {
     Date startTime = new Date();
 
     View queryForAllEntitiesOfDataTypeView = getOrCreateQueryForAllEntitiesOfDataTypeView(entityClass);
-
     Query query = queryForAllEntitiesOfDataTypeView.createQuery();
-    if (ids instanceof List) {
-      query.setKeys((List<Object>) ids);
-    }
-    else {
-      query.setKeys(new ArrayList<Object>(ids));
-    }
 
     try {
-      QueryEnumerator enumerator = query.run();
-      while (enumerator.hasNext()) {
-        QueryRow nextResultItem = enumerator.next();
-        String objectId = nextResultItem.getDocumentId();
-
-        Object cachedOrRetrievedObject = objectCache.get(entityClass, objectId);
-        if(cachedOrRetrievedObject == null) {
-          cachedOrRetrievedObject = createObjectFromDocument(nextResultItem.getDocument(), objectId);
-          objectCache.add(entityClass, nextResultItem.getDocumentId(), cachedOrRetrievedObject);
-        }
-
-        if(cachedOrRetrievedObject != null) { // TODO: why checking for != null before adding to retrievedObjects?
-          retrievedObjects.add(cachedOrRetrievedObject);
-        }
+      if(isTooLargeToRetrieveByIds(ids)) {
+        retrieveListOfIdsByViewForLargerCollection(ids, retrievedObjects, query);
+      }
+      else {
+        retrieveListOfIdsByViewForSmallerCollection(ids, retrievedObjects, query);
       }
     } catch (Exception e) {
       log.error("Could not query for list of ids", e);
@@ -254,9 +240,67 @@ public class Dao {
     logOperationDurationDuration("Retrieving " + ids.size() + " of Type " + entityClass.getSimpleName(), startTime);
   }
 
+  /**
+   * At a certain amount of Ids using Query.setKeys() results in that generated SQL Statement by Couchbase Lite becomes to large
+   * @param ids
+   * @return
+   */
+  protected boolean isTooLargeToRetrieveByIds(Collection<Object> ids) {
+    return ids.size() > TOO_LARGE_TOO_RETRIEVE_BY_IDS;
+  }
+
+  protected void retrieveListOfIdsByViewForLargerCollection(Collection<Object> ids, Collection<Object> retrievedObjects, Query query) throws CouchbaseLiteException, SQLException {
+    QueryEnumerator enumerator = query.run();
+
+    boolean queriedWholeCollection = enumerator.getCount() == ids.size(); // only check if result item's id is in ids if not all entities have been queried
+    List<Object> idsCopy = null;
+    if(queriedWholeCollection == false) {
+      idsCopy = new ArrayList<>(ids);
+    }
+
+    while(enumerator.hasNext()) {
+      QueryRow nextResultItem = enumerator.next();
+      Object objectId = nextResultItem.getDocumentId();
+
+      if(queriedWholeCollection || idsCopy.remove(objectId)) {
+        addToRetrievedObjects(retrievedObjects, nextResultItem, objectId);
+      }
+    }
+  }
+
+  protected void retrieveListOfIdsByViewForSmallerCollection(Collection<Object> ids, Collection<Object> retrievedObjects, Query query) throws CouchbaseLiteException, SQLException {
+    if (ids instanceof List) {
+      query.setKeys((List<Object>) ids);
+    }
+    else {
+      query.setKeys(new ArrayList<Object>(ids));
+    }
+
+    QueryEnumerator enumerator = query.run();
+
+    while (enumerator.hasNext()) {
+      QueryRow nextResultItem = enumerator.next();
+      Object objectId = nextResultItem.getDocumentId();
+
+      addToRetrievedObjects(retrievedObjects, nextResultItem, objectId);
+    }
+  }
+
+  protected void addToRetrievedObjects(Collection<Object> retrievedObjects, QueryRow nextResultItem, Object objectId) throws SQLException {
+    Object cachedOrRetrievedObject = objectCache.get(entityClass, objectId);
+    if(cachedOrRetrievedObject == null) {
+      cachedOrRetrievedObject = createObjectFromDocument(nextResultItem.getDocument(), objectId);
+      objectCache.add(entityClass, objectId, cachedOrRetrievedObject);
+    }
+
+    if(cachedOrRetrievedObject != null) { // TODO: why checking for != null before adding to retrievedObjects?
+      retrievedObjects.add(cachedOrRetrievedObject);
+    }
+  }
+
   protected void logOperationDurationDuration(String operationName, Date startTime) {
     long millisecondsElapsed = (new Date().getTime() - startTime.getTime());
-    if(millisecondsElapsed > 2) {
+    if(millisecondsElapsed > 10) {
       log.info(operationName + " took " + createTimeElapsedString(millisecondsElapsed) + " seconds");
     }
   }
@@ -680,19 +724,12 @@ public class Dao {
     View view = getOrCreateQueryForAllEntitiesOfDataTypeView(entityClass);
     Query query = view.createQuery();
 
-    if (itemIds instanceof List) {
-      query.setKeys((List<Object>) itemIds);
-    }
-    else {
-      query.setKeys(new ArrayList<Object>(itemIds));
-    }
-
     try {
-      QueryEnumerator enumerator = query.run();
-
-      while (enumerator.hasNext()) {
-        QueryRow nextResultItem = enumerator.next();
-        mapIdToDocument.put(nextResultItem.getDocumentId(), nextResultItem.getDocument());
+      if(isTooLargeToRetrieveByIds(itemIds)) {
+        getDocumentsToIdsByViewForLargerCollections(itemIds, mapIdToDocument, query);
+      }
+      else {
+        getDocumentsToIdsByViewForSmallerCollections(itemIds, mapIdToDocument, query);
       }
     } catch (Exception e) {
       log.error("Could not get documents for ids by view", e);
@@ -700,6 +737,41 @@ public class Dao {
     }
 
     return mapIdToDocument;
+  }
+
+  protected void getDocumentsToIdsByViewForLargerCollections(Collection<Object> itemIds, Map<Object, Document> mapIdToDocument, Query query) throws CouchbaseLiteException {
+    QueryEnumerator enumerator = query.run();
+
+    boolean queriedWholeCollection = enumerator.getCount() == itemIds.size(); // only check if result item's id is in itemIds if not all entities have been queried
+    List<Object> itemIdsCopy = null;
+    if(queriedWholeCollection == false) {
+      itemIdsCopy = new ArrayList<>(itemIds);
+    }
+
+    while(enumerator.hasNext()) {
+      QueryRow nextResultItem = enumerator.next();
+      Object id = nextResultItem.getDocumentId();
+
+      if(queriedWholeCollection || itemIdsCopy.remove(id)) {
+        mapIdToDocument.put(id, nextResultItem.getDocument());
+      }
+    }
+  }
+
+  protected void getDocumentsToIdsByViewForSmallerCollections(Collection<Object> itemIds, Map<Object, Document> mapIdToDocument, Query query) throws CouchbaseLiteException {
+    if (itemIds instanceof List) {
+      query.setKeys((List<Object>) itemIds);
+    }
+    else {
+      query.setKeys(new ArrayList<Object>(itemIds));
+    }
+
+    QueryEnumerator enumerator = query.run();
+
+    while (enumerator.hasNext()) {
+      QueryRow nextResultItem = enumerator.next();
+      mapIdToDocument.put(nextResultItem.getDocumentId(), nextResultItem.getDocument());
+    }
   }
 
   protected int compareObjects(Map<Object, Document> mapIdToDocument, Object id1, Object id2, OrderByConfig orderBy) {
