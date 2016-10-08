@@ -379,7 +379,11 @@ public class Dao {
 
     for(PropertyConfig property : entityConfig.getPropertiesIncludingInheritedOnes()) {
       if(isCouchbaseLiteSystemProperty(property) == false && property instanceof DiscriminatorColumnConfig == false) {
-        setPropertyOnObject(object, document, property); // TODO: catch Exception for setting single Property or let it bubble up and therefor stop Object creation?
+        try {
+          setPropertyOnObject(object, document, property); // TODO: catch Exception for setting single Property or let it bubble up and therefor stop Object creation?
+        } catch(Exception e) {
+          log.error("Could not set property " + property + " on Object " + object, e);
+        }
       }
     }
   }
@@ -647,7 +651,7 @@ public class Dao {
       });
     }
 
-    logOperationDurationDuration("Sorting Documents of " + property + " by " + property.getOrderColumns().get(0), startTime);
+    logOperationDurationDuration("Sorting Documents of " + property + " by " + property.getOrderColumns().get(0).getColumnName(), startTime);
 
     return sortedIds;
   }
@@ -732,7 +736,7 @@ public class Dao {
   public String getObjectId(Object object) throws SQLException {
     Object idValue = getPropertyValue(object, entityConfig.getIdProperty());
 
-    if(idValue instanceof Long) {
+    if(idValue instanceof Long) { // TODO: remove
       idValue = ((Long)idValue).toString();
     }
     return (String)idValue;
@@ -783,6 +787,8 @@ public class Dao {
       throw new SQLException("Object to " + crudOperation + " of class " + object.getClass() + " is not of Dao's Entity class " + entityConfig.getEntityClass());
     }
 
+    // TODO: also check again: crudOperation == CrudOperation.CREATE && isAlreadyPersisted(object) == true
+    // this is only allowed if selfGeneratedId is set to true -> adjust initialSyncManager accordingly
     if(crudOperation != CrudOperation.CREATE && isAlreadyPersisted(object) == false) {
       throw new SQLException("Object " + object + " is not persisted yet, cannot perform " + crudOperation + ".");
     }
