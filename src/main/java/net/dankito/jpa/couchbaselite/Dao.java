@@ -614,6 +614,10 @@ public class Dao {
    * @return
    */
   protected Collection<Object> sortItems(final Collection<Object> itemIds, final PropertyConfig property) throws SQLException {
+    if(itemIds.size() < 2) { // less then 2 item -> nothing to sort
+      return itemIds;
+    }
+
     // there's not other way to sort ids then loading their Documents which may thwart Lazy Loading
     Collection<Object> sortedIds = new ArrayList<>();
     Date startTime = new Date();
