@@ -114,22 +114,24 @@ public class Dao {
   protected Document createEntityInDb(Object object) throws SQLException, CouchbaseLiteException {
     Document newDocument = createDocumentForObject(object);
 
+    setIdOnObject(object, newDocument);
+    addObjectToCache(object, newDocument.getId());
+
     Map<String, Object> mappedProperties = mapProperties(object, entityConfig, null);
+
+    createCascadePersistPropertiesAndUpdateDocument(object, mappedProperties);
 
     newDocument.putProperties(mappedProperties);
 
-    setIdOnObject(object, newDocument);
     updateVersionOnObject(object, newDocument);
-
-    addObjectToCache(object, newDocument.getId());
-
-    createCascadePersistPropertiesAndUpdateDocument(object, newDocument);
 
     return newDocument;
   }
 
   protected Document createDocumentForObject(Object object) throws SQLException {
     String objectId = getObjectId(object);
+
+    // TODO: this is wrong: An Object with Id already set should only be persisted if Ids aren't auto generated
     if(objectId != null) { // User has set Id, use that one
       return database.getDocument(objectId);
     }
@@ -138,15 +140,11 @@ public class Dao {
     }
   }
 
-  protected void createCascadePersistPropertiesAndUpdateDocument(Object object, Document objectDocument) throws SQLException, CouchbaseLiteException {
+  protected void createCascadePersistPropertiesAndUpdateDocument(Object object, Map<String, Object> mappedProperties) throws SQLException, CouchbaseLiteException {
     Map<String, Object> cascadedProperties = createCascadePersistProperties(object);
 
     if(cascadedProperties.size() > 0) {
-      Map<String, Object> documentProperties = new HashMap<>();
-      documentProperties.putAll(objectDocument.getProperties());
-      documentProperties.putAll(cascadedProperties);
-
-      objectDocument.putProperties(documentProperties); // TODO: this is bad as in this way in one create() two Revisions get created (but we need to persist object first prior to cascading its Properties)
+      mappedProperties.putAll(cascadedProperties);
     }
   }
 

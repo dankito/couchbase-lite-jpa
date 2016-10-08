@@ -154,7 +154,7 @@ public class OneToManyUnidirectionalRelationshipDaoTest extends DaoTestBase {
 
     Assert.assertNotNull(persistedOwningSide.getId());
     Assert.assertNotNull(persistedOwningSide.getVersion());
-    Assert.assertEquals(2L, (long)persistedOwningSide.getVersion());
+    Assert.assertEquals(1L, (long)persistedOwningSide.getVersion());
     Assert.assertNotNull(persistedOwningSide.getCreatedOn());
     Assert.assertNotNull(persistedOwningSide.getModifiedOn());
 
@@ -237,7 +237,7 @@ public class OneToManyUnidirectionalRelationshipDaoTest extends DaoTestBase {
 
     Assert.assertNotNull(owningSide.getId());
     Assert.assertNotNull(owningSide.getVersion());
-    Assert.assertEquals(3L, (long)owningSide.getVersion());
+    Assert.assertEquals(2L, (long)owningSide.getVersion());
     Assert.assertNotNull(owningSide.getCreatedOn());
     Assert.assertNotEquals(owningSide.getCreatedOn(), owningSide.getModifiedOn());
     Assert.assertNotNull(owningSide.getModifiedOn());

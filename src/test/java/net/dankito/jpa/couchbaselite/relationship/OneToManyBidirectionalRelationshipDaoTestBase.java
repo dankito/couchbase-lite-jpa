@@ -160,7 +160,7 @@ public abstract class OneToManyBidirectionalRelationshipDaoTestBase extends DaoT
 
     Assert.assertNotNull(persistedOwningSide.getId());
     Assert.assertNotNull(persistedOwningSide.getVersion());
-    Assert.assertEquals(2L, (long)persistedOwningSide.getVersion());
+    Assert.assertEquals(1L, (long)persistedOwningSide.getVersion());
     Assert.assertNotNull(persistedOwningSide.getCreatedOn());
     Assert.assertNotNull(persistedOwningSide.getModifiedOn());
 
@@ -254,7 +254,7 @@ public abstract class OneToManyBidirectionalRelationshipDaoTestBase extends DaoT
 
     Assert.assertNotNull(oneSide.getId());
     Assert.assertNotNull(oneSide.getVersion());
-    Assert.assertEquals(3L, (long)oneSide.getVersion());
+    Assert.assertEquals(2L, (long)oneSide.getVersion());
     Assert.assertNotNull(oneSide.getCreatedOn());
     Assert.assertNotEquals(oneSide.getCreatedOn(), oneSide.getModifiedOn());
     Assert.assertNotNull(oneSide.getModifiedOn());
