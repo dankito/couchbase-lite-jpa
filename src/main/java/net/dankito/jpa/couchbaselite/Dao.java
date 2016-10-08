@@ -130,6 +130,8 @@ public class Dao {
 
   protected Document createDocumentForObject(Object object) throws SQLException {
     String objectId = getObjectId(object);
+
+    // TODO: this is wrong: An Object with Id already set should only be persisted if Ids aren't auto generated
     if(objectId != null) { // User has set Id, use that one
       return database.getDocument(objectId);
     }
