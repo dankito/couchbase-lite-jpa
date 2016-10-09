@@ -61,7 +61,9 @@ public class Dao {
 
   public static final String PARENT_ENTITY_CLASSES_COLUMN_NAME = "parent_entity_classes";
 
-  protected static final int TOO_LARGE_TOO_RETRIEVE_BY_IDS = 500;
+  protected static final int TOO_LARGE_TOO_RETRIEVE_BY_IDS = 1000;
+
+  protected static final int TOO_LARGE_TOO_SORT_MANUALLY = 500;
 
 
   protected Database database;
@@ -677,6 +679,24 @@ public class Dao {
     return sortedIds;
   }
 
+  /**
+   * <p>
+   *  Usually it's best to create as few Views as possible, because they all have to be
+   *  created (which takes a long time for large data sets) and kept up to date.
+   * </p>
+   * <p>
+   *  But when the data set grows too large, manual sorting just takes to much time.
+   *  In these cases creating a View is better for overall performance, even so that
+   *  it means that for each Entity with a @OrderBy property with a large data set an
+   *  extra View has to be created and kept up to date.
+   * </p>
+   * @param ids
+   * @return
+   */
+  protected boolean isTooLargeToSortManually(Collection<Object> ids) {
+    return ids.size() > TOO_LARGE_TOO_SORT_MANUALLY;
+  }
+
   protected Collection<Object> sortItemsByManualComparison(Collection<Object> itemIds, PropertyConfig property) throws SQLException {
     List<Object> sortedIds = new ArrayList(itemIds); // do not use a HashSet as it ruins ordering
     Date startTime = new Date();
@@ -725,7 +745,7 @@ public class Dao {
     Query query = view.createQuery();
 
     try {
-      if(isTooLargeToRetrieveByIds(itemIds)) {
+      if(isTooLargeToSortManually(itemIds)) {
         getDocumentsToIdsByViewForLargerCollections(itemIds, mapIdToDocument, query);
       }
       else {
