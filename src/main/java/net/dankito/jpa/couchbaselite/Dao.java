@@ -668,7 +668,12 @@ public class Dao {
     Collection<Object> sortedIds = new ArrayList<>();
     Date startTime = new Date();
 
-    sortedIds = sortItemsByManualComparison(itemIds, property);
+    if(isTooLargeToSortManually(itemIds)) {
+      sortedIds = sortItemsByView(itemIds, property);
+    }
+    else {
+      sortedIds = sortItemsByManualComparison(itemIds, property);
+    }
 
     logOperationDurationDuration("Sorting " + itemIds.size() + " items", startTime);
 
@@ -697,6 +702,55 @@ public class Dao {
     return ids.size() > TOO_LARGE_TOO_SORT_MANUALLY;
   }
 
+  protected Collection<Object> sortItemsByView(Collection<Object> itemIds, PropertyConfig property) {
+    List<Object> sortedIds = new ArrayList(); // do not use a HashSet as it ruins ordering
+    Date startTime = new Date();
+
+    try {
+      View queryForPropertyWithOrderByView = createViewForPropertyWithOrderBy(itemIds, property);
+      Query query = queryForPropertyWithOrderByView.createQuery();
+
+      QueryEnumerator enumerator = query.run();
+
+      while(enumerator.hasNext()) {
+        QueryRow nextResultItem = enumerator.next();
+        sortedIds.add(nextResultItem.getDocumentId());
+      }
+
+      queryForPropertyWithOrderByView.delete();
+    } catch (Exception e) {
+      log.error("Could sort Entities of " + property + " by it @OrderBy columns", e);
+//      throw new SQLException("Could sort Entities of " + property + " by it @OrderBy columns", e); // TODO: throw SQLException?
+      sortedIds = new ArrayList<>(itemIds);
+    }
+
+    logOperationDurationDuration("View Sorting Documents of " + property + " by " + property.getOrderColumns().get(0).getColumnName(), startTime);
+
+    return sortedIds;
+  }
+
+  protected View createViewForPropertyWithOrderBy(Collection<Object> itemIds, final PropertyConfig property) {
+    View viewForPropertyWithOrderBy = database.getView(property.getColumnName() + "_" + new Date().getTime());
+    final List<Object> itemIdsCopy = new ArrayList<>(itemIds);
+
+    viewForPropertyWithOrderBy.setMap(new Mapper() {
+      @Override
+      public void map(Map<String, Object> document, Emitter emitter) {
+        if(itemIdsCopy.remove(document.get(Dao.ID_COLUMN_NAME))) {
+          List<Object> sortKeys = new ArrayList<>();
+
+          for(OrderByConfig orderBy : property.getOrderColumns()) {
+            sortKeys.add(document.get(orderBy.getColumnName()));
+          }
+
+          emitter.emit(sortKeys, null);
+        }
+      }
+    }, "1.0");
+
+    return viewForPropertyWithOrderBy;
+  }
+
   protected Collection<Object> sortItemsByManualComparison(Collection<Object> itemIds, PropertyConfig property) throws SQLException {
     List<Object> sortedIds = new ArrayList(itemIds); // do not use a HashSet as it ruins ordering
     Date startTime = new Date();
@@ -717,7 +771,7 @@ public class Dao {
       });
     }
 
-    logOperationDurationDuration("Sorting Documents of " + property + " by " + property.getOrderColumns().get(0).getColumnName(), startTime);
+    logOperationDurationDuration("Manual Sorting Documents of " + property + " by " + property.getOrderColumns().get(0).getColumnName(), startTime);
 
     return sortedIds;
   }
@@ -745,7 +799,7 @@ public class Dao {
     Query query = view.createQuery();
 
     try {
-      if(isTooLargeToSortManually(itemIds)) {
+      if(isTooLargeToRetrieveByIds(itemIds)) {
         getDocumentsToIdsByViewForLargerCollections(itemIds, mapIdToDocument, query);
       }
       else {
