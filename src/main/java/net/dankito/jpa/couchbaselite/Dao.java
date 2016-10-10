@@ -488,12 +488,6 @@ public class Dao {
     return deserializedPropertyValue;
   }
 
-  protected Collection<Object> deserializeCollectionPropertyValue(PropertyConfig property, Dao targetDao, String joinedEntityIdsString) throws SQLException {
-    Collection<Object> itemIds = targetDao.parseAndSortJoinedEntityIdsFromJsonString(joinedEntityIdsString, property);
-
-    return targetDao.retrieve(itemIds);
-  }
-
   protected Object getValueFromDocument(Document document, PropertyConfig property) {
     Object value = document.getProperty(property.getColumnName());
 
