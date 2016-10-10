@@ -459,7 +459,7 @@ public class Dao {
   protected void setCollectionPropertyOnObject(Object object, PropertyConfig property, Dao targetDao, String joinedEntityIdsString) throws SQLException {
     Object propertyValue = getPropertyValue(object, property);
 
-    Collection<Object> targetEntitiesIds = targetDao.parseAndSortJoinedEntityIdsFromJsonString(joinedEntityIdsString, property);
+    Collection<Object> targetEntitiesIds = targetDao.parseAndSortJoinedEntityIdsFromJsonString(object, joinedEntityIdsString, property);
 
     if(propertyValue instanceof EntitiesCollection == false) {
       createAndSetEntitiesCollection(object, property, targetEntitiesIds);
@@ -469,7 +469,7 @@ public class Dao {
     }
   }
 
-  public Object deserializePersistedValue(PropertyConfig property, Object propertyValueFromDocument) throws SQLException {
+  public Object deserializePersistedValue(Object object, PropertyConfig property, Object propertyValueFromDocument) throws SQLException {
     Object deserializedPropertyValue = convertPersistedValue(propertyValueFromDocument, property);
 
     if(property.isRelationshipProperty() && propertyValueFromDocument != null) {
@@ -479,7 +479,7 @@ public class Dao {
         deserializedPropertyValue = targetDao.retrieve(propertyValueFromDocument);
       }
       else {
-        Collection<Object> itemIds = targetDao.parseAndSortJoinedEntityIdsFromJsonString((String)propertyValueFromDocument, property);
+        Collection<Object> itemIds = targetDao.parseAndSortJoinedEntityIdsFromJsonString(object, (String)propertyValueFromDocument, property);
 
         deserializedPropertyValue = targetDao.retrieve(itemIds);
       }
@@ -620,18 +620,18 @@ public class Dao {
       String itemIdsString = (String) objectDocument.getProperties().get(collectionProperty.getColumnName());
 
       if (itemIdsString != null) { // on initial EntitiesCollection creation itemIdsString is null
-        return parseAndSortJoinedEntityIdsFromJsonString(itemIdsString, collectionProperty);
+        return parseAndSortJoinedEntityIdsFromJsonString(object, itemIdsString, collectionProperty);
       }
     }
 
     return new HashSet<>();
   }
 
-  protected Collection<Object> parseAndSortJoinedEntityIdsFromJsonString(String itemIdsString, PropertyConfig property) throws SQLException {
+  protected Collection<Object> parseAndSortJoinedEntityIdsFromJsonString(Object object, String itemIdsString, PropertyConfig property) throws SQLException {
     Collection<Object> itemIds = parseJoinedEntityIdsFromJsonString(itemIdsString);
 
     if(property.hasOrderColumns()) {
-      itemIds = sortItems(itemIds, property);
+      itemIds = sortItems(object, itemIds, property);
     }
 
     return itemIds;
@@ -649,11 +649,13 @@ public class Dao {
 
   /**
    * For Couchbase Lite we have to implement sorting Entities according @OrderBy Annotations in memory.
+   *
+   * @param object
    * @param itemIds
    * @param property
    * @return
    */
-  protected Collection<Object> sortItems(final Collection<Object> itemIds, final PropertyConfig property) throws SQLException {
+  protected Collection<Object> sortItems(Object object, final Collection<Object> itemIds, final PropertyConfig property) throws SQLException {
     if(itemIds.size() < 2) { // less then 2 item -> nothing to sort
       return itemIds;
     }
@@ -663,7 +665,7 @@ public class Dao {
     Date startTime = new Date();
 
     if(isTooLargeToSortManually(itemIds)) {
-      sortedIds = sortItemsByView(itemIds, property);
+      sortedIds = sortItemsByView(object, itemIds, property);
     }
     else {
       sortedIds = sortItemsByManualComparison(itemIds, property);
@@ -696,12 +698,12 @@ public class Dao {
     return ids.size() > TOO_LARGE_TOO_SORT_MANUALLY;
   }
 
-  protected Collection<Object> sortItemsByView(Collection<Object> itemIds, PropertyConfig property) {
+  protected Collection<Object> sortItemsByView(Object object, Collection<Object> itemIds, PropertyConfig property) {
     List<Object> sortedIds = new ArrayList(); // do not use a HashSet as it ruins ordering
     Date startTime = new Date();
 
     try {
-      View queryForPropertyWithOrderByView = createViewForPropertyWithOrderBy(itemIds, property);
+      View queryForPropertyWithOrderByView = createViewForPropertyWithOrderBy(object, itemIds, property);
       Query query = queryForPropertyWithOrderByView.createQuery();
 
       // TODO: currently only for the first @OrderBy column ascending or descending can be specified
@@ -715,8 +717,6 @@ public class Dao {
         QueryRow nextResultItem = enumerator.next();
         sortedIds.add(nextResultItem.getDocumentId());
       }
-
-      queryForPropertyWithOrderByView.delete();
     } catch (Exception e) {
       log.error("Could sort Entities of " + property + " by it @OrderBy columns", e);
 //      throw new SQLException("Could sort Entities of " + property + " by it @OrderBy columns", e); // TODO: throw SQLException?
@@ -728,8 +728,8 @@ public class Dao {
     return sortedIds;
   }
 
-  protected View createViewForPropertyWithOrderBy(Collection<Object> itemIds, final PropertyConfig property) {
-    View viewForPropertyWithOrderBy = database.getView(property.getColumnName() + "_" + new Date().getTime());
+  protected View createViewForPropertyWithOrderBy(Object object, Collection<Object> itemIds, final PropertyConfig property) throws SQLException {
+    View viewForPropertyWithOrderBy = database.getView("" + getObjectId(object) + "_" + property.getColumnName());
     final List<Object> itemIdsCopy = new ArrayList<>(itemIds);
 
     viewForPropertyWithOrderBy.setMap(new Mapper() {
