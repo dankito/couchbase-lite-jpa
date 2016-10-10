@@ -710,6 +710,11 @@ public class Dao {
       View queryForPropertyWithOrderByView = createViewForPropertyWithOrderBy(itemIds, property);
       Query query = queryForPropertyWithOrderByView.createQuery();
 
+      // TODO: currently only for the first @OrderBy column ascending or descending can be specified
+      if(property.hasOrderColumns()) {
+        query.setDescending(! property.getOrderColumns().get(0).isAscending());
+      }
+
       QueryEnumerator enumerator = query.run();
 
       while(enumerator.hasNext()) {
