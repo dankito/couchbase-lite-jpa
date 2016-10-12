@@ -712,10 +712,15 @@ public class Dao {
       }
 
       QueryEnumerator enumerator = query.run();
+      final List<Object> itemIdsCopy = new ArrayList<>(itemIds);
 
       while(enumerator.hasNext()) {
         QueryRow nextResultItem = enumerator.next();
-        sortedIds.add(nextResultItem.getDocumentId());
+        String id = nextResultItem.getDocumentId();
+
+        if(itemIdsCopy.remove(id)) {
+          sortedIds.add(nextResultItem.getDocumentId());
+        }
       }
     } catch (Exception e) {
       log.error("Could sort Entities of " + property + " by it @OrderBy columns", e);
@@ -729,21 +734,18 @@ public class Dao {
   }
 
   protected View createViewForPropertyWithOrderBy(Object object, Collection<Object> itemIds, final PropertyConfig property) throws SQLException {
-    View viewForPropertyWithOrderBy = database.getView("" + getObjectId(object) + "_" + property.getColumnName());
-    final List<Object> itemIdsCopy = new ArrayList<>(itemIds);
+    View viewForPropertyWithOrderBy = database.getView(property.getEntityConfig().getEntityName() + "_" + property.getColumnName());
 
     viewForPropertyWithOrderBy.setMap(new Mapper() {
       @Override
       public void map(Map<String, Object> document, Emitter emitter) {
-        if(itemIdsCopy.remove(document.get(Dao.ID_COLUMN_NAME))) {
-          List<Object> sortKeys = new ArrayList<>();
+        List<Object> sortKeys = new ArrayList<>();
 
-          for(OrderByConfig orderBy : property.getOrderColumns()) {
-            sortKeys.add(document.get(orderBy.getColumnName()));
-          }
-
-          emitter.emit(sortKeys, null);
+        for(OrderByConfig orderBy : property.getOrderColumns()) {
+          sortKeys.add(document.get(orderBy.getColumnName()));
         }
+
+        emitter.emit(sortKeys, null);
       }
     }, "1.0");
 
