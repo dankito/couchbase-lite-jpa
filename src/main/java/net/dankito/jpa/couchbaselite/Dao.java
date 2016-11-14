@@ -8,6 +8,7 @@ import com.couchbase.lite.Mapper;
 import com.couchbase.lite.Query;
 import com.couchbase.lite.QueryEnumerator;
 import com.couchbase.lite.QueryRow;
+import com.couchbase.lite.UnsavedRevision;
 import com.couchbase.lite.View;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -121,7 +122,7 @@ public class Dao {
     setIdOnObject(object, newDocument);
     addObjectToCache(object, newDocument.getId());
 
-    Map<String, Object> mappedProperties = mapProperties(object, entityConfig, null);
+    Map<String, Object> mappedProperties = mapProperties(object, entityConfig, true);
 
     createCascadePersistPropertiesAndUpdateDocument(object, mappedProperties);
 
@@ -512,15 +513,32 @@ public class Dao {
 
     entityConfig.invokePreUpdateLifeCycleMethod(object);
 
-    Map<String, Object> updatedProperties = mapProperties(object, entityConfig, storedDocument);
+    final Map<String, Object> updatedProperties = mapProperties(object, entityConfig, false);
 
-    storedDocument.putProperties(updatedProperties);
+    updateDocument(storedDocument, updatedProperties);
 
     updateVersionOnObject(object, storedDocument);
 
     // TODO: is there a kind of Cascade Update?
 
     entityConfig.invokePostUpdateLifeCycleMethod(object);
+  }
+
+  protected void updateDocument(Document storedDocument, final Map<String, Object> updatedProperties) {
+    // see http://blog.couchbase.com/2016/july/better-updates-couchbase-lite
+    try {
+      storedDocument.update(new Document.DocumentUpdater() {
+        @Override
+        public boolean update(UnsavedRevision newRevision) {
+          Map<String, Object> properties = newRevision.getUserProperties();
+          properties.putAll(updatedProperties);
+          newRevision.setUserProperties(properties);
+          return true;
+        }
+      });
+    } catch(Exception e) {
+      log.error("Could not update Document with Id " + storedDocument.getId() + " to Properties: " + updatedProperties);
+    }
   }
 
 
@@ -944,14 +962,10 @@ public class Dao {
   }
 
 
-  protected Map<String, Object> mapProperties(Object object, EntityConfig entityConfig, Document storedDocument) throws SQLException {
+  protected Map<String, Object> mapProperties(Object object, EntityConfig entityConfig, boolean isInitialPersist) throws SQLException {
     Map<String, Object> mappedProperties = new HashMap<>();
 
-    boolean isInitialPersist = storedDocument == null;
-    if(storedDocument != null) {
-      mappedProperties.putAll(storedDocument.getProperties());
-    }
-    else { // persist Entity's type on initial persist
+    if(isInitialPersist) { // persist Entity's type on initial persist
       mappedProperties.put(TYPE_COLUMN_NAME, entityConfig.getEntityClass().getName());
       if(entityConfig.hasParentEntityConfig()) {
         writeParentEntityClasses(mappedProperties);
