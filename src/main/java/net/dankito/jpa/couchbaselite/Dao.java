@@ -552,7 +552,7 @@ public class Dao {
     Document storedDocument = database.getExistingDocument((String)id);
 
     if(storedDocument == null) {
-      throw new SQLException("There's no existing Document with ID " + id);
+      throw new SQLException("There's no existing Document with ID " + id + " for Type " + entityConfig.getEntityName());
     }
 
     return storedDocument;
