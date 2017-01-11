@@ -19,7 +19,8 @@ public class ValueConverter implements IValueConverter {
 
     Object convertedValue = retrievedValue;
 
-    if(property.getType() == Date.class && retrievedValue instanceof Long) {
+    if(property.getType() == Date.class) {
+      if(retrievedValue instanceof Long || retrievedValue instanceof Integer)
       convertedValue = convertToDate(retrievedValue);
     }
     else if(property.isEnumType() && retrievedValue instanceof Enum == false) {
@@ -38,6 +39,9 @@ public class ValueConverter implements IValueConverter {
     // TODO: add parsing Date and Time formats
     if(retrievedValue instanceof Long) {
       convertedValue = new Date((long)retrievedValue);
+    }
+    else if(retrievedValue instanceof Integer) {
+      convertedValue = new Date((int)retrievedValue);
     }
 
     return convertedValue;
