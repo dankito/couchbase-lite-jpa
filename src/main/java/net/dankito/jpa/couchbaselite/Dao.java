@@ -1,5 +1,6 @@
 package net.dankito.jpa.couchbaselite;
 
+import com.couchbase.lite.Attachment;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Document;
@@ -8,11 +9,14 @@ import com.couchbase.lite.Mapper;
 import com.couchbase.lite.Query;
 import com.couchbase.lite.QueryEnumerator;
 import com.couchbase.lite.QueryRow;
+import com.couchbase.lite.Revision;
+import com.couchbase.lite.SavedRevision;
 import com.couchbase.lite.UnsavedRevision;
 import com.couchbase.lite.View;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import net.dankito.jpa.annotationreader.config.DataType;
 import net.dankito.jpa.annotationreader.config.EntityConfig;
 import net.dankito.jpa.annotationreader.config.OrderByConfig;
 import net.dankito.jpa.annotationreader.config.PropertyConfig;
@@ -30,6 +34,10 @@ import net.dankito.jpa.util.ValueConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.ObjectOutputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -122,11 +130,18 @@ public class Dao {
     setIdOnObject(object, newDocument);
     addObjectToCache(object, newDocument.getId());
 
-    Map<String, Object> mappedProperties = mapProperties(object, entityConfig, true);
+    Map<String, Object> mappedProperties = mapProperties(object, entityConfig, newDocument, true);
 
     createCascadePersistPropertiesAndUpdateDocument(object, mappedProperties);
 
     newDocument.putProperties(mappedProperties);
+
+    // before adding an attachment first a Revision has to be saved -> cannot add attachments in mapProperties
+    for(PropertyConfig property : entityConfig.getPropertiesIncludingInheritedOnes()) {
+      if(property.isLob()) {
+        addLobAsAttachment(object, property, newDocument);
+      }
+    }
 
     updateVersionOnObject(object, newDocument);
 
@@ -434,8 +449,18 @@ public class Dao {
   }
 
   protected void setPropertyOnObject(Object object, Document document, PropertyConfig property) throws SQLException {
-    Object propertyValueFromDocument = getValueFromDocument(document, property);
+    if(property.isLob()) {
+      Object propertyValue = getLobFromAttachment(property, document);
+      setValueOnObject(object, property, propertyValue);
+    }
+    else {
+      Object propertyValueFromDocument = getValueFromDocument(document, property);
 
+      setPropertyOnObjectToValueFromDocument(object, document, property, propertyValueFromDocument);
+    }
+  }
+
+  protected void setPropertyOnObjectToValueFromDocument(Object object, Document document, PropertyConfig property, Object propertyValueFromDocument) throws SQLException {
     if(propertyValueFromDocument == null) {
       if(document.getProperties().containsKey(property.getColumnName())) { // only if null value is explicitly set in Document (if it doesn't contain key property.getColumnName() also null is returned)
         setValueOnObject(object, property, propertyValueFromDocument);
@@ -513,7 +538,7 @@ public class Dao {
 
     entityConfig.invokePreUpdateLifeCycleMethod(object);
 
-    final Map<String, Object> updatedProperties = mapProperties(object, entityConfig, false);
+    final Map<String, Object> updatedProperties = mapProperties(object, entityConfig, storedDocument, false);
 
     updateDocument(storedDocument, updatedProperties);
 
@@ -962,7 +987,7 @@ public class Dao {
   }
 
 
-  protected Map<String, Object> mapProperties(Object object, EntityConfig entityConfig, boolean isInitialPersist) throws SQLException {
+  protected Map<String, Object> mapProperties(Object object, EntityConfig entityConfig, Document document, boolean isInitialPersist) throws SQLException {
     Map<String, Object> mappedProperties = new HashMap<>();
 
     if(isInitialPersist) { // persist Entity's type on initial persist
@@ -975,6 +1000,10 @@ public class Dao {
     for(PropertyConfig property : entityConfig.getPropertiesIncludingInheritedOnes()) {
       if(shouldPropertyBeAdded(isInitialPersist, property)) {
         mapProperty(object, mappedProperties, property, isInitialPersist);
+      }
+
+      if(property.isLob() && isInitialPersist == false) {
+        addLobAsAttachment(object, property, document);
       }
     }
 
@@ -1080,8 +1109,88 @@ public class Dao {
   }
 
 
+  protected void addLobAsAttachment(Object object, PropertyConfig property, Document document) {
+    try {
+      Object propertyValue = getPropertyValue(object, property);
+      byte[] bytes = null;
+
+      if(propertyValue == null) {
+        removeAttachment(property, document);
+
+        return;
+      }
+      else if(propertyValue instanceof byte[]) {
+        bytes = (byte[])propertyValue;
+      }
+      else if(propertyValue instanceof String) {
+        bytes = ((String)propertyValue).getBytes();
+      }
+      else {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
+        objectOutputStream.writeObject(propertyValue);
+
+        bytes = byteArrayOutputStream.toByteArray(); // TODO: there must be a better way then loading all bytes to memory first
+      }
+
+      ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
+
+      SavedRevision currentRevision = document.getCurrentRevision();
+      UnsavedRevision revision = currentRevision != null ? currentRevision.createRevision() : document.createRevision();
+      revision.setAttachment(getAttachmentNameForProperty(property), "application/octet-stream", inputStream);
+
+      revision.save();
+    } catch(Exception e) { log.error("Could not add Lob as Attachment for Property " + property, e); }
+  }
+
+  protected void removeAttachment(PropertyConfig property, Document document) {
+    if(document.getCurrentRevision() != null) {
+      Attachment previousValueAttachment = document.getCurrentRevision().getAttachment(getAttachmentNameForProperty(property));
+      if(previousValueAttachment != null) {
+        UnsavedRevision revision = document.getCurrentRevision().createRevision();
+        revision.removeAttachment(getAttachmentNameForProperty(property));
+      }
+    }
+  }
+
+  protected Object getLobFromAttachment(PropertyConfig property, Document document) {
+    Revision revision = document.getCurrentRevision();
+    Attachment attachment = revision.getAttachment(getAttachmentNameForProperty(property));
+    try {
+      if(attachment != null) {
+        InputStream inputStream = attachment.getContent();
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+        int nRead;
+        byte[] data = new byte[16384];
+
+        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+          buffer.write(data, 0, nRead);
+        }
+
+        buffer.flush();
+
+        byte[] bytes = buffer.toByteArray();
+
+        if(property.getDataType() == DataType.STRING) {
+          return new String(bytes);
+        }
+        else {
+          return bytes;
+        }
+      }
+    } catch(Exception e) { log.error("Could not read Lob from Attachment for Property " + property, e); }
+
+    return null;
+  }
+
+  protected String getAttachmentNameForProperty(PropertyConfig property) {
+    return property.getColumnName();
+  }
+
+
   protected boolean shouldPropertyBeAdded(boolean isInitialPersist, PropertyConfig property) {
-    return isCouchbaseLiteSystemProperty(property) == false;
+    return isCouchbaseLiteSystemProperty(property) == false && property.isLob() == false;
   }
 
   protected boolean isCouchbaseLiteSystemProperty(PropertyConfig property) {

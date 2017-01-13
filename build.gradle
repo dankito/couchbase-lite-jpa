@@ -23,4 +23,7 @@ dependencies {
 
 //    testCompile 'com.couchbase.lite:couchbase-lite-java:' + couchbaseLiteVersion
     testCompile project(':couchbase-lite-java')
+
+    testCompile 'ch.qos.logback:logback-core:1.1.2'
+    testCompile 'ch.qos.logback:logback-classic:1.1.2'
 }
