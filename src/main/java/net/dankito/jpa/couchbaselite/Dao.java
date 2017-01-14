@@ -77,6 +77,8 @@ public class Dao {
 
   protected static final int TOO_LARGE_TOO_SORT_MANUALLY = 500;
 
+  protected static final long ATTACHMENT_SIZE_TO_COMPACT_DATABASE_AFTER_REMOVAL = 500 * 1024; // 500 kByte
+
 
   protected Database database;
 
@@ -1175,7 +1177,14 @@ public class Dao {
     if(currentRevision != null) {
       Attachment previousValueAttachment = currentRevision.getAttachment(getAttachmentNameForProperty(property));
       if(previousValueAttachment != null) {
-        return removeAttachment(property, currentRevision);
+        long attachmentSize = previousValueAttachment.getLength();
+
+        if(removeAttachment(property, currentRevision)) {
+          if(attachmentSize > ATTACHMENT_SIZE_TO_COMPACT_DATABASE_AFTER_REMOVAL) {
+            compactDatabase();
+          }
+          return true;
+        }
       }
     }
 
@@ -1236,6 +1245,13 @@ public class Dao {
 
   protected String getAttachmentNameForProperty(PropertyConfig property) {
     return property.getColumnName();
+  }
+
+
+  protected void compactDatabase() {
+    try {
+      database.compact();
+    } catch(Exception e) { log.error("Could not compact database", e); }
   }
 
 
