@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
 import java.sql.SQLException;
@@ -1158,30 +1159,34 @@ public class Dao {
     Attachment attachment = revision.getAttachment(getAttachmentNameForProperty(property));
     try {
       if(attachment != null) {
-        InputStream inputStream = attachment.getContent();
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-
-        int nRead;
-        byte[] data = new byte[16384];
-
-        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
-          buffer.write(data, 0, nRead);
-        }
-
-        buffer.flush();
-
-        byte[] bytes = buffer.toByteArray();
-
-        if(property.getDataType() == DataType.STRING) {
-          return new String(bytes);
-        }
-        else {
-          return bytes;
-        }
+        return readAttachmentContent(property, attachment);
       }
     } catch(Exception e) { log.error("Could not read Lob from Attachment for Property " + property, e); }
 
     return null;
+  }
+
+  protected Object readAttachmentContent(PropertyConfig property, Attachment attachment) throws CouchbaseLiteException, IOException {
+    InputStream inputStream = attachment.getContent();
+    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+    int nRead;
+    byte[] data = new byte[16384];
+
+    while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+      buffer.write(data, 0, nRead);
+    }
+
+    buffer.flush();
+
+    byte[] bytes = buffer.toByteArray();
+
+    if(property.getDataType() == DataType.STRING) {
+      return new String(bytes);
+    }
+    else {
+      return bytes;
+    }
   }
 
   protected String getAttachmentNameForProperty(PropertyConfig property) {
