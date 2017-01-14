@@ -1112,41 +1112,52 @@ public class Dao {
 
   protected void addLobAsAttachment(Object object, PropertyConfig property, Document document) {
     try {
-      Object propertyValue = getPropertyValue(object, property);
-      byte[] bytes = null;
+      byte[] bytes = getContentForAttachment(object, property, document);
 
-      if(propertyValue == null) {
-        removeAttachment(property, document);
+      if(bytes != null) {
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
 
-        return;
+        SavedRevision currentRevision = document.getCurrentRevision();
+
+        UnsavedRevision newRevision = currentRevision != null ? currentRevision.createRevision() : document.createRevision();
+        newRevision.setAttachment(getAttachmentNameForProperty(property), "application/octet-stream", inputStream);
+
+        newRevision.save();
       }
-      else if(propertyValue instanceof byte[]) {
-        bytes = (byte[])propertyValue;
-      }
-      else if(propertyValue instanceof String) {
-        bytes = ((String)propertyValue).getBytes();
-      }
-      else {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
-        objectOutputStream.writeObject(propertyValue);
-
-        bytes = byteArrayOutputStream.toByteArray(); // TODO: there must be a better way then loading all bytes to memory first
-      }
-
-      ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
-
-      SavedRevision currentRevision = document.getCurrentRevision();
-      UnsavedRevision revision = currentRevision != null ? currentRevision.createRevision() : document.createRevision();
-      revision.setAttachment(getAttachmentNameForProperty(property), "application/octet-stream", inputStream);
-
-      revision.save();
     } catch(Exception e) { log.error("Could not add Lob as Attachment for Property " + property, e); }
   }
 
-  protected void removeAttachment(PropertyConfig property, Document document) {
-    if(document.getCurrentRevision() != null) {
-      Attachment previousValueAttachment = document.getCurrentRevision().getAttachment(getAttachmentNameForProperty(property));
+  protected byte[] getContentForAttachment(Object object, PropertyConfig property, Document document) throws Exception {
+    byte[] bytes = null;
+    Object propertyValue = getPropertyValue(object, property);
+
+    if(propertyValue == null) { // property value has now ben set to null but wasn't before -> remove attachment
+      removeAttachment(property, document);
+    }
+    else if(propertyValue instanceof byte[]) {
+      bytes = (byte[])propertyValue;
+    }
+    else if(propertyValue instanceof String) {
+      bytes = ((String)propertyValue).getBytes();
+    }
+    else {
+      ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+
+      ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
+      objectOutputStream.writeObject(propertyValue);
+      objectOutputStream.close();
+
+      bytes = byteArrayOutputStream.toByteArray(); // TODO: there must be a better way then loading all bytes to memory first
+      byteArrayOutputStream.close();
+    }
+
+    return bytes;
+  }
+
+  protected boolean removeAttachment(PropertyConfig property, Document document) {
+    SavedRevision currentRevision = document.getCurrentRevision();
+    if(currentRevision != null) {
+      Attachment previousValueAttachment = currentRevision.getAttachment(getAttachmentNameForProperty(property));
       if(previousValueAttachment != null) {
         UnsavedRevision revision = document.getCurrentRevision().createRevision();
         revision.removeAttachment(getAttachmentNameForProperty(property));
