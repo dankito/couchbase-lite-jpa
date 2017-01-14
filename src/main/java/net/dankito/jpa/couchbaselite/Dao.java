@@ -1175,10 +1175,28 @@ public class Dao {
     if(currentRevision != null) {
       Attachment previousValueAttachment = currentRevision.getAttachment(getAttachmentNameForProperty(property));
       if(previousValueAttachment != null) {
-        UnsavedRevision revision = document.getCurrentRevision().createRevision();
-        revision.removeAttachment(getAttachmentNameForProperty(property));
+        return removeAttachment(property, currentRevision);
       }
     }
+
+    return false;
+  }
+
+  protected boolean removeAttachment(PropertyConfig property, SavedRevision currentRevision) {
+    try {
+      Map<String, Object> properties = currentRevision.getUserProperties();
+      int countAttachments = (int) properties.get(COUNT_ATTACHMENTS_COLUMN_NAME);
+      properties.put(COUNT_ATTACHMENTS_COLUMN_NAME, countAttachments - 1);
+
+      UnsavedRevision newRevision = currentRevision.createRevision();
+      newRevision.removeAttachment(getAttachmentNameForProperty(property));
+      newRevision.setUserProperties(properties);
+
+      newRevision.save();
+      return true;
+    } catch(Exception e) { log.error("Could not remove attachment for Property " + property, e); }
+
+    return false;
   }
 
   protected Object getLobFromAttachment(PropertyConfig property, Document document) {
