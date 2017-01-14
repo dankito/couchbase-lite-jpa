@@ -71,6 +71,8 @@ public class Dao {
 
   public static final String PARENT_ENTITY_CLASSES_COLUMN_NAME = "parent_entity_classes";
 
+  public static final String COUNT_ATTACHMENTS_COLUMN_NAME = "count_attachments";
+
   protected static final int TOO_LARGE_TOO_RETRIEVE_BY_IDS = 1000;
 
   protected static final int TOO_LARGE_TOO_SORT_MANUALLY = 500;
@@ -138,11 +140,7 @@ public class Dao {
     newDocument.putProperties(mappedProperties);
 
     // before adding an attachment first a Revision has to be saved -> cannot add attachments in mapProperties
-    for(PropertyConfig property : entityConfig.getPropertiesIncludingInheritedOnes()) {
-      if(property.isLob()) {
-        addLobAsAttachment(object, property, newDocument);
-      }
-    }
+    addLobsAsAttachment(object, newDocument);
 
     updateVersionOnObject(object, newDocument);
 
@@ -1008,6 +1006,9 @@ public class Dao {
       }
     }
 
+    int countAttachments = document.getCurrentRevision() == null ? 0 : document.getCurrentRevision().getAttachmentNames().size();
+    mappedProperties.put(COUNT_ATTACHMENTS_COLUMN_NAME, countAttachments);
+
     return mappedProperties;
   }
 
@@ -1109,6 +1110,21 @@ public class Dao {
     return parentClassInfo != null && parentClassInfo.contains(parentClass.getName());
   }
 
+
+  protected void addLobsAsAttachment(Object object, Document document) {
+    for(PropertyConfig property : entityConfig.getPropertiesIncludingInheritedOnes()) {
+      if(property.isLob()) {
+        addLobAsAttachment(object, property, document);
+      }
+    }
+
+    int countAttachments = document.getCurrentRevision().getAttachmentNames().size();
+    if(countAttachments > 0) {
+      Map<String, Object> properties = document.getCurrentRevision().getUserProperties();
+      properties.put(COUNT_ATTACHMENTS_COLUMN_NAME, countAttachments);
+      updateDocument(document, properties);
+    }
+  }
 
   protected void addLobAsAttachment(Object object, PropertyConfig property, Document document) {
     try {
