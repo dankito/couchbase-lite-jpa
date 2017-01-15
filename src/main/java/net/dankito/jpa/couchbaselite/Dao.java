@@ -1163,7 +1163,7 @@ public class Dao {
         long attachmentSize = previousValueAttachment.getLength();
 
         if(removeAttachment(property, currentRevision)) {
-          if(attachmentSize > ATTACHMENT_SIZE_TO_COMPACT_DATABASE_AFTER_REMOVAL) {
+          if(shouldCompactDatabase(attachmentSize)) {
             compactDatabase();
           }
           return true;
@@ -1226,7 +1226,11 @@ public class Dao {
   }
 
 
-  protected void compactDatabase() {
+  public boolean shouldCompactDatabase(long attachmentSize) {
+    return attachmentSize > ATTACHMENT_SIZE_TO_COMPACT_DATABASE_AFTER_REMOVAL;
+  }
+
+  public void compactDatabase() {
     if(databaseCompacter != null) {
       databaseCompacter.scheduleCompacting();
     }
