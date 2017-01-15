@@ -71,8 +71,6 @@ public class Dao {
 
   public static final String PARENT_ENTITY_CLASSES_COLUMN_NAME = "parent_entity_classes";
 
-  public static final String COUNT_ATTACHMENTS_COLUMN_NAME = "count_attachments";
-
   protected static final int TOO_LARGE_TOO_RETRIEVE_BY_IDS = 1000;
 
   protected static final int TOO_LARGE_TOO_SORT_MANUALLY = 500;
@@ -1005,9 +1003,6 @@ public class Dao {
       }
     }
 
-    int countAttachments = document.getCurrentRevision() == null ? 0 : document.getCurrentRevision().getAttachmentNames().size();
-    mappedProperties.put(COUNT_ATTACHMENTS_COLUMN_NAME, countAttachments);
-
     return mappedProperties;
   }
 
@@ -1177,13 +1172,8 @@ public class Dao {
 
   protected boolean removeAttachment(PropertyConfig property, SavedRevision currentRevision) {
     try {
-      Map<String, Object> properties = currentRevision.getUserProperties();
-      int countAttachments = (int) properties.get(COUNT_ATTACHMENTS_COLUMN_NAME);
-      properties.put(COUNT_ATTACHMENTS_COLUMN_NAME, countAttachments - 1);
-
       UnsavedRevision newRevision = currentRevision.createRevision();
       newRevision.removeAttachment(getAttachmentNameForProperty(property));
-      newRevision.setUserProperties(properties);
 
       newRevision.save();
       return true;
@@ -1232,6 +1222,7 @@ public class Dao {
   }
 
 
+  // TODO: run asynchronous. And not on each change, could then run a few time every milliseconds, but at maximum each 10 minutes or so
   protected void compactDatabase() {
     try {
       database.compact();
