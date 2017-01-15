@@ -28,6 +28,7 @@ import net.dankito.jpa.relationship.collections.LazyLoadingEntitiesCollection;
 import net.dankito.jpa.relationship.collections.LazyLoadingManyToManyEntitiesCollection;
 import net.dankito.jpa.relationship.collections.ManyToManyEntitiesCollection;
 import net.dankito.jpa.util.CrudOperation;
+import net.dankito.jpa.util.DatabaseCompacter;
 import net.dankito.jpa.util.IValueConverter;
 import net.dankito.jpa.util.ValueConverter;
 
@@ -88,6 +89,8 @@ public class Dao {
 
   protected DaoCache daoCache;
 
+  protected DatabaseCompacter databaseCompacter;
+
   protected IValueConverter valueConverter;
 
   protected ObjectMapper objectMapper = null;
@@ -100,15 +103,16 @@ public class Dao {
   protected boolean retrieveDocumentsForSortingByView = true;
 
 
-  public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, DaoCache daoCache) {
-    this(database, entityConfig, objectCache, daoCache, new ValueConverter());
+  public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, DaoCache daoCache, DatabaseCompacter databaseCompacter) {
+    this(database, entityConfig, objectCache, daoCache, databaseCompacter, new ValueConverter());
   }
 
-  public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, DaoCache daoCache, IValueConverter valueConverter) {
+  public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, DaoCache daoCache, DatabaseCompacter databaseCompacter, IValueConverter valueConverter) {
     this.database = database;
     this.entityConfig = entityConfig;
     this.objectCache = objectCache;
     this.daoCache = daoCache;
+    this.databaseCompacter = databaseCompacter;
     this.valueConverter = valueConverter;
 
     this.entityClass = entityConfig.getEntityClass();
@@ -999,7 +1003,7 @@ public class Dao {
       }
 
       if(property.isLob()) {
-        addLobAsAttachment(object, property, document);
+        addLobAsAttachment(object, property, document); // TODO: this is actually a side effect, creates a new revision instead of mapping a property
       }
     }
 
@@ -1222,11 +1226,10 @@ public class Dao {
   }
 
 
-  // TODO: run asynchronous. And not on each change, could then run a few time every milliseconds, but at maximum each 10 minutes or so
   protected void compactDatabase() {
-    try {
-      database.compact();
-    } catch(Exception e) { log.error("Could not compact database", e); }
+    if(databaseCompacter != null) {
+      databaseCompacter.scheduleCompacting();
+    }
   }
 
 

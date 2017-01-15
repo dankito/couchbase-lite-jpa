@@ -50,11 +50,11 @@ public abstract class DaoTestBase {
 
     entityConfig = readEntities[0];
 
-    underTest = new Dao(database, entityConfig, objectCache, daoCache, valueConverter);
+    underTest = new Dao(database, entityConfig, objectCache, daoCache, null, valueConverter);
     daoCache.addDao(entityConfig.getEntityClass(), underTest);
 
     for(int i = 1; i < readEntities.length; i++) {
-      Dao dao = new Dao(database, readEntities[i], objectCache, daoCache, valueConverter);
+      Dao dao = new Dao(database, readEntities[i], objectCache, daoCache, null, valueConverter);
       daoCache.addDao(readEntities[i].getEntityClass(), dao);
     }
   }

@@ -101,23 +101,23 @@ public class JoinedInheritanceDaoTest {
 
   protected void createDao(ConfigRegistry configRegistry) {
     EntityConfig joinedTableBaseConfig = configRegistry.getEntityConfiguration(JoinedTableBase.class);
-    joinedTableDao = new Dao(database, joinedTableBaseConfig, objectCache, daoCache, valueConverter);
+    joinedTableDao = new Dao(database, joinedTableBaseConfig, objectCache, daoCache, null, valueConverter);
     daoCache.addDao(joinedTableBaseConfig.getEntityClass(), joinedTableDao);
 
     EntityConfig child1Config = configRegistry.getEntityConfiguration(JoinTableChild_1.class);
-    joinChild_1_Dao = new Dao(database, child1Config, objectCache, daoCache, valueConverter);
+    joinChild_1_Dao = new Dao(database, child1Config, objectCache, daoCache, null, valueConverter);
     daoCache.addDao(child1Config.getEntityClass(), joinChild_1_Dao);
 
     EntityConfig child2_1Config = configRegistry.getEntityConfiguration(JoinTableChild_2_1.class);
-    joinChild_2_1_Dao = new Dao(database, child2_1Config, objectCache, daoCache, valueConverter);
+    joinChild_2_1_Dao = new Dao(database, child2_1Config, objectCache, daoCache, null, valueConverter);
     daoCache.addDao(child2_1Config.getEntityClass(), joinChild_2_1_Dao);
 
     EntityConfig child2_2Config = configRegistry.getEntityConfiguration(JoinTableChild_2_2.class);
-    joinChild_2_2_Dao = new Dao(database, child2_2Config, objectCache, daoCache, valueConverter);
+    joinChild_2_2_Dao = new Dao(database, child2_2Config, objectCache, daoCache, null, valueConverter);
     daoCache.addDao(child2_2Config.getEntityClass(), joinChild_2_2_Dao);
 
     EntityConfig child3Config = configRegistry.getEntityConfiguration(JoinTableChild_3.class);
-    joinChild_3_Dao = new Dao(database, child3Config, objectCache, daoCache, valueConverter);
+    joinChild_3_Dao = new Dao(database, child3Config, objectCache, daoCache, null, valueConverter);
     daoCache.addDao(child3Config.getEntityClass(), joinChild_3_Dao);
   }
 
@@ -302,7 +302,7 @@ public class JoinedInheritanceDaoTest {
 
   @Test(expected = SQLException.class)
   public void retrieveJoinedByWrongParentClass_ExceptionGetsThrown() throws CouchbaseLiteException, SQLException {
-    Dao wrongParentClassDao = new Dao(database, new EntityConfig(ManyToManyBidirectionalEagerInverseSideEntity.class), objectCache, daoCache);
+    Dao wrongParentClassDao = new Dao(database, new EntityConfig(ManyToManyBidirectionalEagerInverseSideEntity.class), objectCache, daoCache, null);
 
     JoinTableChild_1 joinTableChild_1 = createTestChild_1_Entity();
 
