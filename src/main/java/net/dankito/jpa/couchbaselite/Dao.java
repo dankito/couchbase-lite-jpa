@@ -139,10 +139,7 @@ public class Dao {
 
     createCascadePersistPropertiesAndUpdateDocument(object, mappedProperties);
 
-    newDocument.putProperties(mappedProperties);
-
-    // before adding an attachment first a Revision has to be saved -> cannot add attachments in mapProperties
-    addLobsAsAttachment(object, newDocument);
+    updateDocument(newDocument, mappedProperties);
 
     updateVersionOnObject(object, newDocument);
 
@@ -1003,7 +1000,7 @@ public class Dao {
         mapProperty(object, mappedProperties, property, isInitialPersist);
       }
 
-      if(property.isLob() && isInitialPersist == false) {
+      if(property.isLob()) {
         addLobAsAttachment(object, property, document);
       }
     }
@@ -1113,21 +1110,6 @@ public class Dao {
   }
 
 
-  protected void addLobsAsAttachment(Object object, Document document) {
-    for(PropertyConfig property : entityConfig.getPropertiesIncludingInheritedOnes()) {
-      if(property.isLob()) {
-        addLobAsAttachment(object, property, document);
-      }
-    }
-
-    int countAttachments = document.getCurrentRevision().getAttachmentNames().size();
-    if(countAttachments > 0) {
-      Map<String, Object> properties = document.getCurrentRevision().getUserProperties();
-      properties.put(COUNT_ATTACHMENTS_COLUMN_NAME, countAttachments);
-      updateDocument(document, properties);
-    }
-  }
-
   protected void addLobAsAttachment(Object object, PropertyConfig property, Document document) {
     try {
       byte[] bytes = getContentForAttachment(object, property, document);
@@ -1137,6 +1119,8 @@ public class Dao {
 
         SavedRevision currentRevision = document.getCurrentRevision();
 
+        // TODO: don't create a new revision for each attachment (and another one on each update!).
+        // Create a new revision and use this for all attachments and mapped properties
         UnsavedRevision newRevision = currentRevision != null ? currentRevision.createRevision() : document.createRevision();
         newRevision.setAttachment(getAttachmentNameForProperty(property), "application/octet-stream", inputStream);
 
