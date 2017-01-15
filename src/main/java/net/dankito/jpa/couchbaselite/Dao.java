@@ -1208,7 +1208,7 @@ public class Dao {
     return false;
   }
 
-  protected Object getLobFromAttachment(PropertyConfig property, Document document) {
+  public Object getLobFromAttachment(PropertyConfig property, Document document) {
     Revision revision = document.getCurrentRevision();
     Attachment attachment = revision.getAttachment(getAttachmentNameForProperty(property));
     try {
