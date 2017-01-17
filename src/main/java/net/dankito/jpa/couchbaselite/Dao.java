@@ -384,7 +384,10 @@ public class Dao {
 
   protected  <T> View createQueryForAllEntitiesOfDataTypeView(Class<T> type) {
     final String fullTypeName = type.getName();
-    View queryForAllEntitiesOfDataTypeView = database.getView(fullTypeName);
+    View queryForAllEntitiesOfDataTypeView;
+    synchronized(this) {
+      queryForAllEntitiesOfDataTypeView = database.getView(fullTypeName);
+    }
 
     queryForAllEntitiesOfDataTypeView.setMap(new Mapper() {
       @Override
@@ -777,7 +780,10 @@ public class Dao {
   }
 
   protected View createViewForPropertyWithOrderBy(Object object, Collection<Object> itemIds, final PropertyConfig property) throws SQLException {
-    View viewForPropertyWithOrderBy = database.getView(property.getEntityConfig().getEntityName() + "_" + property.getColumnName());
+    View viewForPropertyWithOrderBy;
+    synchronized(this) {
+      viewForPropertyWithOrderBy = database.getView(property.getEntityConfig().getEntityName() + "_" + property.getColumnName());
+    }
 
     viewForPropertyWithOrderBy.setMap(new Mapper() {
       @Override
