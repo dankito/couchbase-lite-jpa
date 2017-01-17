@@ -1113,17 +1113,21 @@ public class Dao {
     try {
       byte[] bytes = getContentForAttachment(object, property, document);
 
-      if(bytes != null) {
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
-
+      if(bytes == null) { // property value has now ben set to null but wasn't before -> remove attachment
+        removeAttachment(property, document);
+      }
+      else {
         SavedRevision currentRevision = document.getCurrentRevision();
+        String attachmentName = getAttachmentNameForProperty(property);
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
 
         // TODO: don't create a new revision for each attachment (and another one on each update!).
         // Create a new revision and use this for all attachments and mapped properties
         UnsavedRevision newRevision = currentRevision != null ? currentRevision.createRevision() : document.createRevision();
-        newRevision.setAttachment(getAttachmentNameForProperty(property), "application/octet-stream", inputStream);
+        newRevision.setAttachment(attachmentName, "application/octet-stream", inputStream);
 
         newRevision.save();
+        inputStream.close();
       }
     } catch(Exception e) { log.error("Could not add Lob as Attachment for Property " + property, e); }
   }
@@ -1132,10 +1136,7 @@ public class Dao {
     byte[] bytes = null;
     Object propertyValue = getPropertyValue(object, property);
 
-    if(propertyValue == null) { // property value has now ben set to null but wasn't before -> remove attachment
-      removeAttachment(property, document);
-    }
-    else if(propertyValue instanceof byte[]) {
+    if(propertyValue instanceof byte[]) {
       bytes = (byte[])propertyValue;
     }
     else if(propertyValue instanceof String) {
