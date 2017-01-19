@@ -66,13 +66,13 @@ import javax.persistence.AccessType;
 public class Dao {
   private static final Logger log = LoggerFactory.getLogger(Dao.class);
 
-  public static final String ID_COLUMN_NAME = "_id";
+  public static final String ID_SYSTEM_COLUMN_NAME = "_id";
 
-  public static final String REVISION_COLUMN_NAME = "_revision";
+  public static final String REVISION_SYSTEM_COLUMN_NAME = "_revision";
 
-  public static final String DELETED_COLUMN_NAME = "_deleted";
+  public static final String DELETED_SYSTEM_COLUMN_NAME = "_deleted";
 
-  public static final String ATTACHMENTS_COLUMN_NAME = "attachments";
+  public static final String ATTACHMENTS_SYSTEM_COLUMN_NAME = "attachments";
 
   public static final String TYPE_COLUMN_NAME = "type_";
 
@@ -399,7 +399,7 @@ public class Dao {
       @Override
       public void map(Map<String, Object> document, Emitter emitter) {
         if(fullTypeName.equals(document.get(Dao.TYPE_COLUMN_NAME))) {
-          emitter.emit(document.get(ID_COLUMN_NAME), null);
+          emitter.emit(document.get(ID_SYSTEM_COLUMN_NAME), null);
         }
       }
     }, "1.0");
