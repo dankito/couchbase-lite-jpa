@@ -68,7 +68,9 @@ public class Dao {
 
   public static final String ID_SYSTEM_COLUMN_NAME = "_id";
 
-  public static final String REVISION_SYSTEM_COLUMN_NAME = "_revisions";
+  public static final String REVISION_SYSTEM_COLUMN_NAME = "_rev";
+
+  public static final String REVISIONS_SYSTEM_COLUMN_NAME = "_revisions";
 
   public static final String DELETED_SYSTEM_COLUMN_NAME = "_deleted";
 
