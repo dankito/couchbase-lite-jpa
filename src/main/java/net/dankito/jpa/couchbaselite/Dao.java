@@ -68,6 +68,12 @@ public class Dao {
 
   public static final String ID_COLUMN_NAME = "_id";
 
+  public static final String REVISION_COLUMN_NAME = "_revision";
+
+  public static final String DELETED_COLUMN_NAME = "_deleted";
+
+  public static final String ATTACHMENTS_COLUMN_NAME = "attachments";
+
   public static final String TYPE_COLUMN_NAME = "type_";
 
   public static final String PARENT_ENTITY_CLASSES_COLUMN_NAME = "parent_entity_classes";
@@ -1125,6 +1131,11 @@ public class Dao {
       else {
         SavedRevision currentRevision = document.getCurrentRevision();
         String attachmentName = getAttachmentNameForProperty(property);
+        Attachment previousAttachment = currentRevision == null ? null : currentRevision.getAttachment(attachmentName);
+        if(previousAttachment != null && previousAttachment.getLength() == bytes.length) { // should be the same content, don't update
+          return;
+        }
+
         ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
 
         // TODO: don't create a new revision for each attachment (and another one on each update!).
