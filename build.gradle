@@ -10,6 +10,12 @@ repositories {
 }
 
 
+// temporarily ignore tests
+test {
+    exclude 'net/dankito/jpa/couchbaselite/**'
+}
+
+
 def couchbaseLiteVersion = '1.3.0'
 
 dependencies {
