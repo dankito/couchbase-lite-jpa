@@ -17,6 +17,13 @@ public class ObjectCache {
   protected Map<Class, Map<Object, Object>> cache = new ConcurrentHashMap<>();
 
 
+  /**
+   * Try to avoid calling this method as it's of O(n).<br/>
+   * Try to get or remove object directly.
+   * @param entityClass
+   * @param id
+   * @return
+   */
   public boolean containsObjectForId(Class entityClass, Object id) {
     return id != null && cache.containsKey(entityClass) && cache.get(entityClass).containsKey(id);
   }
@@ -36,8 +43,9 @@ public class ObjectCache {
    * @return Cached Object or null
    */
   public Object get(Class entityClass, Object id) {
-    if(containsObjectForId(entityClass, id)) {
-      return cache.get(entityClass).get(id);
+    Map<Object, Object> cachedEntityObjects = cache.get(entityClass);
+    if(cachedEntityObjects != null) {
+      return cachedEntityObjects.get(id);
     }
 
     return null;
@@ -45,20 +53,22 @@ public class ObjectCache {
 
   public Collection<Object> getAllOfClass(Class entityClass) {
     Set<Object> cachedEntitiesOfClass = new HashSet<>();
+    Map<Object, Object> cachedEntityObjects = cache.get(entityClass);
 
-    if(cache.containsKey(entityClass)) {
-      Map<Object, Object> entityMap = cache.get(entityClass);
-      cachedEntitiesOfClass.addAll(entityMap.values());
+    if(cachedEntityObjects != null) {
+      cachedEntitiesOfClass.addAll(cachedEntityObjects.values());
     }
 
     return cachedEntitiesOfClass;
   }
 
   public Object remove(Class entityClass, Object id) {
-    if(containsObjectForId(entityClass, id)) {
-      Object removedObject = cache.get(entityClass).remove(id);
+    Map<Object, Object> cachedEntityObjects = cache.get(entityClass);
 
-      if(cache.get(entityClass).isEmpty()) {
+    if(cachedEntityObjects != null) {
+      Object removedObject = cachedEntityObjects.remove(id);
+
+      if(cachedEntityObjects.isEmpty()) {
         cache.remove(entityClass);
       }
 
