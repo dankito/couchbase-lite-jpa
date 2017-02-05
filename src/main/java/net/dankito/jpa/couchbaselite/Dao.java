@@ -336,9 +336,9 @@ public class Dao {
   }
 
   public Object retrieve(Object id) throws SQLException {
-    // TODO: don't call contains as this is of O(n), get it directly and check for != null
-    if(isObjectCachedForId(id)) {
-      return getObjectFromCache(id);
+    Object cachedObject = getObjectFromCache(id); // don't check first if cache contains object to this id as this is operation is of O(n)
+    if(cachedObject != null) {
+      return cachedObject;
     }
     else {
       return retrieveObjectFromDb(id);
@@ -1391,10 +1391,6 @@ public class Dao {
   }
 
 
-
-  protected boolean isObjectCachedForId(Object id) {
-    return objectCache.containsObjectForId(entityClass, id);
-  }
 
   protected Object getObjectFromCache(Object id) {
     return objectCache.get(entityClass, id);
