@@ -354,6 +354,10 @@ public class Dao {
   protected Object createObjectFromDocument(Document storedDocument, Object id) throws SQLException {
     Class entityRealClass = getEntityClassFromDocument(storedDocument);
 
+    return createObjectFromDocument(storedDocument, id, entityRealClass);
+  }
+
+  protected Object createObjectFromDocument(Document storedDocument, Object id, Class entityRealClass) throws SQLException {
     if(entityConfig.getEntityClass().equals(entityRealClass)) {
       Object retrievedObject = createObjectInstance(id);
 
@@ -370,7 +374,7 @@ public class Dao {
       }
 
       Dao childDao = daoCache.getDaoForEntity(entityRealClass);
-      return childDao.createObjectFromDocument(storedDocument, id);
+      return childDao.createObjectFromDocument(storedDocument, id, entityRealClass);
     }
   }
 
@@ -416,9 +420,17 @@ public class Dao {
       QueryEnumerator enumerator = queryForAllEntitiesOfDataTypeView.createQuery().run();
       while(enumerator.hasNext()) {
         QueryRow nextResultItem = enumerator.next();
-        T retrievedEntity = (T)createObjectFromDocument(nextResultItem.getDocument(), nextResultItem.getDocumentId());
-        if(retrievedEntity != null) {
-          queryResult.add(retrievedEntity);
+        Class entityClass = getEntityClassFromDocument(nextResultItem.getDocument());
+
+        T cachedEntity = (T)objectCache.get(entityClass, nextResultItem.getDocumentId());
+        if(cachedEntity != null) {
+          queryResult.add(cachedEntity);
+        }
+        else {
+          T retrievedEntity = (T)createObjectFromDocument(nextResultItem.getDocument(), nextResultItem.getDocumentId(), entityClass);
+          if(retrievedEntity != null) {
+            queryResult.add(retrievedEntity);
+          }
         }
       }
     } catch(Exception e) {
