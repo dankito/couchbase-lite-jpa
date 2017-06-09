@@ -19,23 +19,23 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
   private static final Logger log = LoggerFactory.getLogger(LazyLoadingEntitiesCollection.class);
 
 
-  protected Map<Object, Object> cachedEntities;
+  protected Map<Object, Object> cachedEntities = new ConcurrentHashMap<>();
 
   protected boolean cacheEntities = true;
+
+  protected boolean isInitialized = false;
 
 
   public LazyLoadingEntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao, Collection<Object> targetEntitiesIds) throws SQLException {
     super(object, property, holdingObjectDao, targetDao, targetEntitiesIds);
 
+    isInitialized = true;
   }
 
 
   @Override
   protected void retrievedTargetEntities(Collection<Object> targetEntitiesIds) throws SQLException {
-    if(cachedEntities == null) { // on collection initializing
-      this.cachedEntities = new ConcurrentHashMap<>();
-    }
-    else {
+    if(isInitialized) {
       this.targetEntitiesIds.clear();
       this.targetEntitiesIds.addAll(targetEntitiesIds);
     }
