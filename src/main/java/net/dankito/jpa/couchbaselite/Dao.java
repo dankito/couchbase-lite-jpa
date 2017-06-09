@@ -111,6 +111,10 @@ public class Dao {
   protected boolean retrieveDocumentsForSortingByView = true;
 
 
+  public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, DaoCache daoCache) {
+    this(database, entityConfig, objectCache, daoCache, new DatabaseCompacter(database, 10000));
+  }
+
   public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, DaoCache daoCache, DatabaseCompacter databaseCompacter) {
     this(database, entityConfig, objectCache, daoCache, databaseCompacter, new ValueConverter());
   }
