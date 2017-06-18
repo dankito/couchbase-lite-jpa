@@ -9,8 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Cannot make this Class generic as Entities in Application may have different type of IDs (e.g. Long and String)
  * and Entities' classes are as well different.
- *
- * Created by ganymed on 18/08/16.
  */
 public class ObjectCache {
 

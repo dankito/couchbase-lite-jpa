@@ -1,15 +1,11 @@
 package net.dankito.jpa.cache;
 
-import net.dankito.jpa.annotationreader.config.Property;
-import net.dankito.jpa.annotationreader.config.PropertyConfig;
+import net.dankito.jpa.apt.config.ColumnConfig;
 import net.dankito.jpa.couchbaselite.Dao;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Created by ganymed on 18/08/16.
- */
 public class DaoCache {
 
   protected Map<Class, Dao> cache = new ConcurrentHashMap<>();
@@ -19,8 +15,8 @@ public class DaoCache {
     return cache.containsKey(entityClass);
   }
 
-  public boolean containsTargetDaoForRelationshipProperty(PropertyConfig property) {
-    return containsDao(property.getTargetEntityClass());
+  public boolean containsTargetDaoForRelationshipProperty(ColumnConfig property) {
+    return containsDao(property.getTargetEntity().getEntityClass());
   }
 
   public void addDao(Class entityClass, Dao dao) {
@@ -31,7 +27,7 @@ public class DaoCache {
     return cache.get(entityClass);
   }
 
-  public Dao getTargetDaoForRelationshipProperty(PropertyConfig property) {
-    return getDaoForEntity(property.getTargetEntityClass());
+  public Dao getTargetDaoForRelationshipProperty(ColumnConfig property) {
+    return getDaoForEntity(property.getTargetEntity().getEntityClass());
   }
 }

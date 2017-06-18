@@ -1,18 +1,16 @@
 package net.dankito.jpa.util;
 
-import net.dankito.jpa.annotationreader.config.DataType;
-import net.dankito.jpa.annotationreader.config.PropertyConfig;
+import net.dankito.jpa.apt.config.ColumnConfig;
+import net.dankito.jpa.apt.config.DataType;
 
 import java.math.BigDecimal;
 import java.util.Date;
 
-/**
- * Created by ganymed on 25/08/16.
- */
+
 public class ValueConverter implements IValueConverter {
 
   @Override
-  public Object convertRetrievedValue(PropertyConfig property, Object retrievedValue) {
+  public Object convertRetrievedValue(ColumnConfig property, Object retrievedValue) {
     if(retrievedValue == null) {
       return retrievedValue;
     }
@@ -47,11 +45,11 @@ public class ValueConverter implements IValueConverter {
     return convertedValue;
   }
 
-  protected Object convertToEnum(PropertyConfig property, Object retrievedValue) {
+  protected Object convertToEnum(ColumnConfig property, Object retrievedValue) {
     Object convertedValue = retrievedValue;
 
     if(retrievedValue instanceof String) {
-      convertedValue = Enum.valueOf(property.getType(), (String)retrievedValue);
+      convertedValue = Enum.valueOf(property.getType().asSubclass(Enum.class), (String)retrievedValue);
     }
     else if(retrievedValue instanceof Integer) {
       int ordinal = (int)retrievedValue;
@@ -86,7 +84,7 @@ public class ValueConverter implements IValueConverter {
   }
 
   @Override
-  public Object convertValueForPersistence(PropertyConfig property, Object propertyValue) {
+  public Object convertValueForPersistence(ColumnConfig property, Object propertyValue) {
     if(propertyValue == null) {
       return propertyValue;
     }
@@ -95,7 +93,7 @@ public class ValueConverter implements IValueConverter {
 
     if(Date.class.equals(property.getType())) {
       // TODO: find a better way to set @Temporal
-      if(DataType.DATE_LONG.equals(property.getDataType())) {
+      if(DataType.DATE_TIMESTAMP.equals(property.getDataType())) {
         if(propertyValue instanceof Date) {
           persistableValue = ((Date) propertyValue).getTime();
         }

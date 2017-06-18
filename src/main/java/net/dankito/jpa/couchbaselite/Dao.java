@@ -16,11 +16,9 @@ import com.couchbase.lite.View;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import net.dankito.jpa.annotationreader.config.DataType;
-import net.dankito.jpa.annotationreader.config.EntityConfig;
-import net.dankito.jpa.annotationreader.config.OrderByConfig;
-import net.dankito.jpa.annotationreader.config.PropertyConfig;
-import net.dankito.jpa.annotationreader.config.inheritance.DiscriminatorColumnConfig;
+import net.dankito.jpa.apt.config.ColumnConfig;
+import net.dankito.jpa.apt.config.DataType;
+import net.dankito.jpa.apt.config.EntityConfig;
 import net.dankito.jpa.cache.DaoCache;
 import net.dankito.jpa.cache.ObjectCache;
 import net.dankito.jpa.relationship.collections.EntitiesCollection;
@@ -43,8 +41,6 @@ import java.io.ObjectOutputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -60,8 +56,6 @@ import javax.persistence.AccessType;
  * The same does an unidirectional @OneToMany (instead of creating a Join Table according to standard).
  *
  * CascadeType.Merge and CascadeType.Detach are currently completely ignored.
- *
- * Created by ganymed on 15/08/16.
  */
 public class Dao {
   private static final Logger log = LoggerFactory.getLogger(Dao.class);
@@ -110,6 +104,10 @@ public class Dao {
 
   protected boolean retrieveDocumentsForSortingByView = true;
 
+
+  public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, DaoCache daoCache) {
+    this(database, entityConfig, objectCache, daoCache, new DatabaseCompacter(database, 5000));
+  }
 
   public Dao(Database database, EntityConfig entityConfig, ObjectCache objectCache, DaoCache daoCache, DatabaseCompacter databaseCompacter) {
     this(database, entityConfig, objectCache, daoCache, databaseCompacter, new ValueConverter());
@@ -179,13 +177,13 @@ public class Dao {
   protected Map<String, Object> createCascadePersistProperties(Object object) throws SQLException, CouchbaseLiteException {
     Map<String, Object> cascadedProperties = new HashMap<>();
 
-    for(PropertyConfig cascadePersistProperty : entityConfig.getRelationshipPropertiesWithCascadePersistIncludingInheritedOnes()) {
+    for(ColumnConfig cascadePersistProperty : entityConfig.getColumnsWithCascadePersistIncludingInheritedOnes()) {
       Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(cascadePersistProperty);
       Object propertyValue = getPropertyValue(object, cascadePersistProperty);
 
       if(propertyValue != null) {
-        if(cascadePersistProperty.isCollectionProperty()) {
-          if(cascadePersistProperty.isManyToManyField() == false) {
+        if(cascadePersistProperty.isToManyColumn()) {
+          if(cascadePersistProperty.isManyToManyColumn() == false) {
             persistOneToManyCollectionItems(cascadePersistProperty, targetDao, cascadedProperties, (Collection) propertyValue);
           }
           else {
@@ -208,7 +206,7 @@ public class Dao {
     return cascadedProperties;
   }
 
-  protected void persistOneToManyCollectionItems(PropertyConfig cascadePersistProperty, Dao targetDao, Map<String, Object> documentProperties, Collection propertyValue) throws CouchbaseLiteException, SQLException {
+  protected void persistOneToManyCollectionItems(ColumnConfig cascadePersistProperty, Dao targetDao, Map<String, Object> documentProperties, Collection propertyValue) throws CouchbaseLiteException, SQLException {
     List<String> persistedItemIds = new ArrayList<>();
 
     for(Object item : propertyValue) {
@@ -222,7 +220,7 @@ public class Dao {
     writeOneToManyJoinedEntityIdsToProperty(persistedItemIds, cascadePersistProperty, documentProperties);
   }
 
-  protected void persistManyToManyCollectionItems(PropertyConfig cascadePersistProperty, Dao targetDao, Map<String, Object> cascadedProperties, Collection propertyValue) throws CouchbaseLiteException, SQLException {
+  protected void persistManyToManyCollectionItems(ColumnConfig cascadePersistProperty, Dao targetDao, Map<String, Object> cascadedProperties, Collection propertyValue) throws CouchbaseLiteException, SQLException {
     // TODO: currently we storing redundantly target entities' ids on both side, may implement JoinTables for ManyToMany properties
     persistOneToManyCollectionItems(cascadePersistProperty, targetDao, cascadedProperties, propertyValue);
   }
@@ -460,8 +458,8 @@ public class Dao {
     }
     updateVersionOnObject(object, document);
 
-    for(PropertyConfig property : entityConfig.getPropertiesIncludingInheritedOnes()) {
-      if(isCouchbaseLiteSystemProperty(property) == false && property instanceof DiscriminatorColumnConfig == false) {
+    for(ColumnConfig property : entityConfig.getColumnsIncludingInheritedOnes()) {
+      if(isCouchbaseLiteSystemProperty(property) == false /*&& property instanceof DiscriminatorColumnConfig == false*/) { // TODO: re-enable
         try {
           setPropertyOnObject(object, document, property); // TODO: catch Exception for setting single Property or let it bubble up and therefor stop Object creation?
         } catch(Exception e) {
@@ -471,7 +469,7 @@ public class Dao {
     }
   }
 
-  protected void setPropertyOnObject(Object object, Document document, PropertyConfig property) throws SQLException {
+  protected void setPropertyOnObject(Object object, Document document, ColumnConfig property) throws SQLException {
     if(property.isLob()) {
       Object propertyValue = getLobFromAttachment(property, document);
       setValueOnObject(object, property, propertyValue);
@@ -483,19 +481,19 @@ public class Dao {
     }
   }
 
-  protected void setPropertyOnObjectToValueFromDocument(Object object, Document document, PropertyConfig property, Object propertyValueFromDocument) throws SQLException {
+  protected void setPropertyOnObjectToValueFromDocument(Object object, Document document, ColumnConfig property, Object propertyValueFromDocument) throws SQLException {
     if(propertyValueFromDocument == null) {
       if(document.getProperties().containsKey(property.getColumnName())) { // only if null value is explicitly set in Document (if it doesn't contain key property.getColumnName() also null is returned)
         setValueOnObject(object, property, propertyValueFromDocument);
       }
     }
-    else if(property.isRelationshipProperty() == false) {
+    else if(property.isRelationshipColumn() == false) {
       setValueOnObject(object, property, propertyValueFromDocument);
     }
     else {
       Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(property);
 
-      if(property.isCollectionProperty() == false) {
+      if(property.isToManyColumn() == false) {
         Object deserializedTargetInstance = targetDao.retrieve(propertyValueFromDocument);
         setValueOnObject(object, property, deserializedTargetInstance);
       }
@@ -505,7 +503,7 @@ public class Dao {
     }
   }
 
-  protected void setCollectionPropertyOnObject(Object object, PropertyConfig property, Dao targetDao, String joinedEntityIdsString) throws SQLException {
+  protected void setCollectionPropertyOnObject(Object object, ColumnConfig property, Dao targetDao, String joinedEntityIdsString) throws SQLException {
     Object propertyValue = getPropertyValue(object, property);
 
     Collection<Object> targetEntitiesIds = targetDao.parseAndSortJoinedEntityIdsFromJsonString(object, joinedEntityIdsString, property);
@@ -518,13 +516,13 @@ public class Dao {
     }
   }
 
-  public Object deserializePersistedValue(Object object, PropertyConfig property, Object propertyValueFromDocument) throws SQLException {
+  public Object deserializePersistedValue(Object object, ColumnConfig property, Object propertyValueFromDocument) throws SQLException {
     Object deserializedPropertyValue = convertPersistedValue(propertyValueFromDocument, property);
 
-    if(property.isRelationshipProperty() && propertyValueFromDocument != null) {
+    if(property.isRelationshipColumn() && propertyValueFromDocument != null) {
       Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(property);
 
-      if(property.isCollectionProperty() == false) {
+      if(property.isToManyColumn() == false) {
         deserializedPropertyValue = targetDao.retrieve(propertyValueFromDocument);
       }
       else {
@@ -537,13 +535,13 @@ public class Dao {
     return deserializedPropertyValue;
   }
 
-  protected Object getValueFromDocument(Document document, PropertyConfig property) {
+  protected Object getValueFromDocument(Document document, ColumnConfig property) {
     Object value = document.getProperty(property.getColumnName());
 
     return convertPersistedValue(value, property);
   }
 
-  protected Object convertPersistedValue(Object value, PropertyConfig property) {
+  protected Object convertPersistedValue(Object value, ColumnConfig property) {
     return valueConverter.convertRetrievedValue(property, value);
   }
 
@@ -600,7 +598,7 @@ public class Dao {
     Document storedDocument = database.getExistingDocument((String)id);
 
     if(storedDocument == null) {
-      throw new SQLException("There's no existing Document with ID " + id + " for Type " + entityConfig.getEntityName());
+      throw new SQLException("There's no existing Document with ID " + id + " for Type " + entityConfig.getTableName());
     }
 
     return storedDocument;
@@ -644,7 +642,7 @@ public class Dao {
     boolean result = storedDocument.delete();
 
     if(result) {
-      setValueOnObject(object, entityConfig.getIdProperty(), null); // TODO: really set Id to null?
+      setValueOnObject(object, entityConfig.getIdColumn(), null); // TODO: really set Id to null?
       updateVersionOnObject(object, storedDocument); // TODO: after delete documents version is set to null -> really update object's version?
     }
 
@@ -653,12 +651,12 @@ public class Dao {
 
 
   protected void deleteCascadeRemoveProperties(Object object) throws SQLException, CouchbaseLiteException {
-    for(PropertyConfig cascadeRemoveProperty : entityConfig.getRelationshipPropertiesWithCascadeRemoveIncludingInheritedOnes()) {
+    for(ColumnConfig cascadeRemoveProperty : entityConfig.getColumnsWithCascadeRemoveIncludingInheritedOnes()) {
       Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(cascadeRemoveProperty);
       Object propertyValue = getPropertyValue(object, cascadeRemoveProperty);
 
       if(propertyValue != null) { // TODO: check if propertyValue's ID is set (if null means already deleted)?
-        if(cascadeRemoveProperty.isCollectionProperty()) {
+        if(cascadeRemoveProperty.isToManyColumn()) {
           for(Object item : (Collection)propertyValue) {
             if(isAlreadyPersisted(item)) {
               if(targetDao.delete(item)) {
@@ -679,7 +677,7 @@ public class Dao {
   }
 
 
-  public Collection<Object> getJoinedItemsIds(Object object, PropertyConfig collectionProperty) throws SQLException {
+  public Collection<Object> getJoinedItemsIds(Object object, ColumnConfig collectionProperty) throws SQLException {
     if(isAlreadyPersisted(object)) {
       Document objectDocument = retrieveStoredDocument(object);
 
@@ -693,7 +691,7 @@ public class Dao {
     return new HashSet<>();
   }
 
-  protected Collection<Object> parseAndSortJoinedEntityIdsFromJsonString(Object object, String itemIdsString, PropertyConfig property) throws SQLException {
+  protected Collection<Object> parseAndSortJoinedEntityIdsFromJsonString(Object object, String itemIdsString, ColumnConfig property) throws SQLException {
     Collection<Object> itemIds = parseJoinedEntityIdsFromJsonString(itemIdsString);
 
     if(property.hasOrderColumns()) {
@@ -721,7 +719,7 @@ public class Dao {
    * @param property
    * @return
    */
-  protected Collection<Object> sortItems(Object object, final Collection<Object> itemIds, final PropertyConfig property) throws SQLException {
+  protected Collection<Object> sortItems(Object object, final Collection<Object> itemIds, final ColumnConfig property) throws SQLException {
     if(itemIds.size() < 2) { // less then 2 item -> nothing to sort
       return itemIds;
     }
@@ -764,7 +762,7 @@ public class Dao {
     return ids.size() > TOO_LARGE_TOO_SORT_MANUALLY;
   }
 
-  protected Collection<Object> sortItemsByView(Object object, Collection<Object> itemIds, PropertyConfig property) {
+  protected Collection<Object> sortItemsByView(Object object, Collection<Object> itemIds, ColumnConfig property) {
     List<Object> sortedIds = new ArrayList(); // do not use a HashSet as it ruins ordering
     Date startTime = new Date();
 
@@ -774,7 +772,7 @@ public class Dao {
 
       // TODO: currently only for the first @OrderBy column ascending or descending can be specified
       if(property.hasOrderColumns()) {
-        query.setDescending(! property.getOrderColumns().get(0).isAscending());
+//        query.setDescending(! property.getOrderColumns().get(0).isAscending()); // TODO: re-enable
       }
 
       QueryEnumerator enumerator = query.run();
@@ -794,15 +792,16 @@ public class Dao {
       sortedIds = new ArrayList<>(itemIds);
     }
 
-    logOperationDurationDuration("View Sorting Documents of " + property + " by " + property.getOrderColumns().get(0).getColumnName(), startTime);
+    // TODO: re-enable
+//    logOperationDurationDuration("View Sorting Documents of " + property + " by " + property.getOrderColumns().get(0).getColumnName(), startTime);
 
     return sortedIds;
   }
 
-  protected View createViewForPropertyWithOrderBy(Object object, Collection<Object> itemIds, final PropertyConfig property) throws SQLException {
+  protected View createViewForPropertyWithOrderBy(Object object, Collection<Object> itemIds, final ColumnConfig property) throws SQLException {
     View viewForPropertyWithOrderBy;
     synchronized(this) {
-      viewForPropertyWithOrderBy = database.getView(property.getEntityConfig().getEntityName() + "_" + property.getColumnName());
+      viewForPropertyWithOrderBy = database.getView(property.getEntityConfig().getTableName() + "_" + property.getColumnName());
     }
 
     viewForPropertyWithOrderBy.setMap(new Mapper() {
@@ -810,9 +809,10 @@ public class Dao {
       public void map(Map<String, Object> document, Emitter emitter) {
         List<Object> sortKeys = new ArrayList<>();
 
-        for(OrderByConfig orderBy : property.getOrderColumns()) {
-          sortKeys.add(document.get(orderBy.getColumnName()));
-        }
+        // TODO: re-enable
+//        for(OrderByConfig orderBy : property.getOrderColumns()) {
+//          sortKeys.add(document.get(orderBy.getColumnName()));
+//        }
 
         emitter.emit(sortKeys, null);
       }
@@ -821,7 +821,7 @@ public class Dao {
     return viewForPropertyWithOrderBy;
   }
 
-  protected Collection<Object> sortItemsByManualComparison(Collection<Object> itemIds, PropertyConfig property) throws SQLException {
+  protected Collection<Object> sortItemsByManualComparison(Collection<Object> itemIds, ColumnConfig property) throws SQLException {
     List<Object> sortedIds = new ArrayList(itemIds); // do not use a HashSet as it ruins ordering
     Date startTime = new Date();
 
@@ -829,19 +829,21 @@ public class Dao {
     logOperationDurationDuration("Getting Documents for sorting", startTime);
     startTime = new Date();
 
-    for (int i = property.getOrderColumns().size() - 1; i >= 0; i--) {
-      final OrderByConfig orderBy = property.getOrderColumns().get(i);
+    // TODO: re-enable
+//    for (int i = property.getOrderColumns().size() - 1; i >= 0; i--) {
+//      final OrderByConfig orderBy = property.getOrderColumns().get(i);
+//
+//      // do not use a TreeSet as when Comparator returns 0, one of the two objects gets removed from TreeSet
+//      Collections.sort(sortedIds, new Comparator<Object>() {
+//        @Override
+//        public int compare(Object id1, Object id2) {
+//          return compareObjects(mapIdToDocument, id1, id2, orderBy);
+//        }
+//      });
+//    }
 
-      // do not use a TreeSet as when Comparator returns 0, one of the two objects gets removed from TreeSet
-      Collections.sort(sortedIds, new Comparator<Object>() {
-        @Override
-        public int compare(Object id1, Object id2) {
-          return compareObjects(mapIdToDocument, id1, id2, orderBy);
-        }
-      });
-    }
-
-    logOperationDurationDuration("Manual Sorting Documents of " + property + " by " + property.getOrderColumns().get(0).getColumnName(), startTime);
+    // TODO: re-enable
+//    logOperationDurationDuration("Manual Sorting Documents of " + property + " by " + property.getOrderColumns().get(0).getColumnName(), startTime);
 
     return sortedIds;
   }
@@ -918,33 +920,34 @@ public class Dao {
     }
   }
 
-  protected int compareObjects(Map<Object, Document> mapIdToDocument, Object id1, Object id2, OrderByConfig orderBy) {
-    Object object1Value = null, object2Value = null;
-    try { object1Value = getValueFromDocument(mapIdToDocument.get(id1), orderBy.getOrderByTargetProperty()); } catch(Exception ignored) { }
-    try { object2Value = getValueFromDocument(mapIdToDocument.get(id2), orderBy.getOrderByTargetProperty()); } catch(Exception ignored) { }
-
-    if(object1Value == null && object2Value == null) {
-      return 0;
-    }
-    else if(object1Value == null) {
-      return -1;
-    }
-    else if(object2Value == null) {
-      return 1;
-    }
-
-    int compareValue = 0;
-
-    if(object1Value instanceof Comparable && object2Value instanceof Comparable) {
-      compareValue = ((Comparable)object1Value).compareTo(object2Value);
-
-      if(orderBy.isAscending() == false) {
-        compareValue = compareValue * (-1); // invert ordering
-      }
-    }
-
-    return compareValue;
-  }
+  // TODO: re-enable
+//  protected int compareObjects(Map<Object, Document> mapIdToDocument, Object id1, Object id2, OrderByConfig orderBy) {
+//    Object object1Value = null, object2Value = null;
+//    try { object1Value = getValueFromDocument(mapIdToDocument.get(id1), orderBy.getOrderByTargetProperty()); } catch(Exception ignored) { }
+//    try { object2Value = getValueFromDocument(mapIdToDocument.get(id2), orderBy.getOrderByTargetProperty()); } catch(Exception ignored) { }
+//
+//    if(object1Value == null && object2Value == null) {
+//      return 0;
+//    }
+//    else if(object1Value == null) {
+//      return -1;
+//    }
+//    else if(object2Value == null) {
+//      return 1;
+//    }
+//
+//    int compareValue = 0;
+//
+//    if(object1Value instanceof Comparable && object2Value instanceof Comparable) {
+//      compareValue = ((Comparable)object1Value).compareTo(object2Value);
+//
+//      if(orderBy.isAscending() == false) {
+//        compareValue = compareValue * (-1); // invert ordering
+//      }
+//    }
+//
+//    return compareValue;
+//  }
 
 
   protected boolean isAlreadyPersisted(Object object) throws SQLException {
@@ -952,7 +955,7 @@ public class Dao {
   }
 
   public String getObjectId(Object object) throws SQLException {
-    Object idValue = getPropertyValue(object, entityConfig.getIdProperty());
+    Object idValue = getPropertyValue(object, entityConfig.getIdColumn());
 
     if(idValue instanceof Long) { // TODO: remove
       idValue = ((Long)idValue).toString();
@@ -961,17 +964,17 @@ public class Dao {
   }
 
   protected void setIdOnObject(Object object, Document newDocument) throws SQLException {
-    setValueOnObject(object, entityConfig.getIdProperty(), newDocument.getId());
+    setValueOnObject(object, entityConfig.getIdColumn(), newDocument.getId());
   }
 
   protected void updateVersionOnObject(Object object, Document document) throws SQLException {
-    if(entityConfig.isVersionPropertySet()) {
+    if(entityConfig.isVersionColumnSet()) {
       if(document.isDeleted() == false) {
         Object version = getDocumentVersion(document);
-        setValueOnObject(object, entityConfig.getVersionProperty(), version);
+        setValueOnObject(object, entityConfig.getVersionColumn(), version);
       }
       else { // TODO: what to do when document is deleted? set version to null?
-        setValueOnObject(object, entityConfig.getVersionProperty(), null);
+        setValueOnObject(object, entityConfig.getVersionColumn(), null);
       }
     }
   }
@@ -982,7 +985,7 @@ public class Dao {
 
     Object version = Long.parseLong(revisionId);
 
-    Class versionDataType = entityConfig.getVersionProperty().getType();
+    Class versionDataType = entityConfig.getVersionColumn().getType();
     if(int.class.equals(versionDataType) || Integer.class.equals(versionDataType)) {
       version = (int)version;
     }
@@ -1018,12 +1021,12 @@ public class Dao {
 
     if(isInitialPersist) { // persist Entity's type on initial persist
       mappedProperties.put(TYPE_COLUMN_NAME, entityConfig.getEntityClass().getName());
-      if(entityConfig.hasParentEntityConfig()) {
+      if(entityConfig.hasParentEntity()) {
         writeParentEntityClasses(mappedProperties);
       }
     }
 
-    for(PropertyConfig property : entityConfig.getPropertiesIncludingInheritedOnes()) {
+    for(ColumnConfig property : entityConfig.getColumnsIncludingInheritedOnes()) {
       if(shouldPropertyBeAdded(isInitialPersist, property)) {
         mapProperty(object, mappedProperties, property, isInitialPersist);
       }
@@ -1036,16 +1039,16 @@ public class Dao {
     return mappedProperties;
   }
 
-  protected void mapProperty(Object object, Map<String, Object> mappedProperties, PropertyConfig property, boolean isInitialPersist) throws SQLException {
+  protected void mapProperty(Object object, Map<String, Object> mappedProperties, ColumnConfig property, boolean isInitialPersist) throws SQLException {
     Object propertyValue = getPropertyValue(object, property);
 
-    if(property.isRelationshipProperty() == false || propertyValue == null) {
+    if(property.isRelationshipColumn() == false || propertyValue == null) {
       mappedProperties.put(property.getColumnName(), propertyValue);
     }
     else { // for Objects persist only its ID respectively their IDs for Collections
       if(daoCache.containsTargetDaoForRelationshipProperty(property)) { // on correctly configured Entities should actually never be false
         Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(property);
-        if(property.isCollectionProperty() == false) {
+        if(property.isToManyColumn() == false) {
           mappedProperties.put(property.getColumnName(), targetDao.getObjectId(propertyValue));
         }
         else {
@@ -1055,8 +1058,8 @@ public class Dao {
     }
   }
 
-  protected void mapCollectionProperty(Object object, PropertyConfig collectionProperty, Map<String, Object> mappedProperties, Dao targetDao, Collection propertyValue, boolean isInitialPersist) throws SQLException {
-    boolean isInitialPersistAndCascadePersistProperty = isInitialPersist && collectionProperty.cascadePersist();
+  protected void mapCollectionProperty(Object object, ColumnConfig collectionProperty, Map<String, Object> mappedProperties, Dao targetDao, Collection propertyValue, boolean isInitialPersist) throws SQLException {
+    boolean isInitialPersistAndCascadePersistProperty = isInitialPersist && collectionProperty.getCascadePersist();
 
     // otherwise EntitiesCollection will then be created and itemIds be written in createCascadePersistProperties()
     if(isInitialPersistAndCascadePersistProperty == false) {
@@ -1070,11 +1073,11 @@ public class Dao {
     }
   }
 
-  protected EntitiesCollection createEntitiesCollection(Object object, PropertyConfig collectionProperty, Collection<Object> targetEntitiesIds) throws SQLException {
+  protected EntitiesCollection createEntitiesCollection(Object object, ColumnConfig collectionProperty, Collection<Object> targetEntitiesIds) throws SQLException {
     Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(collectionProperty);
     EntitiesCollection collection = null;
 
-    if(collectionProperty.isManyToManyField() == false) {
+    if(collectionProperty.isManyToManyColumn() == false) {
       if(collectionProperty.isLazyLoading()) {
         collection = new LazyLoadingEntitiesCollection(object, collectionProperty, this, targetDao, targetEntitiesIds);
       }
@@ -1094,13 +1097,13 @@ public class Dao {
     return collection;
   }
 
-  protected void createAndSetEntitiesCollection(Object object, PropertyConfig collectionProperty, Collection<Object> targetEntitiesIds) throws SQLException {
+  protected void createAndSetEntitiesCollection(Object object, ColumnConfig collectionProperty, Collection<Object> targetEntitiesIds) throws SQLException {
     Collection collection = createEntitiesCollection(object, collectionProperty, targetEntitiesIds);
 
     setValueOnObject(object, collectionProperty, collection);
   }
 
-  protected EntitiesCollection createAndSetEntitiesCollectionAndAddExistingItems(Object object, PropertyConfig collectionProperty, Object propertyValue) throws SQLException {
+  protected EntitiesCollection createAndSetEntitiesCollectionAndAddExistingItems(Object object, ColumnConfig collectionProperty, Object propertyValue) throws SQLException {
     EntitiesCollection collection = createEntitiesCollection(object, collectionProperty, new ArrayList<Object>());
 
     for(Object currentItem : (Collection)propertyValue) {
@@ -1112,7 +1115,7 @@ public class Dao {
     return collection;
   }
 
-  protected void writeOneToManyJoinedEntityIdsToProperty(List joinedEntityIds, PropertyConfig property, Map<String, Object> documentProperties) throws SQLException {
+  protected void writeOneToManyJoinedEntityIdsToProperty(List joinedEntityIds, ColumnConfig property, Map<String, Object> documentProperties) throws SQLException {
     String itemIdsString = getPersistableCollectionTargetEntities(joinedEntityIds);
     documentProperties.put(property.getColumnName(), itemIdsString);
   }
@@ -1121,7 +1124,7 @@ public class Dao {
   protected void writeParentEntityClasses(Map<String, Object> mappedProperties) throws SQLException {
     try {
       ObjectMapper objectMapper = getObjectMapper();
-      String serializedParentEntityClasses = objectMapper.writeValueAsString(entityConfig.getParentEntityClasses());
+      String serializedParentEntityClasses = objectMapper.writeValueAsString(entityConfig.getClassHierarchy());
       mappedProperties.put(PARENT_ENTITY_CLASSES_COLUMN_NAME, serializedParentEntityClasses);
     } catch (JsonProcessingException e) {
       throw new SQLException("Could not persist Parent Entity Classes", e);
@@ -1135,7 +1138,7 @@ public class Dao {
   }
 
 
-  protected void addLobAsAttachment(Object object, PropertyConfig property, Document document) {
+  protected void addLobAsAttachment(Object object, ColumnConfig property, Document document) {
     try {
       byte[] bytes = getContentForAttachment(object, property, document);
 
@@ -1163,7 +1166,7 @@ public class Dao {
     } catch(Exception e) { log.error("Could not add Lob as Attachment for Property " + property, e); }
   }
 
-  protected byte[] getContentForAttachment(Object object, PropertyConfig property, Document document) throws Exception {
+  protected byte[] getContentForAttachment(Object object, ColumnConfig property, Document document) throws Exception {
     byte[] bytes = null;
     Object propertyValue = getPropertyValue(object, property);
 
@@ -1187,7 +1190,7 @@ public class Dao {
     return bytes;
   }
 
-  protected boolean removeAttachment(PropertyConfig property, Document document) {
+  protected boolean removeAttachment(ColumnConfig property, Document document) {
     SavedRevision currentRevision = document.getCurrentRevision();
     if(currentRevision != null) {
       Attachment previousValueAttachment = currentRevision.getAttachment(getAttachmentNameForProperty(property));
@@ -1206,7 +1209,7 @@ public class Dao {
     return false;
   }
 
-  protected boolean removeAttachment(PropertyConfig property, SavedRevision currentRevision) {
+  protected boolean removeAttachment(ColumnConfig property, SavedRevision currentRevision) {
     try {
       UnsavedRevision newRevision = currentRevision.createRevision();
       newRevision.removeAttachment(getAttachmentNameForProperty(property));
@@ -1218,7 +1221,7 @@ public class Dao {
     return false;
   }
 
-  public Object getLobFromAttachment(PropertyConfig property, Document document) {
+  public Object getLobFromAttachment(ColumnConfig property, Document document) {
     Revision revision = document.getCurrentRevision();
     Attachment attachment = revision.getAttachment(getAttachmentNameForProperty(property));
     try {
@@ -1230,7 +1233,7 @@ public class Dao {
     return null;
   }
 
-  protected Object readAttachmentContent(PropertyConfig property, Attachment attachment) throws CouchbaseLiteException, IOException {
+  protected Object readAttachmentContent(ColumnConfig property, Attachment attachment) throws CouchbaseLiteException, IOException {
     InputStream inputStream = attachment.getContent();
     ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
@@ -1253,7 +1256,7 @@ public class Dao {
     }
   }
 
-  protected String getAttachmentNameForProperty(PropertyConfig property) {
+  protected String getAttachmentNameForProperty(ColumnConfig property) {
     return property.getColumnName();
   }
 
@@ -1269,23 +1272,23 @@ public class Dao {
   }
 
 
-  protected boolean shouldPropertyBeAdded(boolean isInitialPersist, PropertyConfig property) {
+  protected boolean shouldPropertyBeAdded(boolean isInitialPersist, ColumnConfig property) {
     return isCouchbaseLiteSystemProperty(property) == false && property.isLob() == false;
   }
 
-  protected boolean isCouchbaseLiteSystemProperty(PropertyConfig property) {
+  protected boolean isCouchbaseLiteSystemProperty(ColumnConfig property) {
     return property.isId() || property.isVersion();
   }
 
 
-  public Object getPersistablePropertyValue(Object object, PropertyConfig property) throws SQLException {
+  public Object getPersistablePropertyValue(Object object, ColumnConfig property) throws SQLException {
     Object persistablePropertyValue = getPropertyValue(object, property);
 
-    if(property.isRelationshipProperty() && persistablePropertyValue != null) { // for Objects persist only its ID respectively their IDs for Collections
+    if(property.isRelationshipColumn() && persistablePropertyValue != null) { // for Objects persist only its ID respectively their IDs for Collections
       if(daoCache.containsTargetDaoForRelationshipProperty(property)) { // on correctly configured Entities should actually never be false
         Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(property);
 
-        if(property.isCollectionProperty() == false) {
+        if(property.isToManyColumn() == false) {
           persistablePropertyValue = targetDao.getObjectId(persistablePropertyValue);
         }
         else {
@@ -1324,35 +1327,36 @@ public class Dao {
     }
   }
 
-  protected Object getPropertyValue(Object object, PropertyConfig property) throws SQLException {
+  protected Object getPropertyValue(Object object, ColumnConfig property) throws SQLException {
     Object value;
 
-    if(property instanceof DiscriminatorColumnConfig) {
-      DiscriminatorColumnConfig discriminatorColumn = (DiscriminatorColumnConfig)property;
-      value = discriminatorColumn.getDiscriminatorValue(object);
-    }
-    else {
+    // TODO: re-enable
+//    if(property instanceof DiscriminatorColumnConfig) {
+//      DiscriminatorColumnConfig discriminatorColumn = (DiscriminatorColumnConfig)property;
+//      value = discriminatorColumn.getDiscriminatorValue(object);
+//    }
+//    else {
       value = extractValueFromObject(object, property);
-    }
+//    }
 
     value = valueConverter.convertValueForPersistence(property, value);
 
     return value;
   }
 
-  public Object extractValueFromObject(Object object, PropertyConfig property) throws SQLException {
+  public Object extractValueFromObject(Object object, ColumnConfig property) throws SQLException {
     Object value;
 
     if(shouldUseGetter(property)) {
       try {
-        value = property.getFieldGetMethod().invoke(object);
+        value = property.getProperty().getGetter().invoke(object);
       } catch (Exception e) {
-        throw new SQLException("Could not call " + property.getFieldGetMethod() + " for " + property, e);
+        throw new SQLException("Could not call " + property.getProperty().getGetter() + " for " + property, e);
       }
     }
     else {
       try {
-        value = property.getField().get(object);
+        value = property.getProperty().getField().get(object);
       } catch (Exception e) {
         throw new SQLException("Could not get field value for " + property, e);
       }
@@ -1362,32 +1366,32 @@ public class Dao {
   }
 
 
-  public void setValueOnObject(Object object, PropertyConfig property, Object value) throws SQLException {
+  public void setValueOnObject(Object object, ColumnConfig property, Object value) throws SQLException {
     if(shouldUseSetter(property)) {
       try {
-        property.getFieldSetMethod().invoke(object, value);
+        property.getProperty().getSetter().invoke(object, value);
       } catch (Exception e) {
-        throw new SQLException("Could not call " + property.getFieldSetMethod() + " for " + property, e);
+        throw new SQLException("Could not call " + property.getProperty().getSetter() + " for " + property, e);
       }
     }
     else {
       try {
         // field object may not be a T yet
-        property.getField().set(object, value);
+        property.getProperty().getField().set(object, value);
       } catch (Exception e) {
         throw new SQLException("Could not set field value for " + property, e);
       }
     }
   }
 
-  protected boolean shouldUseGetter(PropertyConfig property) {
-    return (entityConfig.getAccess() == AccessType.PROPERTY && property.getFieldGetMethod() != null) ||
-        (property.getField() == null && property.getFieldGetMethod() != null);
+  protected boolean shouldUseGetter(ColumnConfig property) {
+    return (entityConfig.getAccess() == AccessType.PROPERTY && property.getProperty().getGetter() != null) ||
+        (property.getProperty().getField() == null && property.getProperty().getGetter() != null);
   }
 
-  protected boolean shouldUseSetter(PropertyConfig property) {
-    return (entityConfig.getAccess() == AccessType.PROPERTY && property.getFieldSetMethod() != null) ||
-        (property.getField() == null && property.getFieldSetMethod() != null);
+  protected boolean shouldUseSetter(ColumnConfig property) {
+    return (entityConfig.getAccess() == AccessType.PROPERTY && property.getProperty().getSetter() != null) ||
+        (property.getProperty().getField() == null && property.getProperty().getSetter() != null);
   }
 
 
