@@ -1,6 +1,6 @@
 package net.dankito.jpa.relationship.collections;
 
-import net.dankito.jpa.annotationreader.config.PropertyConfig;
+import net.dankito.jpa.apt.config.ColumnConfig;
 import net.dankito.jpa.couchbaselite.Dao;
 
 import org.slf4j.Logger;
@@ -12,9 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Created by ganymed on 21/08/16.
- */
+
 public class LazyLoadingEntitiesCollection extends EntitiesCollection {
 
   private static final Logger log = LoggerFactory.getLogger(LazyLoadingEntitiesCollection.class);
@@ -29,7 +27,7 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
   protected boolean isInitialized = false;
 
 
-  public LazyLoadingEntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao, Collection<Object> targetEntitiesIds) throws SQLException {
+  public LazyLoadingEntitiesCollection(Object object, ColumnConfig property, Dao holdingObjectDao, Dao targetDao, Collection<Object> targetEntitiesIds) throws SQLException {
     super(object, property, holdingObjectDao, targetDao, targetEntitiesIds);
 
     isInitialized = true;
@@ -70,7 +68,7 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
 
       return retrievedEntity;
     } catch(Exception e) {
-      log.error("Cannot retrieve Target Entity of Type " + property.getTargetEntityClass() + " with id " + id, e);
+      log.error("Cannot retrieve Target Entity of Type " + property.getTargetEntity().getEntityClass() + " with id " + id, e);
     }
 
     return null;

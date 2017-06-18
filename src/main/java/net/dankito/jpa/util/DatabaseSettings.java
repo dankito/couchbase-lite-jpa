@@ -2,9 +2,7 @@ package net.dankito.jpa.util;
 
 import net.dankito.jpa.couchbaselite.Dao;
 
-/**
- * Created by ganymed on 24/08/16.
- */
+
 public class DatabaseSettings {
 
   public String sanitizeTableName(String extractedTableName) {

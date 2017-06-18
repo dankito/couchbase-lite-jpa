@@ -1,6 +1,6 @@
 package net.dankito.jpa.relationship.collections;
 
-import net.dankito.jpa.annotationreader.config.PropertyConfig;
+import net.dankito.jpa.apt.config.ColumnConfig;
 import net.dankito.jpa.couchbaselite.Dao;
 
 import org.slf4j.Logger;
@@ -8,17 +8,12 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.AbstractList;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import static jdk.nashorn.internal.runtime.regexp.joni.Config.log;
 
-/**
- * Created by ganymed on 21/08/16.
- */
 public class EntitiesCollection extends AbstractList implements Set {
 
   private static final Logger log = LoggerFactory.getLogger(EntitiesCollection.class);
@@ -32,14 +27,14 @@ public class EntitiesCollection extends AbstractList implements Set {
 
   protected Object holdingObject; // TODO: find a better name
 
-  protected PropertyConfig property;
+  protected ColumnConfig property;
 
   protected Dao holdingObjectDao;
 
   protected Dao targetDao;
 
 
-  public EntitiesCollection(Object object, PropertyConfig property, Dao holdingObjectDao, Dao targetDao, Collection<Object> targetEntitiesIds) throws SQLException {
+  public EntitiesCollection(Object object, ColumnConfig property, Dao holdingObjectDao, Dao targetDao, Collection<Object> targetEntitiesIds) throws SQLException {
     this.holdingObject = object;
     this.property = property;
     this.holdingObjectDao = holdingObjectDao;
