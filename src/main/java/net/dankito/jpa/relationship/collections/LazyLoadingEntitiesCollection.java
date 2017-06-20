@@ -40,6 +40,10 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
       this.targetEntitiesIds.clear();
       this.targetEntitiesIds.addAll(targetEntitiesIds);
     }
+
+    for(int i = items.size(); i < targetEntitiesIds.size(); i++) {
+      items.add(null); // so that items has the same size as targetEntitiesIds
+    }
   }
 
   @Override
