@@ -47,7 +47,7 @@ public class EntitiesCollection extends AbstractList implements Set {
 
   protected void initializeCollection(Collection<Object> targetEntitiesIds) throws SQLException {
     if(targetEntitiesIds == null) {
-      targetEntitiesIds = getJoinedEntityIds();
+      targetEntitiesIds = getJoinedEntityIds(); // TODO: this won't set field this.targetEntitiesIds !
     }
 
     retrievedTargetEntities(targetEntitiesIds);
