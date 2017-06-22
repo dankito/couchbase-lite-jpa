@@ -10,7 +10,10 @@ import java.sql.SQLException;
 import java.util.AbstractList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 
@@ -24,6 +27,8 @@ public class EntitiesCollection extends AbstractList implements Set {
 
   // we need to put items in a specific order, so i use a List instead of a Set
   protected List<Object> targetEntitiesIds;
+
+  protected Map<Object, Object> unpersistedEntities = new ConcurrentHashMap<>();
 
   protected Object holdingObject; // TODO: find a better name
 
@@ -94,6 +99,10 @@ public class EntitiesCollection extends AbstractList implements Set {
     try {
       Object id = targetDao.getObjectId(element);
 
+      if(id == null) { // object not persisted yet
+        id = createTemporaryId(element);
+      }
+
       targetEntitiesIds.add(index, id);
 
       itemAddedToCollection(index, element, id);
@@ -123,7 +132,16 @@ public class EntitiesCollection extends AbstractList implements Set {
     try {
       Object id = targetDao.getObjectId(object);
 
+      if(id == null) {
+        id = unpersistedEntities.get(object);
+      }
+
       targetEntitiesIds.remove(id);
+
+      Object unpersistedEntityId = unpersistedEntities.remove(object); // clean up unpersistedEntities
+      if(unpersistedEntityId != null) {
+        targetEntitiesIds.remove(unpersistedEntityId);
+      }
 
       itemRemovedFromCollection(object, id);
     } catch(Exception e) {
@@ -138,6 +156,15 @@ public class EntitiesCollection extends AbstractList implements Set {
   }
 
 
+  private Object createTemporaryId(Object element) {
+    String temporaryId = UUID.randomUUID().toString();
+
+    unpersistedEntities.put(element, temporaryId);
+
+    return temporaryId;
+  }
+
+
   @Override
   public int size() {
     return items.size();
@@ -146,6 +173,8 @@ public class EntitiesCollection extends AbstractList implements Set {
   @Override
   public void clear() {
     items.clear();
+    targetEntitiesIds.clear();
+    unpersistedEntities.clear();
   }
 
   public void refresh(Collection<Object> targetEntitiesIds) throws SQLException {

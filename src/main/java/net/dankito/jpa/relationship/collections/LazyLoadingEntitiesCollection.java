@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -19,8 +18,6 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
 
 
   protected Map<Object, Object> cachedEntities = new ConcurrentHashMap<>();
-
-  protected Map<Integer, Object> unpersistedEntities = new ConcurrentHashMap<>();
 
   protected boolean cacheEntities = true;
 
@@ -49,10 +46,6 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
   @Override
   public Object get(int index) {
     Object id = targetEntitiesIds.get(index); // range check is implicitly done here
-
-    if(id == null) {
-      id = unpersistedEntities.get(index);
-    }
 
     Object cachedEntity = cachedEntities.get(id);
     if(cachedEntity != null) {
@@ -92,20 +85,8 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
 
   protected void cacheEntity(Object id, Object entity, int index) {
     if(cacheEntities) {
-      if(id == null) { // object not persisted yet
-        id = createTemporaryId(index);
-      }
-
       cachedEntities.put(id, entity);
     }
-  }
-
-  private Object createTemporaryId(int index) {
-    String temporaryId = UUID.randomUUID().toString();
-
-    unpersistedEntities.put(index, temporaryId);
-
-    return temporaryId;
   }
 
   protected boolean removeEntityFromCache(Object id, Object object) {
@@ -120,9 +101,8 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
 
   @Override
   public void clear() {
-    targetEntitiesIds.clear();
+    super.clear();
     cachedEntities.clear();
-    unpersistedEntities.clear();
   }
 
 }
