@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -184,7 +185,23 @@ public class EntitiesCollection extends AbstractList implements Set {
 
 
   public List<Object> getTargetEntitiesIds() {
+    resolveRealIdsOrPreviouslyUnpersistedEntities();
+
     return targetEntitiesIds;
+  }
+
+  protected void resolveRealIdsOrPreviouslyUnpersistedEntities() {
+    for(Object unpersistedEntity : new ArrayList(unpersistedEntities.keySet())) {
+      try {
+        Object realId = targetDao.getObjectId(unpersistedEntity);
+
+        if(realId != null) { // ok, so now we have the real id, remove the temporary one and set real one
+          Object temporaryId = unpersistedEntities.remove(unpersistedEntity);
+          int index = targetEntitiesIds.indexOf(temporaryId);
+          targetEntitiesIds.set(index, realId);
+        }
+      } catch(Exception ignored) { }
+    }
   }
 
 }
