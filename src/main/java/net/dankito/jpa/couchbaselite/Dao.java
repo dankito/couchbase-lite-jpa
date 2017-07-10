@@ -355,7 +355,7 @@ public class Dao {
     return createObjectFromDocument(storedDocument, id, entityRealClass);
   }
 
-  protected Object createObjectFromDocument(Document storedDocument, Object id, Class entityRealClass) throws SQLException {
+  public Object createObjectFromDocument(Document storedDocument, Object id, Class entityRealClass) throws SQLException {
     if(entityConfig.getEntityClass().equals(entityRealClass)) {
       Object retrievedObject = createObjectInstance(id);
 
