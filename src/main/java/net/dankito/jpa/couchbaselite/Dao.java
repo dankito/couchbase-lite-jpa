@@ -639,6 +639,8 @@ public class Dao {
   }
 
   protected boolean deleteObjectInDb(Object object, Document storedDocument) throws CouchbaseLiteException, SQLException {
+    // as some @PreRemove methods change object (e.g. setting a deleted flag) i tried to save an extra revision, but this has no effect as the updated revision doesn't get
+    // synchronized, only the deleted one
     boolean result = storedDocument.delete();
 
     if(result) {
