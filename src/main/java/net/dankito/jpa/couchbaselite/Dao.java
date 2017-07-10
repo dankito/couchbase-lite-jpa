@@ -1268,6 +1268,7 @@ public class Dao {
   }
 
   public void compactDatabase() {
+    log.info("Compacting database ...");
     if(databaseCompacter != null) {
       databaseCompacter.scheduleCompacting();
     }
