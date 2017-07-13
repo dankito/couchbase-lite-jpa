@@ -61,6 +61,8 @@ public class LazyLoadingEntitiesCollection extends EntitiesCollection {
     try {
       Object retrievedEntity = targetDao.retrieve(id);
 
+      items.set(index, retrievedEntity);
+
       cacheEntity(id, retrievedEntity, index);
 
       return retrievedEntity;
