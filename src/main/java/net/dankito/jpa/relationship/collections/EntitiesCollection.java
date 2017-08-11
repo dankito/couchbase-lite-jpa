@@ -137,6 +137,14 @@ public class EntitiesCollection extends AbstractList implements Set {
         id = unpersistedEntities.get(object);
       }
 
+      if(success == false && id != null) { // for LazyLoadingEntitiesCollection, when there's only null in items but not object yet
+        int index = targetEntitiesIds.indexOf(id);
+        if(index >= 0 && index < items.size()) {
+          items.remove(index);
+          success = true;
+        }
+      }
+
       targetEntitiesIds.remove(id);
 
       Object unpersistedEntityId = unpersistedEntities.remove(object); // clean up unpersistedEntities
