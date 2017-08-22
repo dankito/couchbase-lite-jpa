@@ -483,7 +483,7 @@ public class Dao {
 
   protected void setPropertyOnObjectToValueFromDocument(Object object, Document document, ColumnConfig property, Object propertyValueFromDocument) throws SQLException {
     if(propertyValueFromDocument == null) {
-      if(document.getProperties().containsKey(property.getColumnName())) { // only if null value is explicitly set in Document (if it doesn't contain key property.getColumnName() also null is returned)
+      if(document.getProperties() != null && document.getProperties().containsKey(property.getColumnName())) { // only if null value is explicitly set in Document (if it doesn't contain key property.getColumnName() also null is returned)
         setValueOnObject(object, property, propertyValueFromDocument);
       }
     }
