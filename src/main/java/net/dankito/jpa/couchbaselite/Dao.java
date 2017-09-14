@@ -604,7 +604,7 @@ public class Dao {
     return storedDocument;
   }
 
-  protected Class getEntityClassFromDocument(Document document) throws SQLException {
+  public Class getEntityClassFromDocument(Document document) throws SQLException {
     String className = (String) document.getProperty(TYPE_COLUMN_NAME);
     try {
       return Class.forName(className);
