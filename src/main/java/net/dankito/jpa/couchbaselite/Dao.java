@@ -357,23 +357,31 @@ public class Dao {
 
   public Object createObjectFromDocument(Document storedDocument, Object id, Class entityRealClass) throws SQLException {
     if(entityConfig.getEntityClass().equals(entityRealClass)) {
-      Object retrievedObject = createObjectInstance(id);
-
-      setPropertiesOnObject(retrievedObject, storedDocument);
-
-      entityConfig.invokePostLoadLifeCycleMethod(retrievedObject);
-
-      return retrievedObject;
+      return createObjectFromDocumentFromThisDao(storedDocument, id);
     }
     else { // for classes with inheritance may for a parent class is queried, but we need to create an instance of child class
-      if(containsParentEntityClass(storedDocument, entityClass) == false) {
-        throw new SQLException("Trying to retrieve an Object of Type " + entityClass + " of ID " + id + ", but Document with this ID says it's of Type " + entityRealClass + " " +
-            "which is not a child class of " + entityClass);
-      }
-
-      Dao childDao = daoCache.getDaoForEntity(entityRealClass);
-      return childDao.createObjectFromDocument(storedDocument, id, entityRealClass);
+      return createObjectFromDocumentFromChildDao(storedDocument, id, entityRealClass);
     }
+  }
+
+  protected Object createObjectFromDocumentFromThisDao(Document storedDocument, Object id) throws SQLException {
+    Object retrievedObject = createObjectInstance(id);
+
+    setPropertiesOnObject(retrievedObject, storedDocument);
+
+    entityConfig.invokePostLoadLifeCycleMethod(retrievedObject);
+
+    return retrievedObject;
+  }
+
+  protected Object createObjectFromDocumentFromChildDao(Document storedDocument, Object id, Class entityRealClass) throws SQLException {
+    if(containsParentEntityClass(storedDocument, entityClass) == false) {
+      throw new SQLException("Trying to retrieve an Object of Type " + entityClass + " of ID " + id + ", but Document with this ID says it's of Type " + entityRealClass + " " +
+          "which is not a child class of " + entityClass);
+    }
+
+    Dao childDao = daoCache.getDaoForEntity(entityRealClass);
+    return childDao.createObjectFromDocument(storedDocument, id, entityRealClass);
   }
 
 
