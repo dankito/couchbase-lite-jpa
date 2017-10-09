@@ -1233,8 +1233,8 @@ public class Dao {
 
   public Object getLobFromAttachment(ColumnConfig property, Document document) {
     Revision revision = document.getCurrentRevision();
-    Attachment attachment = revision.getAttachment(getAttachmentNameForProperty(property));
     try {
+      Attachment attachment = revision.getAttachment(getAttachmentNameForProperty(property));
       if(attachment != null) {
         return readAttachmentContent(property, attachment);
       }
