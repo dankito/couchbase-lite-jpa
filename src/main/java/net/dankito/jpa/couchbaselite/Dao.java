@@ -311,14 +311,20 @@ public class Dao {
   }
 
   protected void addToRetrievedObjects(Collection<Object> retrievedObjects, QueryRow nextResultItem, Object objectId) throws SQLException {
-    Object cachedOrRetrievedObject = objectCache.get(entityClass, objectId);
-    if(cachedOrRetrievedObject == null) {
-      cachedOrRetrievedObject = createObjectFromDocument(nextResultItem.getDocument(), objectId);
-      objectCache.add(entityClass, objectId, cachedOrRetrievedObject);
+    if(objectId == null) {
+      return;
     }
 
-    if(cachedOrRetrievedObject != null) { // TODO: why checking for != null before adding to retrievedObjects?
-      retrievedObjects.add(cachedOrRetrievedObject);
+    synchronized(objectId) {
+      Object cachedOrRetrievedObject = objectCache.get(entityClass, objectId);
+      if(cachedOrRetrievedObject == null) {
+        cachedOrRetrievedObject = createObjectFromDocument(nextResultItem.getDocument(), objectId);
+        objectCache.add(entityClass, objectId, cachedOrRetrievedObject);
+      }
+
+      if(cachedOrRetrievedObject != null) { // TODO: why checking for != null before adding to retrievedObjects?
+        retrievedObjects.add(cachedOrRetrievedObject);
+      }
     }
   }
 
@@ -334,12 +340,18 @@ public class Dao {
   }
 
   public Object retrieve(Object id) throws SQLException {
-    Object cachedObject = getObjectFromCache(id); // don't check first if cache contains object to this id as this is operation is of O(n)
-    if(cachedObject != null) {
-      return cachedObject;
+    if(id == null) {
+      return null;
     }
-    else {
-      return retrieveObjectFromDb(id);
+
+    synchronized(id) { // if two threads at the same time try to retrieve an object, object may gets created twice -> synchronize retrieval of an object
+      Object cachedObject = getObjectFromCache(id); // don't check first if cache contains object to this id as this is operation is of O(n)
+      if(cachedObject != null) {
+        return cachedObject;
+      }
+      else {
+        return retrieveObjectFromDb(id);
+      }
     }
   }
 
@@ -356,15 +368,21 @@ public class Dao {
   }
 
   public Object createObjectFromDocument(Document storedDocument, Object id, Class entityRealClass) throws SQLException {
-    if(entityConfig.getEntityClass().equals(entityRealClass)) {
-      return createObjectFromDocumentFromThisDao(storedDocument, id);
+    if(id == null) {
+      return null;
     }
-    else { // for classes with inheritance may for a parent class is queried, but we need to create an instance of child class
-      return createObjectFromDocumentFromChildDao(storedDocument, id, entityRealClass);
+
+    synchronized(id) {
+      if(entityConfig.getEntityClass().equals(entityRealClass)) {
+        return createObjectFromDocumentFromThisDao(storedDocument, id);
+      }
+      else { // for classes with inheritance may for a parent class is queried, but we need to create an instance of child class
+        return createObjectFromDocumentFromChildDao(storedDocument, id, entityRealClass);
+      }
     }
   }
 
-  protected Object createObjectFromDocumentFromThisDao(Document storedDocument, Object id) throws SQLException {
+  private Object createObjectFromDocumentFromThisDao(Document storedDocument, Object id) throws SQLException {
     Object retrievedObject = createObjectInstance(id);
 
     setPropertiesOnObject(retrievedObject, storedDocument);
@@ -374,7 +392,7 @@ public class Dao {
     return retrievedObject;
   }
 
-  protected Object createObjectFromDocumentFromChildDao(Document storedDocument, Object id, Class entityRealClass) throws SQLException {
+  private Object createObjectFromDocumentFromChildDao(Document storedDocument, Object id, Class entityRealClass) throws SQLException {
     if(containsParentEntityClass(storedDocument, entityClass) == false) {
       throw new SQLException("Trying to retrieve an Object of Type " + entityClass + " of ID " + id + ", but Document with this ID says it's of Type " + entityRealClass + " " +
           "which is not a child class of " + entityClass);
