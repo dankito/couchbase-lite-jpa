@@ -692,12 +692,24 @@ public class Dao {
         }
       });
 
+      deleteLeafRevisions(storedDocument);
+
       return true;
     } catch(Exception e) {
       log.error("Could not deleted document for object " + object, e);
     }
 
     return false;
+  }
+
+  private void deleteLeafRevisions(Document storedDocument) throws CouchbaseLiteException {
+    try {
+      for(SavedRevision leafRevision : storedDocument.getLeafRevisions()) {
+        if(leafRevision.isDeletion() == false) {
+          leafRevision.deleteDocument();
+        }
+      }
+    } catch(Exception e) { log.error("Could not delete other leaf revisions of document with id " + storedDocument.getId(), e); }
   }
 
 
