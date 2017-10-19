@@ -665,9 +665,7 @@ public class Dao {
   }
 
   protected boolean deleteObjectInDb(Object object, Document storedDocument) throws CouchbaseLiteException, SQLException {
-    // as some @PreRemove methods change object (e.g. setting a deleted flag) i tried to save an extra revision, but this has no effect as the updated revision doesn't get
-    // synchronized, only the deleted one
-    boolean result = storedDocument.delete();
+    boolean result = deleteDocument(object, storedDocument);
 
     if(result) {
       setValueOnObject(object, entityConfig.getIdColumn(), null); // TODO: really set Id to null?
@@ -675,6 +673,31 @@ public class Dao {
     }
 
     return result;
+  }
+
+  private boolean deleteDocument(Object object, Document storedDocument) throws SQLException, CouchbaseLiteException {
+    // so that also updated properties get persisted in last revision of deleted documents, i choose the document.update() way (see https://developer.couchbase.com/documentation/mobile/current/guides/couchbase-lite/native-api/document/index.html#deleting-documents)
+    try {
+      final Map<String, Object> updatedProperties = mapProperties(object, entityConfig, storedDocument, false);
+
+      storedDocument.update(new Document.DocumentUpdater() {
+        @Override
+        public boolean update(UnsavedRevision newRevision) {
+          newRevision.setIsDeletion(true);
+
+          Map<String, Object> properties = newRevision.getUserProperties();
+          properties.putAll(updatedProperties);
+          newRevision.setUserProperties(properties);
+          return true;
+        }
+      });
+
+      return true;
+    } catch(Exception e) {
+      log.error("Could not deleted document for object " + object, e);
+    }
+
+    return false;
   }
 
 
