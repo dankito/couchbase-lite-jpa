@@ -19,7 +19,13 @@ test {
 def couchbaseLiteVersion = '1.4.0'
 
 dependencies {
-    compile 'com.couchbase.lite:couchbase-lite-java-core:' + couchbaseLiteVersion
+    compile ("com.couchbase.lite:couchbase-lite-java-core:$couchbaseLiteVersion", {
+        exclude group: 'com.squareup.okhttp3', module: 'okhttp'
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-annotations'
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+    })
+
     compile project(':JPAAnnotationReaderAPI')
 
     compile 'org.slf4j:slf4j-api:1.7.25'
