@@ -1,6 +1,6 @@
 # couchbase-lite-jpa
 
-JPA provider for CouchbaseLite. Not a full JPA implemention yet, but most annotations working.
+JPA provider for CouchbaseLite. Not a full JPA implementation yet, but most annotations are working.
 
 Preferable use in conjunction with [jpa-apt](https://github.com/dankito/jpa-apt) to that JPA meta model gets generated at build time and 
 no time consuming annotation reading with reflection at application start up is required.
