@@ -16,7 +16,7 @@ public class ObjectCache {
 
 
   /**
-   * Try to avoid calling this method as it's of O(n).<br/>
+   * Try to avoid calling this method as it's of O(n).<br>
    * Try to get or remove object directly.
    * @param entityClass
    * @param id
