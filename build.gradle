@@ -30,7 +30,7 @@ dependencies {
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
     })
 
-    compile project(':JPAAnnotationReaderAPI')
+    compile "net.dankito.jpa.annotationreader:api:1.0-alpha2"
 
     compile "org.slf4j:slf4j-api:1.7.25"
 
