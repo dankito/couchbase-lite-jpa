@@ -5,4 +5,6 @@
 /data/
 .gradle/
 
+/gradle.properties
+
 src/main/java/net/dankito/jpa/annotationreader/
