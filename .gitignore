@@ -6,5 +6,6 @@
 .gradle/
 
 /gradle.properties
+local.properties
 
 src/main/java/net/dankito/jpa/annotationreader/
