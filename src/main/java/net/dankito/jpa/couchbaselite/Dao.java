@@ -38,6 +38,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
+import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -79,6 +80,8 @@ public class Dao {
   protected static final int TOO_LARGE_TOO_SORT_MANUALLY = 500;
 
   protected static final long ATTACHMENT_SIZE_TO_COMPACT_DATABASE_AFTER_REMOVAL = 500 * 1024; // 500 kByte
+
+  protected static final Charset ATTACHMENT_CONTENT_CHARSET = Charset.forName("utf-8");
 
 
   protected Database database;
@@ -1237,7 +1240,7 @@ public class Dao {
       bytes = (byte[])propertyValue;
     }
     else if(propertyValue instanceof String) {
-      bytes = ((String)propertyValue).getBytes();
+      bytes = ((String)propertyValue).getBytes(ATTACHMENT_CONTENT_CHARSET);
     }
     else {
       ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -1312,7 +1315,7 @@ public class Dao {
     byte[] bytes = buffer.toByteArray();
 
     if(property.getDataType() == DataType.STRING) {
-      return new String(bytes);
+      return new String(bytes, ATTACHMENT_CONTENT_CHARSET);
     }
     else {
       return bytes;
