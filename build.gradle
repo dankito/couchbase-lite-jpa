@@ -3,17 +3,21 @@ version '1.0-alpha2'
 def mavenArtifactId = "couchbase-lite-jpa"
 
 
-ext {
-    couchbaseLiteVersion = '1.4.1'
-}
-
-
 buildscript {
+    ext {
+        kotlinVersion = '1.2.21'
+
+        couchbaseLiteVersion = '1.4.1'
+    }
+
+
     repositories {
         mavenCentral()
     }
 
     dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+
         // Nexus staging plugin has to be downgraded to 0.10.0 to be applicable to sub projects, see https://github.com/UweTrottmann/SeriesGuide/commit/ca33e8ad2fa6cc5c426450c8aef3417ba073ca7f
         classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.10.0"
     }
@@ -22,6 +26,7 @@ buildscript {
 
 
 apply plugin: 'java'
+apply plugin: 'kotlin'
 
 apply plugin: 'maven'
 apply plugin: 'signing'
@@ -31,6 +36,14 @@ apply plugin: 'io.codearte.nexus-staging'
 
 
 sourceCompatibility = 1.7
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.6"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.6"
+}
+
 
 repositories {
     mavenCentral()
@@ -44,6 +57,9 @@ test {
 
 
 dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+
     compile ("com.couchbase.lite:couchbase-lite-java-core:$couchbaseLiteVersion", {
         exclude group: 'com.squareup.okhttp3', module: 'okhttp'
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
