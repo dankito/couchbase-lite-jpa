@@ -56,7 +56,7 @@ abstract class CouchbaseLiteEntityManagerBase(protected var context: Context) : 
     }
 
     private fun loadGeneratedModel(): JPAEntityConfiguration? {
-        GeneratedEntityConfigsUtil().generatedEntityConfigs()?.let { generatedEntityConfigs ->
+        GeneratedEntityConfigsUtil().getGeneratedEntityConfigs()?.let { generatedEntityConfigs ->
             return JPAEntityConfiguration(generatedEntityConfigs)
         }
 
