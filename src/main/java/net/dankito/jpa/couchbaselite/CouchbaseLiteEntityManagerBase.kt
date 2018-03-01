@@ -3,6 +3,7 @@ package net.dankito.jpa.couchbaselite
 import com.couchbase.lite.*
 import net.dankito.jpa.apt.config.EntityConfig
 import net.dankito.jpa.apt.config.JPAEntityConfiguration
+import net.dankito.jpa.apt.generated.GeneratedEntityConfigsUtil
 import net.dankito.jpa.cache.DaoCache
 import net.dankito.jpa.cache.ObjectCache
 import net.dankito.jpa.entitymanager.EntityManagerConfiguration
@@ -47,19 +48,19 @@ abstract class CouchbaseLiteEntityManagerBase(protected var context: Context) : 
 
         databaseCompacter = DatabaseCompacter(database, 10000)
 
-        val result = loadGeneratedModel()
-
-        createDaos(result)
+        loadGeneratedModel()?.let { generatedEntityConfigs ->
+            createDaos(generatedEntityConfigs)
+        }
 
         checkDataModelVersion()
     }
 
-    private fun loadGeneratedModel(): JPAEntityConfiguration {
-        val generatedConfigs = GeneratedEntityConfigs()
+    private fun loadGeneratedModel(): JPAEntityConfiguration? {
+        GeneratedEntityConfigsUtil().generatedEntityConfigs()?.let { generatedEntityConfigs ->
+            return JPAEntityConfiguration(generatedEntityConfigs)
+        }
 
-        val generatedEntityConfigs = generatedConfigs.getGeneratedEntityConfigs()
-
-        return JPAEntityConfiguration(generatedEntityConfigs)
+        return null
     }
 
     override fun close() {
