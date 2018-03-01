@@ -1,5 +1,5 @@
 group 'net.dankito.jpa.couchbaselite'
-version '1.0-alpha2'
+version '1.0-alpha3'
 def mavenArtifactId = "couchbase-lite-jpa"
 
 
