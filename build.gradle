@@ -8,6 +8,8 @@ buildscript {
         kotlinVersion = '1.2.21'
 
         couchbaseLiteVersion = '1.4.1'
+
+        jpaAnnotationReaderVersion = '1.0-alpha2'
     }
 
 
@@ -67,7 +69,7 @@ dependencies {
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
     })
 
-    compile "net.dankito.jpa.annotationreader:api:1.0-alpha2"
+    compile "net.dankito.jpa.annotationreader:api:$jpaAnnotationReaderVersion"
 
     compile "org.slf4j:slf4j-api:1.7.25"
 
