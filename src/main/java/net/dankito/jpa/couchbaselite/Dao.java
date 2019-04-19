@@ -471,7 +471,7 @@ public class Dao {
 
   protected Object createObjectInstance(Object id) throws SQLException {
     try {
-      Object newInstance = entityConfig.getConstructor().newInstance();
+      Object newInstance = entityConfig.getNoArgConstructor().newInstance();
 
       addObjectToCache(newInstance, id);
 
@@ -1051,7 +1051,7 @@ public class Dao {
 
     Object version = Long.parseLong(revisionId);
 
-    Class versionDataType = entityConfig.getVersionColumn().getType();
+    Class versionDataType = entityConfig.getVersionColumn().getClassType();
     if(int.class.equals(versionDataType) || Integer.class.equals(versionDataType)) {
       version = (int)version;
     }

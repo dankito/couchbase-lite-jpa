@@ -17,14 +17,14 @@ public class ValueConverter implements IValueConverter {
 
     Object convertedValue = retrievedValue;
 
-    if(property.getType() == Date.class) {
+    if(property.getClassType() == Date.class) {
       if(retrievedValue instanceof Long || retrievedValue instanceof Integer)
       convertedValue = convertToDate(retrievedValue);
     }
     else if(property.isEnumType() && retrievedValue instanceof Enum == false) {
       convertedValue = convertToEnum(property, retrievedValue);
     }
-    else if(property.getType() == BigDecimal.class && retrievedValue instanceof BigDecimal == false) {
+    else if(property.getClassType() == BigDecimal.class && retrievedValue instanceof BigDecimal == false) {
       convertedValue = convertToBigDecimal(retrievedValue);
     }
 
@@ -49,11 +49,11 @@ public class ValueConverter implements IValueConverter {
     Object convertedValue = retrievedValue;
 
     if(retrievedValue instanceof String) {
-      convertedValue = Enum.valueOf(property.getType().asSubclass(Enum.class), (String)retrievedValue);
+      convertedValue = Enum.valueOf(property.getClassType().asSubclass(Enum.class), (String)retrievedValue);
     }
     else if(retrievedValue instanceof Integer) {
       int ordinal = (int)retrievedValue;
-      for(Object enumValue : property.getType().getEnumConstants()) {
+      for(Object enumValue : property.getClassType().getEnumConstants()) {
         if(((Enum)enumValue).ordinal() == ordinal) {
           convertedValue = enumValue;
           break;
