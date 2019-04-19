@@ -27,6 +27,12 @@ public class ValueConverter implements IValueConverter {
     else if(property.getClassType() == BigDecimal.class && retrievedValue instanceof BigDecimal == false) {
       convertedValue = convertToBigDecimal(retrievedValue);
     }
+    else if((property.getClassType() == float.class || property.getClassType() == Float.class)
+        && retrievedValue instanceof Float == false) {
+      if (retrievedValue instanceof Double) {
+        convertedValue = ((Double) retrievedValue).floatValue();
+      }
+    }
 
     return convertedValue;
   }
