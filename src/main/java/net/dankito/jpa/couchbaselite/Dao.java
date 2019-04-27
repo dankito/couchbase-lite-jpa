@@ -396,13 +396,17 @@ public class Dao {
   }
 
   private Object createObjectFromDocumentFromChildDao(Document storedDocument, Object id, Class entityRealClass) throws SQLException {
-    if(containsParentEntityClass(storedDocument, entityClass) == false) {
+    if(isChildOf(entityRealClass, entityClass) == false) {
       throw new SQLException("Trying to retrieve an Object of Type " + entityClass + " of ID " + id + ", but Document with this ID says it's of Type " + entityRealClass + " " +
           "which is not a child class of " + entityClass);
     }
 
     Dao childDao = daoCache.getDaoForEntity(entityRealClass);
     return childDao.createObjectFromDocument(storedDocument, id, entityRealClass);
+  }
+
+  private boolean isChildOf(Class classToCheck, Class parentClass) {
+    return parentClass.isAssignableFrom(classToCheck);
   }
 
 
