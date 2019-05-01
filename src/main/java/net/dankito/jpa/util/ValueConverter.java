@@ -74,13 +74,16 @@ public class ValueConverter implements IValueConverter {
     Object convertedValue = retrievedValue;
 
     if(retrievedValue instanceof Integer) {
-      convertedValue = new BigDecimal((Integer) retrievedValue);
+      convertedValue = BigDecimal.valueOf((Integer) retrievedValue);
     }
     else if(retrievedValue instanceof Long) {
-      convertedValue = new BigDecimal((Long) retrievedValue);
+      convertedValue = BigDecimal.valueOf((Long) retrievedValue);
     }
     else if(retrievedValue instanceof Double) {
-      convertedValue = new BigDecimal((Double) retrievedValue);
+      convertedValue = BigDecimal.valueOf((Double) retrievedValue);
+    }
+    else if(retrievedValue instanceof Float) {
+      convertedValue = BigDecimal.valueOf((Float) retrievedValue);
     }
     else if(retrievedValue instanceof String) {
       convertedValue = new BigDecimal((String) retrievedValue);
