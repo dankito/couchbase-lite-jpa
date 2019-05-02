@@ -10,6 +10,7 @@ import net.dankito.jpa.entitymanager.EntityManagerConfiguration
 import net.dankito.jpa.entitymanager.IEntityManager
 import net.dankito.jpa.util.DatabaseCompacter
 import org.slf4j.LoggerFactory
+import java.io.File
 import java.io.IOException
 import java.util.*
 import kotlin.collections.ArrayList
@@ -35,13 +36,13 @@ abstract class CouchbaseLiteEntityManagerBase(protected var context: Context) : 
     var objectCache = ObjectCache()
         private set
 
-    private lateinit var _databasePath: String
+    private lateinit var databasePath: String
 
     protected var mapEntityClassesToDaos: MutableMap<Class<*>, Dao> = HashMap()
 
 
     override fun open(configuration: EntityManagerConfiguration) {
-        this._databasePath = adjustDatabasePath(context, configuration)
+        this.databasePath = adjustDatabasePath(context, configuration)
 
         createDatabase(configuration)
 
@@ -66,7 +67,10 @@ abstract class CouchbaseLiteEntityManagerBase(protected var context: Context) : 
         manager.close()
     }
 
-    protected abstract fun adjustDatabasePath(context: Context, configuration: EntityManagerConfiguration): String
+    protected open fun adjustDatabasePath(context: Context, configuration: EntityManagerConfiguration): String {
+        // TODO: implement this in a better way as this uses implementation internal details
+        return File(context.filesDir, configuration.databaseName + ".cblite2").absolutePath
+    }
 
 
     @Throws(CouchbaseLiteException::class, IOException::class)
@@ -104,7 +108,7 @@ abstract class CouchbaseLiteEntityManagerBase(protected var context: Context) : 
 
 
     override fun getDatabasePath(): String {
-        return _databasePath
+        return databasePath
     }
 
     override fun persistEntity(entity: Any): Boolean {
