@@ -9,7 +9,7 @@ buildscript {
 
         couchbaseLiteVersion = '1.4.1'
 
-        jpaAnnotationReaderVersion = '1.0-alpha4-SNAPSHOT'
+        jpaAnnotationReaderVersion = '1.0.0-alpha4'
     }
 
 
@@ -29,6 +29,7 @@ buildscript {
 
 apply plugin: 'java'
 apply plugin: 'kotlin'
+apply plugin: 'kotlin-kapt'
 
 apply plugin: 'maven'
 apply plugin: 'signing'
@@ -52,6 +53,13 @@ repositories {
     mavenLocal()
 }
 
+sourceSets {
+    test {
+        java {
+            srcDirs += [ "${buildDir.absolutePath}/generated/source/kapt/test/" ]
+        }
+    }
+}
 
 // temporarily ignore tests
 test {
@@ -81,6 +89,8 @@ dependencies {
 
     testCompile "ch.qos.logback:logback-core:1.2.3"
     testCompile "ch.qos.logback:logback-classic:1.2.3"
+
+    kaptTest "net.dankito.jpa.annotationreader:jpa-apt:$jpaAnnotationReaderVersion"
 }
 
 
