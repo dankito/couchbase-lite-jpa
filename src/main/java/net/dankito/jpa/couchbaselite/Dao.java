@@ -596,6 +596,8 @@ public class Dao {
 
     updateDocument(storedDocument, updatedProperties);
 
+    updateCascadeMergeFields(object); // TODO: is this correct?
+
     updateVersionOnObject(object, storedDocument);
 
     // TODO: is there a kind of Cascade Update?
@@ -618,6 +620,31 @@ public class Dao {
     } catch(Exception e) {
       log.error("Could not update Document with Id " + storedDocument.getId() + " to Properties: " + updatedProperties);
     }
+  }
+
+  protected Map<String, Object> updateCascadeMergeFields(Object object) throws SQLException, CouchbaseLiteException {
+    Map<String, Object> cascadedProperties = new HashMap<>(); // TODO: still needed?
+
+    for(ColumnConfig cascadeMergeProperty : entityConfig.getColumnsWithCascadeMergeIncludingInheritedOnes()) {
+      Dao targetDao = daoCache.getTargetDaoForRelationshipProperty(cascadeMergeProperty);
+      Object propertyValue = getPropertyValue(object, cascadeMergeProperty);
+
+      if(propertyValue != null) {
+        // TODO: what about unpersisted values?
+        // TODO: may result in an endless recursion if on target property also Cascade.MERGE is set
+        // TODO: is it really that easy?
+        if (propertyValue instanceof Collection) {
+          for (Object collectionItem : (Collection) propertyValue) {
+            targetDao.update(collectionItem);
+          }
+        }
+        else {
+          targetDao.update(propertyValue);
+        }
+      }
+    }
+
+    return cascadedProperties;
   }
 
 
