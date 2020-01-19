@@ -32,8 +32,8 @@ open class Migrator(
     open fun migrateClass(formerEntityFullQualifiedClassName: String, newEntityFullQualifiedClass: String) {
         val updatedClassNameProperty = mapOf(Dao.TYPE_COLUMN_NAME to newEntityFullQualifiedClass)
 
-        getAllDocumentsOfType(formerEntityFullQualifiedClassName).forEach { document ->
-            updateDocument(document, updatedClassNameProperty)
+        applyTransformationAllDocumentsOfType(formerEntityFullQualifiedClassName) { _, properties ->
+            properties.putAll(updatedClassNameProperty)
         }
     }
 
@@ -52,21 +52,9 @@ open class Migrator(
     }
 
     open fun removeUnusedProperties(fullQualifiedClassName: String, propertyNames: List<String>) {
-        getAllDocumentsOfType(fullQualifiedClassName).forEach { document ->
-            // see http://blog.couchbase.com/2016/july/better-updates-couchbase-lite
-            try {
-                document.update { newRevision ->
-                    val properties = newRevision.userProperties
-
-                    propertyNames.forEach { propertyName ->
-                        properties.remove(propertyName)
-                    }
-
-                    newRevision.userProperties = properties
-                    true
-                }
-            } catch (e: Exception) {
-                log.error("Could not remove properties $propertyNames from Document with Id ${document.id}", e)
+        applyTransformationAllDocumentsOfType(fullQualifiedClassName) { _, properties ->
+            propertyNames.forEach { propertyName ->
+                properties.remove(propertyName)
             }
         }
     }
@@ -85,25 +73,11 @@ open class Migrator(
     }
 
     open fun renameProperty(fullQualifiedClassName: String, formerPropertyName: String, newPropertyName: String) {
-        getAllDocumentsOfType(fullQualifiedClassName).forEach { document ->
-            // see http://blog.couchbase.com/2016/july/better-updates-couchbase-lite
-            try {
-                document.update { newRevision ->
-                    val properties = newRevision.userProperties
+        applyTransformationAllDocumentsOfType(fullQualifiedClassName) { _, properties ->
+            if (properties.containsKey(formerPropertyName)) {
+                properties.put(newPropertyName, properties.get(formerPropertyName))
 
-                    if (properties.containsKey(formerPropertyName)) {
-                        properties.set(newPropertyName, properties.get(formerPropertyName))
-
-                        properties.remove(formerPropertyName)
-
-                        newRevision.userProperties = properties
-                        return@update true
-                    }
-
-                    false
-                }
-            } catch (e: Exception) {
-                log.error("Could not rename property $formerPropertyName to $newPropertyName for Document with Id ${document.id}", e)
+                properties.remove(formerPropertyName)
             }
         }
     }
@@ -115,17 +89,23 @@ open class Migrator(
                 .map { it.document }
     }
 
-    protected open fun updateDocument(storedDocument: Document, updatedProperties: Map<String, Any>) {
-        // see http://blog.couchbase.com/2016/july/better-updates-couchbase-lite
-        try {
-            storedDocument.update { newRevision ->
-                val properties = newRevision.userProperties
-                properties.putAll(updatedProperties)
-                newRevision.userProperties = properties
-                true
+    protected open fun applyTransformationAllDocumentsOfType(fullQualifiedClassName: String,
+                                                             transformationCallback: (Document, latestRevisionProperties: MutableMap<String, Any?>) -> Unit) {
+
+        getAllDocumentsOfType(fullQualifiedClassName).forEach { storedDocument ->
+            // see http://blog.couchbase.com/2016/july/better-updates-couchbase-lite
+            try {
+                storedDocument.update { newRevision ->
+                    val properties = newRevision.userProperties
+
+                    transformationCallback(storedDocument, properties)
+
+                    newRevision.userProperties = properties
+                    true
+                }
+            } catch (e: Exception) {
+                log.error("Could not update Document with Id ${storedDocument.id}", e)
             }
-        } catch (e: Exception) {
-            log.error("Could not update Document with Id ${storedDocument.id} to Properties: ${updatedProperties}", e)
         }
     }
 
