@@ -14,6 +14,10 @@ class PreviousPerson(
 
     internal constructor() : this("") // for object deserializers
 
+    constructor(name: String, iAmNotUsedAnyMore: String) : this(name) {
+        this.iAmNotUsedAnyMore = iAmNotUsedAnyMore
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

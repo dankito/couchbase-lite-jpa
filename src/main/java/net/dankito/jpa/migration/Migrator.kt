@@ -25,8 +25,8 @@ open class Migrator(
         migrateClass(formerEntityClass.name, newEntityClass)
     }
 
-    open fun migrateClass(formerEntityFullQualifiedClassName: String, newEntityFullQualifiedClass: Class<*>) {
-        migrateClass(formerEntityFullQualifiedClassName, newEntityFullQualifiedClass.name)
+    open fun migrateClass(formerEntityFullQualifiedClassName: String, newEntityClass: Class<*>) {
+        migrateClass(formerEntityFullQualifiedClassName, newEntityClass.name)
     }
 
     open fun migrateClass(formerEntityFullQualifiedClassName: String, newEntityFullQualifiedClass: String) {
@@ -38,8 +38,13 @@ open class Migrator(
     }
 
 
-    open fun removeUnusedProperties(entityClass: KClass<*>, propertyNames: List<KProperty<*>>) {
-        removeUnusedProperties(entityClass.java, propertyNames.map { it.name })
+    open fun removeUnusedProperties(entityClass: KClass<*>, properties: List<KProperty<*>>) {
+        removeUnusedProperties(entityClass, properties.map { it.name })
+    }
+
+    @JvmName(name = "removeUnusedPropertiesString") // cannot make method open due to @JvmName
+    fun removeUnusedProperties(entityClass: KClass<*>, propertyNames: List<String>) {
+        removeUnusedProperties(entityClass.java, propertyNames)
     }
 
     open fun removeUnusedProperties(entityClass: Class<*>, propertyNames: List<String>) {
@@ -62,6 +67,43 @@ open class Migrator(
                 }
             } catch (e: Exception) {
                 log.error("Could not remove properties $propertyNames from Document with Id ${document.id}", e)
+            }
+        }
+    }
+
+
+    open fun renameProperty(entityClass: KClass<*>, formerProperty: KProperty<*>, newProperty: KProperty<*>) {
+        renameProperty(entityClass, formerProperty.name, newProperty.name)
+    }
+
+    open fun renameProperty(entityClass: KClass<*>, formerPropertyName: String, newPropertyName: String) {
+        renameProperty(entityClass.java, formerPropertyName, newPropertyName)
+    }
+
+    open fun renameProperty(entityClass: Class<*>, formerPropertyName: String, newPropertyName: String) {
+        renameProperty(entityClass.name, formerPropertyName, newPropertyName)
+    }
+
+    open fun renameProperty(fullQualifiedClassName: String, formerPropertyName: String, newPropertyName: String) {
+        getAllDocumentsOfType(fullQualifiedClassName).forEach { document ->
+            // see http://blog.couchbase.com/2016/july/better-updates-couchbase-lite
+            try {
+                document.update { newRevision ->
+                    val properties = newRevision.userProperties
+
+                    if (properties.containsKey(formerPropertyName)) {
+                        properties.set(newPropertyName, properties.get(formerPropertyName))
+
+                        properties.remove(formerPropertyName)
+
+                        newRevision.userProperties = properties
+                        return@update true
+                    }
+
+                    false
+                }
+            } catch (e: Exception) {
+                log.error("Could not rename property $formerPropertyName to $newPropertyName for Document with Id ${document.id}", e)
             }
         }
     }

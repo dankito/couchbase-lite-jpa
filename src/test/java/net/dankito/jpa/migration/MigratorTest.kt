@@ -75,4 +75,70 @@ class MigratorTest {
         }
     }
 
+
+    @Test
+    fun renameProperty() {
+
+        // given
+        val newPropertyName = "myNewFancyName"
+        val countPersonProperties = 5
+
+        val previousPersonDao = testUtil.getDao(PreviousPerson::class.java)!!
+
+        previousPersonDao.create(PreviousPerson("Previous Person 1", "Not used 1"))
+        previousPersonDao.create(PreviousPerson("Previous Person 2", "Not used 2"))
+
+        underTest.migrateClass(PreviousPerson::class, Person::class)
+
+        testUtil.getAllDocumentsOfType(Person::class).forEach { document ->
+            assertThat(document.properties.containsKey(PreviousPerson::iAmNotUsedAnyMore.name)).isTrue()
+            assertThat(document.properties).hasSize(countPersonProperties)
+        }
+
+
+        // when
+        underTest.renameProperty(Person::class, PreviousPerson::iAmNotUsedAnyMore.name, newPropertyName)
+
+
+        // then
+        testUtil.getAllDocumentsOfType(Person::class).forEach { document ->
+            assertThat(document.properties.get(newPropertyName) as String).isNotEmpty()
+            assertThat(document.properties.containsKey(PreviousPerson::iAmNotUsedAnyMore.name)).isFalse()
+            assertThat(document.properties).hasSize(countPersonProperties)
+        }
+    }
+
+    @Test
+    fun renameProperty_PropertyDoesNotExist() {
+
+        // given
+        val notExistingPropertyName = "i_do_not_exist"
+        val newPropertyName = "myNewFancyName"
+        val countPersonProperties = 5
+
+        val previousPersonDao = testUtil.getDao(PreviousPerson::class.java)!!
+
+        previousPersonDao.create(PreviousPerson("Previous Person 1"))
+        previousPersonDao.create(PreviousPerson("Previous Person 2"))
+
+        underTest.migrateClass(PreviousPerson::class, Person::class)
+
+        testUtil.getAllDocumentsOfType(Person::class).forEach { document ->
+            assertThat(document.properties.containsKey(PreviousPerson::iAmNotUsedAnyMore.name)).isTrue()
+            assertThat(document.properties).hasSize(countPersonProperties)
+        }
+
+
+        // when
+        underTest.renameProperty(Person::class, notExistingPropertyName, newPropertyName)
+
+
+        // then
+        testUtil.getAllDocumentsOfType(Person::class).forEach { document ->
+            assertThat(document.properties.containsKey(newPropertyName)).isFalse()
+            assertThat(document.properties.containsKey(notExistingPropertyName)).isFalse()
+            assertThat(document.properties).hasSize(countPersonProperties)
+        }
+    }
+
 }
