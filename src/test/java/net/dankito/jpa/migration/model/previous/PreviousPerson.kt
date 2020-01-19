@@ -19,6 +19,8 @@ class PreviousPerson(
     @GeneratedValue(strategy = GenerationType.AUTO)
     var id: String? = null
 
+    var iAmNotUsedAnyMore: String = ""
+
 
     override fun toString(): String {
         return name

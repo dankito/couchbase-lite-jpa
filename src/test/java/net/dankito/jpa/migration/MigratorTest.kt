@@ -33,7 +33,7 @@ class MigratorTest {
 
 
         // when
-        underTest.migrateClass(PreviousPerson::class.java, Person::class.java)
+        underTest.migrateClass(PreviousPerson::class, Person::class)
 
 
         // then
@@ -43,4 +43,36 @@ class MigratorTest {
         val previousPersons = previousPersonDao.retrieveAllEntitiesOfType(PreviousPerson::class.java)
         assertThat(previousPersons).isEmpty()
     }
+
+
+    @Test
+    fun removeUnusedProperties() {
+
+        // given
+        val countPersonPropertiesBefore = 5
+
+        val previousPersonDao = testUtil.getDao(PreviousPerson::class.java)!!
+
+        previousPersonDao.create(PreviousPerson("Previous Person 1"))
+        previousPersonDao.create(PreviousPerson("Previous Person 2"))
+
+        underTest.migrateClass(PreviousPerson::class, Person::class)
+
+        testUtil.getAllDocumentsOfType(Person::class).forEach { document ->
+            assertThat(document.properties.containsKey(PreviousPerson::iAmNotUsedAnyMore.name)).isTrue()
+            assertThat(document.properties).hasSize(countPersonPropertiesBefore)
+        }
+
+
+        // when
+        underTest.removeUnusedProperties(Person::class, listOf(PreviousPerson::iAmNotUsedAnyMore))
+
+
+        // then
+        testUtil.getAllDocumentsOfType(Person::class).forEach { document ->
+            assertThat(document.properties.containsKey(PreviousPerson::iAmNotUsedAnyMore.name)).isFalse()
+            assertThat(document.properties).hasSize(countPersonPropertiesBefore - 1)
+        }
+    }
+
 }

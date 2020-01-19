@@ -88,6 +88,8 @@ dependencies {
 
     testCompile "com.couchbase.lite:couchbase-lite-java:$couchbaseLiteVersion"
 
+    testCompile "net.dankito.utils:java-utils:1.0.10"
+
     testCompile "ch.qos.logback:logback-core:1.2.3"
     testCompile "ch.qos.logback:logback-classic:1.2.3"
 
