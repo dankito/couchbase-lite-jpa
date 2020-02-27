@@ -1495,7 +1495,28 @@ public class Dao {
 
 
   protected Object getObjectFromCache(Object id) {
-    return objectCache.get(entityClass, id);
+    Object cachedObject = objectCache.get(entityClass, id);
+
+    if (cachedObject == null && entityConfig.getChildEntities().isEmpty() == false) {
+      cachedObject = getObjectFromChildEntityDaoCache(id);
+    }
+
+    return cachedObject;
+  }
+
+  private Object getObjectFromChildEntityDaoCache(Object id) {
+    for (EntityConfig childEntityConfig : entityConfig.getChildEntities()) {
+      Dao childDao = daoCache.getDaoForEntity(childEntityConfig.getEntityClass());
+
+      if (childDao != null) {
+        Object cachedChildDaoObject = childDao.getObjectFromCache(id);
+        if (cachedChildDaoObject != null) {
+          return cachedChildDaoObject;
+        }
+      }
+    }
+
+    return null;
   }
 
   protected void addObjectToCache(Object object, Object id) {
