@@ -149,6 +149,32 @@ abstract class CouchbaseLiteEntityManagerBase(protected var context: Context) : 
         return result
     }
 
+
+    override fun saveOrUpdate(entity: Any): Boolean {
+        try {
+            val dao = getDaoForEntity(entity)
+
+            if (dao != null) {
+                return dao.saveOrUpdate(entity)
+            }
+        } catch (e: Exception) {
+            log.error("Could not save or update entity " + entity, e)
+        }
+
+        return false
+    }
+
+    override fun saveOrUpdate(entities: List<Any>): Boolean {
+        var result = true
+
+        for(entity in entities) {
+            result = result and saveOrUpdate(entity)
+        }
+
+        return result
+    }
+
+
     override fun deleteEntity(entity: Any): Boolean {
         try {
             val dao = getDaoForEntity(entity)

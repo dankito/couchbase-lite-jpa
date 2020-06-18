@@ -18,6 +18,9 @@ interface IEntityManager {
     fun updateEntity(entity: Any): Boolean
     fun updateEntities(entities: List<Any>): Boolean
 
+    fun saveOrUpdate(entity: Any): Boolean
+    fun saveOrUpdate(entities: List<Any>): Boolean
+
     fun deleteEntity(entity: Any): Boolean
 
     fun <T> getEntityById(type: Class<T>, id: String): T?

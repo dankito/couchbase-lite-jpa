@@ -648,6 +648,16 @@ public class Dao {
   }
 
 
+  public boolean saveOrUpdate(Object object) throws SQLException, CouchbaseLiteException {
+    if (isAlreadyPersisted(object) == false) {
+      return create(object);
+    }
+    else {
+      return update(object);
+    }
+  }
+
+
   protected Document retrieveStoredDocument(Object object) throws SQLException {
     String id = getObjectId(object);
 
