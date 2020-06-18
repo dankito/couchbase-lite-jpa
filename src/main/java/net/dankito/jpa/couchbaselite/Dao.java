@@ -1058,7 +1058,15 @@ public class Dao {
 
 
   protected boolean isAlreadyPersisted(Object object) throws SQLException {
-    return getObjectId(object) != null;
+    String id = getObjectId(object);
+
+    if (id != null) {
+      Document storedDocument = database.getExistingDocument(id);
+
+      return storedDocument != null;
+    }
+
+    return false;
   }
 
   public String getObjectId(Object object) throws SQLException {
