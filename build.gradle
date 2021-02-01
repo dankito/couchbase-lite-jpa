@@ -9,7 +9,7 @@ buildscript {
 
         couchbaseLiteVersion = '1.4.1'
 
-        jpaAnnotationReaderVersion = '1.0.0-alpha4'
+        jpaAnnotationReaderVersion = '1.0.0-alpha5'
     }
 
 
