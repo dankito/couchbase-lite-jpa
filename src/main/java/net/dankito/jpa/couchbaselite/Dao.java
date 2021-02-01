@@ -677,7 +677,11 @@ public class Dao {
   public Class getEntityClassFromDocument(Document document) throws SQLException {
     String className = (String) document.getProperty(TYPE_COLUMN_NAME);
     try {
-      return Class.forName(className);
+      try {
+        return Class.forName(className);
+      } catch (ClassNotFoundException e) {
+        return Thread.currentThread().getContextClassLoader().loadClass(className);
+      }
     } catch(Exception e) {
       throw new SQLException("Could not find Class for " + className, e);
     }
